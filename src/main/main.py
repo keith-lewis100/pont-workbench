@@ -2,6 +2,7 @@
 from flask import Flask, render_template, redirect, url_for, request
 import logging
 import wtforms
+import widgets;
 
 app = Flask(__name__)
 
@@ -11,7 +12,8 @@ class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
 class MoneyForm(wtforms.Form):
-    currency = wtforms.RadioField(choices=[('sterling', u'£'), ('ugx', u'Ush')])
+    currency = wtforms.RadioField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+                                  widget=widgets.spanningLabelsWidget)
     value = wtforms.DecimalField()
 
 class GrantForm(wtforms.Form):

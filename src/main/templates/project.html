@@ -1,20 +1,23 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Project {{entity.name}}</title>
-    <link rel="stylesheet" type="text/css" href="/static/main.css">
-  </head>
-  <body>
+<head>
+  <title>Project {{entity.name}}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/static/css/normalize.css">
+  <link rel="stylesheet" href="/static/css/skeleton.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
     <div id="container">
-      <div class="pagetitle">
-        <h1>Project {{entity.name}}</h1>
+      <h1>Project {{entity.name}}</h1>
+      <div class="row">
+        <div class="one-half column">Name: {{entity.name}}</div>
+        <div class="one-half column">State: {{entity.state}}</div>
       </div>
-      <div>
-Name: {{entity.name}}<br/>
-State: {{entity.state}}<br/>
-<br/>
-<a href="./grants">Show Grants</a>
-      </div>
+      <nav>
+        <a class="button button-primary" href="./grants">Show Grants</a>
+      </nav>
     </div>
-  </body>
+</body>
 </html>

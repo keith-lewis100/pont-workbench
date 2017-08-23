@@ -1,28 +1,33 @@
 <!DOCTYPE html>
 <html>
-  <head>
+<head>
     <title>Grants</title>
-    <link rel="stylesheet" type="text/css" href="/static/main.css">
-  </head>
-  <body>
-    <div id="container">
-      <div class="pagetitle">
-        <h1>Grants</h1>
-      </div>
-      <div>
-        <form method="post">
-          {{ add.amount.label }}: {{ add.amount }}
-          <span class="error">
-          {% for error in add.amount.errors %}{{ error }} {% endfor %}
-          </span><br/>
-          <input type="submit" value="Submit">
-        </form>
-      </div>
-      <div>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
+    <link rel="stylesheet" href="/static/css/normalize.css">
+    <link rel="stylesheet" href="/static/css/skeleton.css">
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+  <div id="container">
+    <h1>Grants</h1>
+    <form method="post">
+        {{ add.amount.currency.label }}
+        {{ add.amount.currency(class_="oneline") }}
+        <span style="color: red;">
+          {% for error in add.amount.currency.errors %}{{ error }} {% endfor %}
+        </span>
+        {{ add.amount.value.label }}{{ add.amount.value }}
+        <span class="error">
+        {% for error in add.amount.value.errors %}{{ error }} {% endfor %}
+        </span>
+        <br/><input class="button-primary" type="submit" value="Submit">
+    </form>
+    <div>
 {% for entity in entities %}
 {{entity}}<br/>
 {% endfor %}
-      </div>
     </div>
-  </body>
+  </div>
+</body>
 </html>
