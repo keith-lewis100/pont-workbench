@@ -12,19 +12,8 @@
       <div>
 Name: {{entity.name}}<br/>
 State: {{entity.state}}<br/>
-      </div>
-      <div>
-        <form method="post">
-          {{ form.currency.label }}: {{ form.currency }}
-          <span class="error">
-          {% for error in form.currency.errors %}{{ error }} {% endfor %}
-          </span><br/>
-          {{ form.value.label }}: {{ form.value }}
-          <span class="error">
-          {% for error in form.value.errors %}{{ error }} {% endfor %}
-          </span><br/>
-          <input type="submit" value="Submit">
-        </form>
+<br/>
+<a href="./grants">Show Grants</a>
       </div>
     </div>
   </body>

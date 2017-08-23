@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Grants</title>
+    <link rel="stylesheet" type="text/css" href="/static/main.css">
+  </head>
+  <body>
+    <div id="container">
+      <div class="pagetitle">
+        <h1>Grants</h1>
+      </div>
+      <div>
+        <form method="post">
+          {{ add.amount.label }}: {{ add.amount }}
+          <span class="error">
+          {% for error in add.amount.errors %}{{ error }} {% endfor %}
+          </span><br/>
+          <input type="submit" value="Submit">
+        </form>
+      </div>
+      <div>
+{% for entity in entities %}
+{{entity}}<br/>
+{% endfor %}
+      </div>
+    </div>
+  </body>
+</html>
