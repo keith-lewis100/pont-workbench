@@ -3,10 +3,9 @@ from flask import Flask, render_template, redirect, url_for, request
 import logging
 import wtforms
 import html;
+import dummy_model
 
 app = Flask(__name__)
-
-grants = []
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -32,13 +31,13 @@ def view_project(id):
 
 @app.route('/project/<id>/grants', methods=['GET', 'POST'])
 def view_grant_list(id):
-    grant = { 'amount': { 'currency': 'ugx'}}
+    grant = dummy_model.create_grant()
     form = GrantForm(request.form, obj=grant)
-    app.logger.debug('form data =' + str(form.amount.currency.data))
     if request.method == 'POST' and form.validate():
-#        add_form.populate_obj(grant)
-#        app.logger.debug('grant=' + str(grant))
-        grants.append(grant)
+        form.populate_obj(grant)
+        app.logger.debug('new grant=' + str(grant))
+        grant.put()
         return redirect(url_for('view_grant_list', id=id))
     rendered_form = html.render_field_list(form)
+    grants = dummy_model.list_grants()
     return render_template('grants.html', entities=grants, create_form=rendered_form)
