@@ -12,15 +12,7 @@
   <div id="container">
     <h1>Grants</h1>
     <form method="post">
-        {{ add.amount.currency.label }}
-        {{ add.amount.currency(class_="oneline") }}
-        <span style="color: red;">
-          {% for error in add.amount.currency.errors %}{{ error }} {% endfor %}
-        </span>
-        {{ add.amount.value.label }}{{ add.amount.value }}
-        <span class="error">
-        {% for error in add.amount.value.errors %}{{ error }} {% endfor %}
-        </span>
+        {{ create_form }}
         <br/><input class="button-primary" type="submit" value="Submit">
     </form>
     <div>

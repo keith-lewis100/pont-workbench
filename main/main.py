@@ -2,7 +2,7 @@
 from flask import Flask, render_template, redirect, url_for, request
 import logging
 import wtforms
-import widgets;
+import html;
 
 app = Flask(__name__)
 
@@ -13,11 +13,11 @@ class ProjectForm(wtforms.Form):
 
 class MoneyForm(wtforms.Form):
     currency = wtforms.RadioField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                                  widget=widgets.spanningLabelsWidget)
+                                  widget=html.render_radio_field)
     value = wtforms.DecimalField()
 
 class GrantForm(wtforms.Form):
-    amount = wtforms.FormField(MoneyForm)
+    amount = wtforms.FormField(MoneyForm, widget=html.render_field_list)
 
 @app.route('/')
 def home():
@@ -32,12 +32,13 @@ def view_project(id):
 
 @app.route('/project/<id>/grants', methods=['GET', 'POST'])
 def view_grant_list(id):
-    app.logger.debug('view_project id=' + id)
-    grant = { 'amount': { 'currency': 'ugx' , 'value': 0 }}
-    add_form = GrantForm(request.form, obj=grant)
-    if request.method == 'POST' and add_form.validate():
+    grant = { 'amount': { 'currency': 'ugx'}}
+    form = GrantForm(request.form, obj=grant)
+    app.logger.debug('form data =' + str(form.amount.currency.data))
+    if request.method == 'POST' and form.validate():
 #        add_form.populate_obj(grant)
-        app.logger.debug('grant=' + str(grant))
+#        app.logger.debug('grant=' + str(grant))
         grants.append(grant)
         return redirect(url_for('view_grant_list', id=id))
-    return render_template('grants.html', entities=grants, add=add_form)
+    rendered_form = html.render_field_list(form)
+    return render_template('grants.html', entities=grants, create_form=rendered_form)
