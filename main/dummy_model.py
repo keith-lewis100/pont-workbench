@@ -1,7 +1,12 @@
 
 grants = {}
-nextId = 1
+nextid = 0
 
+def getNextGrantId():
+    global nextid
+    nextid += 1
+    return nextid
+    
 class Money:
     def __init__(self, currency, value):
         self.currency = currency
@@ -17,8 +22,7 @@ class Grant:
         
     def put(self):
         if self.key is None:
-            self.key = nextId
-            nextId += 1
+            self.key = getNextGrantId()
         grants[self.key] = self
 
     def __repr__(self):
