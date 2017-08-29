@@ -1,4 +1,7 @@
-from jinja2 import Markup
+try:
+    from html import escape
+except ImportError:
+    from cgi import escape
 
 class HTMLDispatcher:
     def __getattr__(self, name):
@@ -11,24 +14,15 @@ class ElementBuilder:
         self._name = name
 
     def __call__(self, *children, **attributes):
-        # Consequent calling the instances of that class with keyword
-        # or list arguments or without arguments populates the HTML element
-        # with attribute and children data.
+        attrs = {}
+        for k, v in attributes.items():
+            if k in ('class_', 'class__', 'for_'):
+                k = k[:-1]
+            elif k.startswith('data_'):
+                k = k.replace('_', '-')
+            attrs[k] = v
 
-        if attributes:
-            # Keyword arguments are used to indicate attribute definition.
-            self._attributes = collections.OrderedDict(sorted(
-                attributes.items(),
-                key=lambda a: a[0].endswith('_')  # e.g. class_, style_
-            ))
-        elif children:
-            # Child nodes are passed through the list arguments.
-            self._children = children
-        else:
-            # Create an empty non-void HTML element.
-            self._children = []
-
-        return Element(name, children, attributes)
+        return Element(self._name, children, attrs)
 
 class Element:
     def __init__(self, name, children, attributes):
@@ -36,15 +30,17 @@ class Element:
         self._children = children
         self._attributes = attributes
         
-    def __html__():
+    def __html__(self):
         result = '<' + self._name + serialize_attrs(self._attributes)
-        if self_children:
+        if self._children:
             result += '>'
             for child in self._children:
                 if hasattr(child, '__html__'):
                     result += child.__html__()
+                elif child is None:
+                   result += "-None-"
                 else:
-                    result += Markup.escape(child).__html__()
+                    result += escape(child, quote=False)
             result += '</' + self._name + '>'
         else:
            result += '/>'
@@ -58,6 +54,6 @@ def serialize_attrs(attributes):
         if value is True:
             result += ' ' + name
         else:
-            result += ' ' + name + '=' + value
+            result += ' %s="%s"'% (name, escape(value, quote=True))
         
     return result

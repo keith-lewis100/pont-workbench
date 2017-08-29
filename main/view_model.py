@@ -1,25 +1,21 @@
 import wtforms
-from wtforms.widgets import html_params, HTMLString
+from html_builder import html
 
-def render_field(field):
-    html = [field.label(), field(class_="u-full-width"), '<span class="error">']
-    for error in field.errors:
-        html.append(error)
-    html.append('</span>')
-    return HTMLString(''.join(html))
-
+def render_field(field, elements):
+    elements.append(field.label())
+    elements.append(field(class_="u-full-width"))
+    if field.errors:
+        elements.append(html.span(*field.errors, class_="error"))
 
 def form_field_widget(form_field, **kwargs):
-    html = ['<div %s>' % html_params(**kwargs)]
-    for field in form_field:
-        html.append(render_field(field))
-    html.append('</div>')
-    return HTMLString(''.join(html))
+    return form_field.render_fields(None, **kwargs)
 
 class ViewModel(wtforms.Form):
-    def render_fields(self, field_names):
-        html = []
+    def render_fields(self, field_names, **kwargs):
+        children = []
+        if field_names is None:
+            field_names = self._fields.keys()
         for name in field_names:
             field = self[name]
-            html.append(render_field(field))
-        return HTMLString(''.join(html))
+            render_field(field, children)
+        return html.div(*children, **kwargs)
