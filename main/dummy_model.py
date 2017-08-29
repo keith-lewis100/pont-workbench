@@ -29,7 +29,7 @@ class Grant:
         return 'Grant(key=%s,amount=%s)' % (self.key, self.amount)
 
 def create_grant():
-    return Grant(Money('sterling', 0))
+    return Grant(Money('sterling', None))
     
 def list_grants():
     return grants.values()

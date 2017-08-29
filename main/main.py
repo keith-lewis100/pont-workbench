@@ -4,19 +4,20 @@ import logging
 import wtforms
 import html;
 import dummy_model
+import view_model
 
 app = Flask(__name__)
 
-class ProjectForm(wtforms.Form):
+class ProjectForm(view_model.ViewModel):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
-class MoneyForm(wtforms.Form):
+class MoneyForm(view_model.ViewModel):
     currency = wtforms.RadioField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                                   widget=html.render_radio_field)
     value = wtforms.DecimalField()
 
-class GrantForm(wtforms.Form):
-    amount = wtforms.FormField(MoneyForm, widget=html.render_field_list)
+class GrantForm(view_model.ViewModel):
+    amount = wtforms.FormField(MoneyForm, widget=view_model.form_field_widget)
 
 @app.route('/')
 def home():
@@ -38,6 +39,6 @@ def view_grant_list(id):
         app.logger.debug('new grant=' + str(grant))
         grant.put()
         return redirect(url_for('view_grant_list', id=id))
-    rendered_form = html.render_field_list(form)
+    rendered_form = form.render_fields(['amount'])
     grants = dummy_model.list_grants()
     return render_template('grants.html', entities=grants, create_form=rendered_form)
