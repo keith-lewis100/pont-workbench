@@ -22,8 +22,8 @@ def create_project(**key_args):
 
 def create_grant(**key_args):
     key = db.createKey(key_args)
-    return db.GrantInstallment(parent=key)
+    return db.Grant(parent=key)
 
 def list_grants(**key_args):
     key = db.createKey(key_args)
-    return db.GrantInstallment.query(ancestor=key).fetch()
+    return db.Grant.query(ancestor=key).fetch()

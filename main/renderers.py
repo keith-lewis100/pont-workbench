@@ -60,3 +60,15 @@ class EntityRenderer(wtforms.Form):
             value = get_display_value(field, property)
             children.append(html.td(value))
         return html.tr(*children, class_="selectable", onclick="window.location='url'")
+
+    def render_entity(self, field_names, entity):
+        if field_names is None:
+            field_names = self._fields.keys()
+        children = []
+        for name in field_names:
+            field = self[name]
+            property = getattr(entity, name)
+            children.append(html.legend(field.label.text))
+            value = get_display_value(field, property)
+            children.append(value)
+        return html.div(*children)

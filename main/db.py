@@ -1,8 +1,4 @@
-import os
-#if  os.getenv('DUMMY_DB', False):
-from dummy import ndb
-#else:
-#    from google.appengine.ext import ndb
+from google.appengine.ext import ndb
 
 def createKey(url):
     return ndb.Key(safeurl=url)
@@ -23,7 +19,7 @@ class Money(ndb.Model):
     value = ndb.StringProperty()
 
 # ancestor = Project   
-class GrantInstallment(ndb.Model):
+class Grant(ndb.Model):
     state = ndb.IntegerProperty()
     amount = ndb.StructuredProperty(Money)
     dest_fund = ndb.KeyProperty(kind=Fund)
