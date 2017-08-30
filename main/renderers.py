@@ -42,7 +42,7 @@ class EntityRenderer(wtforms.Form):
         for entity in entity_list:
             rows.append(self.render_row(field_names, entity))
         body = html.tbody(*rows)
-        return html.table(head, body)
+        return html.table(head, body, class_="u-full-width")
         
     def render_header(self, field_names):
         children = []
@@ -59,4 +59,4 @@ class EntityRenderer(wtforms.Form):
             property = getattr(entity, name)
             value = get_display_value(field, property)
             children.append(html.td(value))
-        return html.tr(*children)
+        return html.tr(*children, class_="selectable", onclick="window.location='url'")

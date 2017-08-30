@@ -37,8 +37,6 @@ class Element:
             for child in self._children:
                 if hasattr(child, '__html__'):
                     result += child.__html__()
-                elif child is None:
-                   result += "-None-"
                 else:
                     result += escape(child, quote=False)
             result += '</' + self._name + '>'
