@@ -1,3 +1,4 @@
+#_*_ coding: UTF-8 _*_
 
 grants = {}
 nextid = 0
@@ -14,6 +15,12 @@ class Money:
         
     def __repr__(self):
         return 'Money(currency=%s,value=%s)' % (self.currency, self.value)
+
+    def __str__(self):
+        if self.currency=='sterling':
+            return u'£' + str(self.value)
+        else:
+            return str(self.value) + 'Ush'
 
 class Grant:
     def __init__(self, amount=None):

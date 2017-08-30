@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Grants</title>
+    <title>{{ kind }}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
     <link rel="stylesheet" href="/static/css/normalize.css">
@@ -10,15 +10,13 @@
 </head>
 <body>
   <div id="container">
-    <h1>Grants</h1>
+    <h1>{{ kind }}</h1>
     <form method="post">
         {{ create_form }}
         <input class="button-primary" type="submit" value="Submit">
     </form>
     <div>
-{% for entity in entities %}
-{{entity}}<br/>
-{% endfor %}
+{{ entities }}
     </div>
   </div>
 </body>
