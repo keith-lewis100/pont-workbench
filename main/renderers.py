@@ -24,6 +24,15 @@ def form_field_widget(form_field, **kwargs):
 def get_display_value(field, property):
     return unicode(property) # TODO: handle SelectField etc
 
+def render_button(label, url):
+    return html.a(label, href=url)
+
+def url_for_key(key):
+    result = ""
+    for kind, id in key.pairs():
+        result += '/%s/%s' % (kind.lower(), id)
+    return result
+
 class EntityRenderer(wtforms.Form):
     def render_fields(self, field_names, **kwargs):
         children = []
@@ -59,8 +68,10 @@ class EntityRenderer(wtforms.Form):
             property = getattr(entity, name)
             value = get_display_value(field, property)
             children.append(html.td(value))
-        return html.tr(*children, class_="selectable", onclick="window.location='url'")
-
+        url = url_for_key(entity.key)
+        return html.tr(*children, class_="selectable", 
+                       onclick="window.location='%s'" % url)
+ 
     def render_entity(self, field_names, entity):
         if field_names is None:
             field_names = self._fields.keys()

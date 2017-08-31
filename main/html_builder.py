@@ -1,7 +1,4 @@
-try:
-    from html import escape
-except ImportError:
-    from cgi import escape
+from cgi import escape
 
 class HTMLDispatcher:
     def __getattr__(self, name):

@@ -1,6 +1,5 @@
 #_*_ coding: UTF-8 _*_
 from flask import Flask, render_template, redirect, url_for, request
-import logging
 import wtforms
 from dummy import model
 import renderers
@@ -20,16 +19,29 @@ class GrantForm(renderers.EntityRenderer):
 
 @app.route('/')
 def home():
-    projects = model.list_projects()
-    key = projects[0].key
-    return redirect(url_for('view_project', project_id=key.id()))
+    return redirect(url_for('view_project_list'))
     
+@app.route('/projects', methods=['GET', 'POST'])
+def view_project_list():
+    project = model.create_project()
+    form = ProjectForm(request.form, obj=project)
+    if request.method == 'POST' and form.validate():
+        form.populate_obj(project)
+        app.logger.debug('new project=' + str(project))
+        project.put()
+        return redirect(url_for('view_project_list'))
+    rendered_form = form.render_fields(['name'])
+    projects = model.list_projects()
+    entities = form.render_entity_list(None, projects)
+    return render_template('entity_list.html', kind='Projects', entities=entities, create_form=rendered_form)
+   
 @app.route('/project/<project_id>/', methods=['GET'])
 def view_project(project_id):
     project = model.lookup_project(('Project', project_id))
     form = ProjectForm()
+    menu = [ renderers.render_button('Show Grants', url='./grants')]
     entity = form.render_entity(None, project)
-    return render_template('entity.html', kind='Project', entity=entity)
+    return render_template('entity.html', kind='Project', menu=menu, entity=entity)
 
 @app.route('/project/<project_id>/grants', methods=['GET', 'POST'])
 def view_grant_list(project_id):
@@ -46,8 +58,9 @@ def view_grant_list(project_id):
     return render_template('entity_list.html', kind='Grants', entities=entities, create_form=rendered_form)
 
 @app.route('/project/<project_id>/grant/<grant_id>', methods=['GET'])
-def view_grant(project_id):
+def view_grant(project_id, grant_id):
     grant = model.lookup_grant(('Project', project_id), ('Grant', grant_id))
     form = GrantForm(request.form, obj=grant)
     entity = form.render_entity(None, grant)
-    return render_template('entity.html', kind='Grant', entity=entity)
+    menu = []
+    return render_template('entity.html', kind='Grant', menu=menu, entity=entity)
