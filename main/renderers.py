@@ -1,5 +1,6 @@
 import wtforms
 from html_builder import html
+import logging
 
 def radio_field_widget(field, **kwargs):
     kwargs.setdefault('id', field.id)
@@ -22,19 +23,25 @@ def form_field_widget(form_field, **kwargs):
     return form_field.render_fields(None, **kwargs)
 
 def get_display_value(field, property):
+    if hasattr(field, 'iter_choices'):
+        field.data = property
+        for val, label, selected in field.iter_choices():
+            if selected:
+                return label
+        field.data = None
     return unicode(property) # TODO: handle SelectField etc
 
 def render_button(label, url):
-    return html.a(label, href=url)
+    return html.a(label, href=url, class_="button button-primary")
 
 def url_for_key(key):
     result = ""
     for kind, id in key.pairs():
         result += '/%s/%s' % (kind.lower(), id)
     return result
-
+    
 class EntityRenderer(wtforms.Form):
-    def render_fields(self, field_names, **kwargs):
+    def render_fields(self, field_names=None, **kwargs):
         children = []
         if field_names is None:
             field_names = self._fields.keys()

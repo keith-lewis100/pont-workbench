@@ -1,29 +1,30 @@
-import db
+#import db
+from dummy import db
 
-pont = db.Organisation.get_or_insert('pont', name='PONT')
-
-def list_funds():
-    return db.Fund.query(ancestor=pont.key).fetch()
-    
-def list_projects(**key_args):
-    key = db.createKey(key_args)
-    return db.Project.query(ancestor=key).fetch()
-    
-def lookup_project(**key_args):
-    key = db.createKey(key_args)
+def lookup_entity(*key_pairs):
+    key = db.createKey(key_pairs)
     return key.get()
+        
+def create_fund(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Fund(parent=parent)
     
-def create_pont_fund():
-    return db.Fund(parent=pont.key)
+def fund_query(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Fund.query(ancestor=parent)
+
+def create_project(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Project(parent=parent)
+        
+def list_projects(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Project.query(ancestor=parent).fetch()
     
-def create_project(**key_args):
-    key = db.createKey(key_args)
-    return db.Project(parent=key)
-
-def create_grant(**key_args):
-    key = db.createKey(key_args)
-    return db.Grant(parent=key)
-
-def list_grants(**key_args):
-    key = db.createKey(key_args)
-    return db.Grant.query(ancestor=key).fetch()
+def create_grant(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Grant(parent=parent)
+    
+def list_grants(*key_pairs):
+    parent = db.createKey(key_pairs)
+    return db.Grant.query(ancestor=parent).fetch()
