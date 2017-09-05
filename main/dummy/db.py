@@ -50,7 +50,7 @@ def createKey(pairs):
     return key
 
 class Query:
-    def __init__(self, store, ancestor):
+    def __init__(self, store, ancestor=None):
         self.store = store
         self.ancestor = ancestor
         
@@ -71,10 +71,13 @@ class Model:
     def put(self):
         model = self.__class__
         model.store[self.key] = self
+        return self.key
     
 class Organisation(Model):        
-    def __init__(self, key_id, name):
-        self.key = Key(None, 'Organisation', key_id)
+    store = {}
+
+    def __init__(self, name=None):
+        self.key = Key(None, 'Organisation', get_next_id())
         self.name = name
                 
     def __repr__(self):
@@ -148,15 +151,15 @@ class Pledge(Model):
         
     def __repr__(self):
         return 'Pledge(key=%s, amount=%s)' % (self.key, self.amount)
-        
+
+models['Organisation'] = Organisation        
 models['Fund'] = Fund
 models['Project'] = Project
 models['Grant'] = Grant
 models['Payment'] = Payment
 models['Pledge'] = Pledge
 
-pont = Organisation(1, 'PONT')
-cap = Organisation(2, 'Mbale CAP')
+cap_key = Organisation(name ='Mbale CAP').put()
 
-Fund(cap.key, "Livelihoods").put()
-Fund(cap.key, "Churches").put()
+Fund(cap_key, "Livelihoods").put()
+Fund(cap_key, "Churches").put()

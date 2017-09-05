@@ -9,9 +9,8 @@ def create_fund(*key_pairs):
     parent = db.createKey(key_pairs)
     return db.Fund(parent=parent)
     
-def fund_query(*key_pairs):
-    parent = db.createKey(key_pairs)
-    return db.Fund.query(ancestor=parent)
+def cap_fund_query():
+    return db.Fund.query(ancestor=db.cap_key) # ugly query
 
 def create_project(*key_pairs):
     parent = db.createKey(key_pairs)
@@ -28,3 +27,9 @@ def create_grant(*key_pairs):
 def list_grants(*key_pairs):
     parent = db.createKey(key_pairs)
     return db.Grant.query(ancestor=parent).fetch()
+
+def create_organisation():
+    return db.Organisation()
+
+def list_organisations():
+    return db.Organisation.query().fetch()
