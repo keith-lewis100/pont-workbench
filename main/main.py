@@ -45,7 +45,7 @@ class ListView(View):
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
                 new_entity_form=rendered_form)
         
-class ProjectList(ListView):
+class ProjectListView(ListView):
     def __init__(self):
         self.kind = 'Projects'
         self.formClass = ProjectForm
@@ -56,9 +56,9 @@ class ProjectList(ListView):
     def load_entities(self):
         return model.list_projects()
 
-app.add_url_rule('/projects', view_func=ProjectList.as_view('view_project_list'))
+app.add_url_rule('/projects', view_func=ProjectListView.as_view('view_project_list'))
 
-class GrantList(ListView):
+class GrantListView(ListView):
     def __init__(self):
         self.kind = 'Grants'
         self.formClass = GrantForm
@@ -69,27 +69,44 @@ class GrantList(ListView):
     def load_entities(self, project_id):
         return model.list_grants(('Project', project_id))
 
-app.add_url_rule('/project/<project_id>/grants', view_func=GrantList.as_view('view_grant_list'))
+app.add_url_rule('/project/<project_id>/grants', view_func=GrantListView.as_view('view_grant_list'))
 
-@app.route('/project/<project_id>/', methods=['GET'])
-def view_project(project_id):
-    project = model.lookup_entity(('Project', project_id))
-    form = ProjectForm()
-    menu = [ renderers.render_button('Show Grants', url='./grants')]
-    entity = form.render_entity(None, project)
-    return render_template('entity.html', kind='Project', menu=menu, entity=entity)
+class EntityView(View):
+    def dispatch_request(self, **kwargs):
+        entity = self.lookup_entity(**kwargs)
+        form = self.formClass()
+        menu = self.get_menu()
+        rendered_entity = form.render_entity(None, entity)
+        return render_template('entity.html', kind=self.kind, menu=menu, entity=rendered_entity)
 
-@app.route('/project/<project_id>/grant/<grant_id>', methods=['GET'])
-def view_grant(project_id, grant_id):
-    grant = model.lookup_entity(('Project', project_id), ('Grant', grant_id))
-    form = GrantForm(request.form, obj=grant)
-    entity = form.render_entity(None, grant)
-    menu = []
-    return render_template('entity.html', kind='Grant', menu=menu, entity=entity)
+class ProjectView(EntityView):
+    def __init__(self):
+        self.kind = 'Project'
+        self.formClass = ProjectForm
+        
+    def lookup_entity(self, project_id):
+        return  model.lookup_entity(('Project', project_id))
+        
+    def get_menu(self):
+        return [ renderers.render_button('Show Grants', url='./grants')]
+
+app.add_url_rule('/project/<project_id>/', view_func=ProjectView.as_view('view_project'))
+
+class GrantView(EntityView):
+    def __init__(self):
+        self.kind = 'Grant'
+        self.formClass = GrantForm
+        
+    def lookup_entity(self, project_id, grant_id):
+        return  model.lookup_entity(('Project', project_id), ('Grant', grant_id))
+        
+    def get_menu(self):
+        return []
+        
+app.add_url_rule('/project/<project_id>/grant/<grant_id>/', view_func=GrantView.as_view('view_grant'))
 
 @app.route('/supplier/<supplier_id>')
 def view_supplier_payments(supplier_id):
     payments = model.list_supplier_payments(('Organisation', supplier_id))
     entities = form.render_entity_list(None, payments)
     return render_template('entity_list.html', kind='Payments', entities=entities, create_form=rendered_form)
-    
