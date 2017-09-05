@@ -1,6 +1,10 @@
 #_*_ coding: UTF-8 _*_
+
 from flask import Flask, render_template, redirect, url_for, request
+from flask.views import View
+#from flask.ext.principal import Principal, Identity, AnonymousIdentity, identity_changed
 import wtforms
+
 import model
 import renderers
 import custom_fields
@@ -24,20 +28,49 @@ class GrantForm(renderers.EntityRenderer):
 def home():
     return redirect(url_for('view_project_list'))
     
-@app.route('/projects', methods=['GET', 'POST'])
-def view_project_list():
-    project = model.create_project()
-    form = ProjectForm(request.form, obj=project)
-    if request.method == 'POST' and form.validate():
-        form.populate_obj(project)
-        app.logger.debug('new project=' + str(project))
-        project.put()
-        return redirect(url_for('view_project_list'))
-    rendered_form = form.render_fields()
-    projects = model.list_projects()
-    entities = form.render_entity_list(None, projects)
-    return render_template('entity_list.html', kind='Projects', entities=entities, create_form=rendered_form)
-   
+class ListView(View):
+    methods = ['GET', 'POST']
+        
+    def dispatch_request(self, **kwargs):
+        entity = self.create_entity(**kwargs)
+        form = self.formClass(request.form, obj=entity)
+        if request.method == 'POST' and form.validate():
+            form.populate_obj(entity)
+            entity.put()
+            return redirect(request.base_url)
+            
+        rendered_form = form.render_fields()
+        entities = self.load_entities(**kwargs)
+        entity_table = form.render_entity_list(None, entities)
+        return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
+                new_entity_form=rendered_form)
+        
+class ProjectList(ListView):
+    def __init__(self):
+        self.kind = 'Projects'
+        self.formClass = ProjectForm
+        
+    def create_entity(self):
+        return model.create_project()
+
+    def load_entities(self):
+        return model.list_projects()
+
+app.add_url_rule('/projects', view_func=ProjectList.as_view('view_project_list'))
+
+class GrantList(ListView):
+    def __init__(self):
+        self.kind = 'Grants'
+        self.formClass = GrantForm
+        
+    def create_entity(self, project_id):
+        return model.create_grant(('Project', project_id))
+
+    def load_entities(self, project_id):
+        return model.list_grants(('Project', project_id))
+
+app.add_url_rule('/project/<project_id>/grants', view_func=GrantList.as_view('view_grant_list'))
+
 @app.route('/project/<project_id>/', methods=['GET'])
 def view_project(project_id):
     project = model.lookup_entity(('Project', project_id))
@@ -45,20 +78,6 @@ def view_project(project_id):
     menu = [ renderers.render_button('Show Grants', url='./grants')]
     entity = form.render_entity(None, project)
     return render_template('entity.html', kind='Project', menu=menu, entity=entity)
-
-@app.route('/project/<project_id>/grants', methods=['GET', 'POST'])
-def view_grant_list(project_id):
-    grant = model.create_grant(('Project', project_id))
-    form = GrantForm(request.form, obj=grant)
-    if request.method == 'POST' and form.validate():
-        form.populate_obj(grant)
-        app.logger.debug('new grant=' + unicode(grant))
-        grant.put()
-        return redirect(url_for('view_grant_list', project_id=project_id))
-    rendered_form = form.render_fields(['amount'])
-    grants = model.list_grants(('Project', project_id))
-    entities = form.render_entity_list(None, grants)
-    return render_template('entity_list.html', kind='Grants', entities=entities, create_form=rendered_form)
 
 @app.route('/project/<project_id>/grant/<grant_id>', methods=['GET'])
 def view_grant(project_id, grant_id):
