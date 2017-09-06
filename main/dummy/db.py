@@ -73,15 +73,15 @@ class Model:
         model.store[self.key] = self
         return self.key
     
-class Organisation(Model):        
+class Supplier(Model):        
     store = {}
 
     def __init__(self, name=None):
-        self.key = Key(None, 'Organisation', get_next_id())
+        self.key = Key(None, 'Supplier', get_next_id())
         self.name = name
                 
     def __repr__(self):
-        return 'Organisation(key=%s, name=%s)' % (self.key, self.name)
+        return 'Supplier(key=%s, name=%s)' % (self.key, self.name)
 
 class Fund(Model):
     store = {}
@@ -122,10 +122,10 @@ class Money:
 class Grant(Model):
     store = {}
     
-    def __init__(self, parent):
+    def __init__(self, parent, dest_fund=None):
         self.key = Key(parent, 'Grant', get_next_id())
         self.amount = Money()
-        self.dest_fund = None
+        self.dest_fund = dest_fund
         self.payment = None
 
     def __repr__(self):
@@ -152,14 +152,14 @@ class Pledge(Model):
     def __repr__(self):
         return 'Pledge(key=%s, amount=%s)' % (self.key, self.amount)
 
-models['Organisation'] = Organisation        
+models['Supplier'] = Supplier        
 models['Fund'] = Fund
 models['Project'] = Project
 models['Grant'] = Grant
 models['Payment'] = Payment
 models['Pledge'] = Pledge
 
-cap_key = Organisation(name ='Mbale CAP').put()
+cap_key = Supplier(name ='Mbale CAP').put()
 
 Fund(cap_key, "Livelihoods").put()
 Fund(cap_key, "Churches").put()

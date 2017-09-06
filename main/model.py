@@ -22,14 +22,15 @@ def list_projects(*key_pairs):
     
 def create_grant(*key_pairs):
     parent = db.createKey(key_pairs)
-    return db.Grant(parent=parent)
+    project = parent.get()
+    return db.Grant(parent=parent, dest_fund=project.dest_fund)
     
 def list_grants(*key_pairs):
     parent = db.createKey(key_pairs)
     return db.Grant.query(ancestor=parent).fetch()
 
-def create_organisation():
-    return db.Organisation()
+def create_supplier():
+    return db.Supplier()
 
-def list_organisations():
-    return db.Organisation.query().fetch()
+def list_suppliers():
+    return db.Supplier.query().fetch()

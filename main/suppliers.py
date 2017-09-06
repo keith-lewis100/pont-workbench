@@ -17,10 +17,10 @@ class SupplierListView(views.ListView):
         self.formClass = SupplierForm
         
     def create_entity(self):
-        return model.create_organisation()
+        return model.create_supplier()
 
     def load_entities(self):
-        return model.list_organisations()
+        return model.list_suppliers()
 
 class SupplierView(views.EntityView):
     def __init__(self):
@@ -28,7 +28,7 @@ class SupplierView(views.EntityView):
         self.formClass = SupplierForm
         
     def lookup_entity(self, org_id):
-        return  model.lookup_entity(('Organisation', org_id))
+        return  model.lookup_entity(('Supplier', org_id))
         
     def get_menu(self):
         return []

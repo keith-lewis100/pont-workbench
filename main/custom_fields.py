@@ -26,3 +26,7 @@ class KeyPropertyField(fields.SelectFieldBase):
             for entity in entities:
                 if entity.key.urlsafe() == val:
                     self.data = entity.key
+
+    def get_display_value(self, key):
+        entity = key.get()
+        return getattr(entity, self.name_attr)
