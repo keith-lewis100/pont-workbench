@@ -22,14 +22,16 @@ def render_field(field, elements):
 def form_field_widget(form_field, **kwargs):
     return form_field.render_fields(None, **kwargs)
 
-def get_display_value(field, property):
+def get_display_value(field, property
+    if hasattr(field, get_display_value):
+        return field.get_display_value(property)
     if hasattr(field, 'iter_choices'):
         field.data = property
         for val, label, selected in field.iter_choices():
             if selected:
                 return label
         field.data = None
-    return unicode(property) # TODO: handle SelectField etc
+    return unicode(property)
 
 def render_button(label, url):
     return html.a(label, href=url, class_="button button-primary")
