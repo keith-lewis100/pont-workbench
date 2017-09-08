@@ -27,8 +27,8 @@ class SupplierView(views.EntityView):
         self.kind = 'Supplier'
         self.formClass = SupplierForm
         
-    def lookup_entity(self, org_id):
-        return  model.lookup_entity(('Supplier', org_id))
+    def lookup_entity(self, supplier_id):
+        return  model.lookup_entity(('Supplier', supplier_id))
         
     def get_menu(self):
         return []

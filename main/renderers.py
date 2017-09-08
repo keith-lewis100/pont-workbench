@@ -16,14 +16,14 @@ def render_radio_input(name, val, selected):
 def render_field(field, elements):
     elements.append(field.label())
     elements.append(field(class_="u-full-width"))
-    if field.errors:
-        elements.append(html.span(*field.errors, class_="error"))
+    if field.errors and not field is wtforms.FormField:
+        elements.append(html.span(' '.join(*field.errors), class_="error"))
 
 def form_field_widget(form_field, **kwargs):
     return form_field.render_fields(None, **kwargs)
 
-def get_display_value(field, property
-    if hasattr(field, get_display_value):
+def get_display_value(field, property):
+    if hasattr(field, 'get_display_value'):
         return field.get_display_value(property)
     if hasattr(field, 'iter_choices'):
         field.data = property
