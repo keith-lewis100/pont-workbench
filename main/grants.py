@@ -7,12 +7,12 @@ import model
 import renderers
 import views
 
-class MoneyForm(renderers.EntityRenderer):
+class MoneyForm(wtforms.Form):
     currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=renderers.radio_field_widget)
     value = wtforms.DecimalField()
 
-class GrantForm(renderers.EntityRenderer):
+class GrantForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
 
 

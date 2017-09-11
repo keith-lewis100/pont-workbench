@@ -1,5 +1,6 @@
 from flask import render_template, redirect, url_for, request
 from flask.views import View
+import renderers
 
 class ListView(View):
     methods = ['GET', 'POST']
@@ -12,9 +13,9 @@ class ListView(View):
             entity.put()
             return redirect(request.base_url)
             
-        rendered_form = form.render_fields()
+        rendered_form = renderers.render_fields(*form._fields.values())
         entities = self.load_entities(**kwargs)
-        entity_table = form.render_entity_list(None, entities)
+        entity_table = renderers.render_entity_list(entities, *form._fields.values())
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
                 new_entity_form=rendered_form)
         
@@ -23,6 +24,6 @@ class EntityView(View):
         entity = self.lookup_entity(**kwargs)
         form = self.formClass()
         menu = self.get_menu()
-        rendered_entity = form.render_entity(None, entity)
+        rendered_entity = renderers.render_entity(entity, *form._fields.values())
         return render_template('entity.html', kind=self.kind, menu=menu, entity=rendered_entity)
 

@@ -21,6 +21,18 @@ class ElementBuilder:
 
         return Element(self._name, children, attrs)
 
+def render_item(item):
+    if hasattr(item, '__html__'):
+        return item.__html__()
+        
+    if hasattr(item, '__iter__'):
+        result = ""
+        for child in item:
+            result += render_item(child)
+        return result
+        
+    return escape(item, quote=False)
+    
 class Element:
     def __init__(self, name, children, attributes):
         self._name = name
@@ -32,10 +44,7 @@ class Element:
         if self._children:
             result += '>'
             for child in self._children:
-                if hasattr(child, '__html__'):
-                    result += child.__html__()
-                else:
-                    result += escape(child, quote=False)
+                result += render_item(child)
             result += '</' + self._name + '>'
         else:
            result += '/>'

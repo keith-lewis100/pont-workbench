@@ -8,7 +8,7 @@ import renderers
 import custom_fields
 import views
 
-class ProjectForm(renderers.EntityRenderer):
+class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     dest_fund = custom_fields.KeyPropertyField('Destination Fund', 
                   query=model.cap_fund_query())
@@ -33,5 +33,8 @@ class ProjectView(views.EntityView):
         return  model.lookup_entity(('Project', project_id))
         
     def get_menu(self):
-        return [ renderers.render_button('Show Grants', url='./grants')]
+        return [ renderers.render_link('Show Grants', url='./grants', class_="button button-primary")]
 
+class MenuView(View):
+    def dispatch_request(self, **kwargs):
+        entity = self.lookup_entity(**kwargs)

@@ -8,7 +8,7 @@ import renderers
 import custom_fields
 import views
 
-class SupplierForm(renderers.EntityRenderer):
+class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
 class SupplierListView(views.ListView):
