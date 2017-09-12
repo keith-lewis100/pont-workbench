@@ -22,8 +22,9 @@ class ListView(View):
 class EntityView(View):
     def dispatch_request(self, **kwargs):
         entity = self.lookup_entity(**kwargs)
-        form = self.formClass()
-        menu = self.get_menu()
-        rendered_entity = renderers.render_entity(entity, *form._fields.values())
-        return render_template('entity.html', kind=self.kind, name=entity.name, menu=menu, 
+        fields = self.get_fields(entity)
+        menu = self.get_menu(entity)
+        rendered_entity = renderers.render_entity(entity, *fields)
+        name = self.title(entity)
+        return render_template('entity.html', kind=self.kind, name=name, menu=menu, 
                         entity=rendered_entity)

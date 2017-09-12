@@ -30,13 +30,18 @@ class GrantListView(views.ListView):
 class GrantView(views.EntityView):
     def __init__(self):
         self.kind = 'Grant'
-        self.formClass = GrantForm
         
     def lookup_entity(self, project_id, grant_id):
         return  model.lookup_entity(('Project', project_id), ('Grant', grant_id))
+ 
+    def get_fields(self, entity):
+        return GrantForm()._fields.values()
         
-    def get_menu(self):
-        return []
+    def title(self, entity):
+        return ""
+
+    def get_menu(self, entity):
+        return ""
 
 def add_rules(app):
     app.add_url_rule('/project/<project_id>/grants', view_func=GrantListView.as_view('view_grant_list'))

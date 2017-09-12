@@ -1,6 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View, request
+from flask import redirect, request
+from flask.views import View
 import wtforms
 
 import model
@@ -13,6 +14,15 @@ class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     dest_fund = custom_fields.KeyPropertyField('Destination Fund', 
                   query=model.cap_fund_query())
+
+class Label:
+    def __init__(self, text):
+        self.text = text
+
+class ReadOnlyField:
+    def __init__(self, name, label):
+        self.name = name
+        self.label = Label(label)
 
 class ProjectListView(views.ListView):
     def __init__(self):
@@ -28,21 +38,33 @@ class ProjectListView(views.ListView):
 class ProjectView(views.EntityView):
     def __init__(self):
         self.kind = 'Project'
-        self.formClass = ProjectForm
         
     def lookup_entity(self, project_id):
         return  model.lookup_entity(('Project', project_id))
         
-    def get_menu(self):
+    def get_fields(self, entity):
+        form = ProjectForm()
+        state = ReadOnlyField('state', 'State')
+        return form._fields.values() + [state]
+    
+    def title(self, entity):
+        return entity.name
+        
+    def get_menu(self, entity):
         showGrants = renderers.render_link('Show Grants', url='./grants', class_="button")
-        approve = renderers.render_button('Approve', name='action', value='approve', disabled=True)
+        approveEnabled = model.is_action_allowed('approve', entity)
+        approve = renderers.render_button('Approve', name='action', value='approve', 
+                        disabled=not approveEnabled)
         return renderers.render_form(showGrants, approve, action='./menu')
 
 class ProjectMenuView(View):
     methods = ['POST']
     
     def dispatch_request(self, project_id):
-        return "handling action %s for project %s" % (request.form['action'], project_id)
+        entity = model.lookup_entity(('Project', project_id))
+        action = request.form['action']
+        model.perform_action(action, entity)
+        return redirect('/project/' + project_id)
 
 def add_rules(app):
     app.add_url_rule('/projects', view_func=ProjectListView.as_view('view_project_list'))

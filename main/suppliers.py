@@ -30,8 +30,14 @@ class SupplierView(views.EntityView):
     def lookup_entity(self, supplier_id):
         return  model.lookup_entity(('Supplier', supplier_id))
         
-    def get_menu(self):
-        return []
+    def get_fields(self, entity):
+        return SupplierForm()._fields.values()
+        
+    def title(self, entity):
+        return entity.name
+                
+    def get_menu(self, entity):
+        return None
 
 def add_rules(app):
     app.add_url_rule('/suppliers', view_func=SupplierListView.as_view('view_supplier_list'))

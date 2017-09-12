@@ -100,6 +100,7 @@ class Project(Model):
         self.key = Key(parent, 'Project', get_next_id())
         self.name = None
         self.dest_fund = None
+        self.state = 'approvalPending'
         
     def __repr__(self):
         return 'Project(key=%s, name=%s, dest_fund=%s)' % (self.key, 

@@ -34,3 +34,12 @@ def create_supplier():
 
 def list_suppliers():
     return db.Supplier.query().fetch()
+    
+def is_action_allowed(action, entity):
+    if action == 'approve':
+        return entity.state == 'approvalPending'
+    return True
+    
+def perform_action(action, entity):
+    if action == 'approve':
+        entity.state = 'approved'
