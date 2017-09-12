@@ -25,5 +25,5 @@ class EntityView(View):
         form = self.formClass()
         menu = self.get_menu()
         rendered_entity = renderers.render_entity(entity, *form._fields.values())
-        return render_template('entity.html', kind=self.kind, menu=menu, entity=rendered_entity)
-
+        return render_template('entity.html', kind=self.kind, name=entity.name, menu=menu, 
+                        entity=rendered_entity)

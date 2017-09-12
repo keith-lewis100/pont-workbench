@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>{{kind}}</title>
+  <title>{{kind}} {{name}}</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
   <link rel="stylesheet" href="/static/css/normalize.css">
@@ -9,14 +9,12 @@
     <link rel="stylesheet" href="/static/css/main.css">
 </head>
 <body>
-    <nav>
-    {% for button in menu %}
-       {{button}}
-    {% endfor %}
-    </nav>
-    <div id="container">
-      <h1>{{kind}}</h1>
-{{entity}}
-    </div>
+  <h1>{{kind}} {{name}}</h1>
+  <nav>
+    {{menu}}
+  </nav>
+  <div id="container">
+    {{entity}}
+  </div>
 </body>
 </html>

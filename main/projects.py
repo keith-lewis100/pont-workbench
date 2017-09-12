@@ -33,8 +33,12 @@ class ProjectView(views.EntityView):
         return  model.lookup_entity(('Project', project_id))
         
     def get_menu(self):
-        return [ renderers.render_link('Show Grants', url='./grants', class_="button button-primary")]
+        showGrants = renderers.render_link('Show Grants', url='./grants', class_="button")
+        approve = renderers.render_button('Approve', name='action', value='approve')
+        return renderers.render_form(showGrants, approve)
 
 class MenuView(View):
+    methods = ['POST']
+    
     def dispatch_request(self, **kwargs):
         entity = self.lookup_entity(**kwargs)

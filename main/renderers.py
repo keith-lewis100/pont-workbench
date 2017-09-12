@@ -33,7 +33,7 @@ def form_field_widget(form_field, **kwargs):
 def get_display_value(field, property):
     if hasattr(field, 'get_display_value'):
         return field.get_display_value(property)
-    if hasattr(field, 'iter_choices'):
+    if hasattr(field, 'iter_choices'): # TODO: use choices and coerce instead
         field.data = property
         for val, label, selected in field.iter_choices():
             if selected:
@@ -42,14 +42,24 @@ def get_display_value(field, property):
     return unicode(property)
 
 def render_entity(entity, *fields):
-    children = []
-    for field in fields:
-        property = getattr(entity, field.name)
-        children.append(html.legend(field.label.text))
-        value = get_display_value(field, property)
-        children.append(value)
-    return html.div(*children)
+    rows = []
+    numFields = len(fields)
+    for x in range(0, numFields, 3):
+        cols = []
+        for y in range(3):
+            if x + y >= numFields:
+                break
+            field = fields[x + y]
+            cols.append(render_property(entity, field))
+        rows.append(html.div(*cols, class_="row"))    
+    return html.div(*rows)
  
+def render_property(entity, field):
+    property = getattr(entity, field.name)
+    label = html.legend(field.label.text)
+    value = get_display_value(field, property)
+    return html.div(label, value, class_="four columns")
+
 def render_entity_list(entity_list, *fields):
     head = render_header(fields)
     rows = []
@@ -75,19 +85,16 @@ def render_row(entity, fields):
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)
 
-
 def render_link(label, url, **kwargs):
     return html.a(label, href=url, **kwargs)
     
-#def render_button(label, name, value, type='submit', **kwargs):
-#    return html.button(label, name=name, value=value, type=type, **kwargs)
+def render_button(label, type='submit', **kwargs):
+    return html.button(label, type=type, **kwargs)
 
-#def render_form(*content, url=None, **kwargs):
-#    if url:
-#        kwargs['action'] = url
-#    return htmp.form(*content, method="post", **kwargs)
+def render_form(*content, **kwargs):
+    return html.form(*content, method="post", **kwargs)
     
-def url_for_key(key):
+def url_for_key(key): #TODO: move up to views.py
     result = ""
     for kind, id in key.pairs():
         result += '/%s/%s' % (kind.lower(), id)
