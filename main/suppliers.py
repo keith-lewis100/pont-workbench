@@ -33,4 +33,6 @@ class SupplierView(views.EntityView):
     def get_menu(self):
         return []
 
-
+def add_rules(app):
+    app.add_url_rule('/suppliers', view_func=SupplierListView.as_view('view_supplier_list'))
+    app.add_url_rule('/supplier/<supplier_id>', view_func=SupplierView.as_view('view_supplier'))

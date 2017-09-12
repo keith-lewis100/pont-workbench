@@ -1,6 +1,5 @@
 import wtforms
 from html_builder import html
-import logging
 
 def radio_field_widget(field, **kwargs):
     kwargs.setdefault('id', field.id)

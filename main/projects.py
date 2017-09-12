@@ -1,12 +1,13 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View
+from flask.views import View, request
 import wtforms
 
 import model
 import renderers
 import custom_fields
 import views
+import logging
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -34,11 +35,16 @@ class ProjectView(views.EntityView):
         
     def get_menu(self):
         showGrants = renderers.render_link('Show Grants', url='./grants', class_="button")
-        approve = renderers.render_button('Approve', name='action', value='approve')
-        return renderers.render_form(showGrants, approve)
+        approve = renderers.render_button('Approve', name='action', value='approve', disabled=True)
+        return renderers.render_form(showGrants, approve, action='./menu')
 
-class MenuView(View):
+class ProjectMenuView(View):
     methods = ['POST']
     
-    def dispatch_request(self, **kwargs):
-        entity = self.lookup_entity(**kwargs)
+    def dispatch_request(self, project_id):
+        return "handling action %s for project %s" % (request.form['action'], project_id)
+
+def add_rules(app):
+    app.add_url_rule('/projects', view_func=ProjectListView.as_view('view_project_list'))
+    app.add_url_rule('/project/<project_id>/', view_func=ProjectView.as_view('view_project'))        
+    app.add_url_rule('/project/<project_id>/menu', view_func=ProjectMenuView.as_view('handle_project_menu'))

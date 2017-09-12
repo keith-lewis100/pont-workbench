@@ -37,3 +37,7 @@ class GrantView(views.EntityView):
         
     def get_menu(self):
         return []
+
+def add_rules(app):
+    app.add_url_rule('/project/<project_id>/grants', view_func=GrantListView.as_view('view_grant_list'))
+    app.add_url_rule('/project/<project_id>/grant/<grant_id>/', view_func=GrantView.as_view('view_grant'))
