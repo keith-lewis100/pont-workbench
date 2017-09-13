@@ -94,7 +94,4 @@ def render_form(*content, **kwargs):
     return html.form(*content, method="post", **kwargs)
     
 def url_for_key(key): #TODO: move up to views.py
-    result = ""
-    for kind, id in key.pairs():
-        result += '/%s/%s' % (kind.lower(), id)
-    return result
+    return '/%s/%s' % (key.kind().lower(), key.urlsafe())

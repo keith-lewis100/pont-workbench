@@ -20,15 +20,15 @@ class Key:
         self._kind = kind
         self._id = id
         
-    def pairs(self):
-        result = []
-        if self._parent:
-            result = self._parent.pairs()
-        result.append((self._kind, self._id))
-        return result
+    def kind(self):
+        return self._kind
         
     def urlsafe(self):
-        return str(self._id)
+        result = ""
+        if self._parent:
+            result = self._parent.urlsafe() + ':'
+        result += self._kind + '-' + str(self._id)
+        return result
     
     def get(self):
         model = lookup_model(self._kind)
@@ -43,10 +43,16 @@ class Key:
     def __repr__(self):
         return 'Key(parent=%s, kind=%s, id=%s)' % (self._parent, self._kind, self._id)
 
-def createKey(pairs):
+def createKey(url):
+    if url is None:
+        return None
     key = None
-    for kind, id in pairs:
-        key = Key(key, kind, int(id))
+    parts = url.split(':')
+    for p in parts:
+        v = p.split('-')
+        if len(v) != 2:
+            raise BadKey, "invalid key " + url
+        key = Key(key, v[0], int(v[1]))
     return key
 
 class Query:

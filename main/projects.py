@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import redirect, request
+from flask import redirect, request, url_for
 from flask.views import View
 import wtforms
 
@@ -30,17 +30,17 @@ class ProjectListView(views.ListView):
         self.formClass = ProjectForm
         
     def create_entity(self):
-        return model.create_project()
+        return model.create_project(None)
 
     def load_entities(self):
-        return model.list_projects()
+        return model.list_projects(None)
 
 class ProjectView(views.EntityView):
     def __init__(self):
         self.kind = 'Project'
         
     def lookup_entity(self, project_id):
-        return  model.lookup_entity(('Project', project_id))
+        return  model.lookup_entity(project_id)
         
     def get_fields(self, entity):
         form = ProjectForm()
@@ -51,7 +51,8 @@ class ProjectView(views.EntityView):
         return entity.name
         
     def get_menu(self, entity):
-        showGrants = renderers.render_link('Show Grants', url='./grants', class_="button")
+        url = url_for('view_grant_list', project_id=entity.key.urlsafe())
+        showGrants = renderers.render_link('Show Grants', url=url, class_="button")
         approveEnabled = model.is_action_allowed('approve', entity)
         approve = renderers.render_button('Approve', name='action', value='approve', 
                         disabled=not approveEnabled)
@@ -61,12 +62,12 @@ class ProjectMenuView(View):
     methods = ['POST']
     
     def dispatch_request(self, project_id):
-        entity = model.lookup_entity(('Project', project_id))
+        entity = model.lookup_entity(project_id)
         action = request.form['action']
         model.perform_action(action, entity)
         return redirect('/project/' + project_id)
 
 def add_rules(app):
-    app.add_url_rule('/projects', view_func=ProjectListView.as_view('view_project_list'))
+    app.add_url_rule('/project_list', view_func=ProjectListView.as_view('view_project_list'))
     app.add_url_rule('/project/<project_id>/', view_func=ProjectView.as_view('view_project'))        
     app.add_url_rule('/project/<project_id>/menu', view_func=ProjectMenuView.as_view('handle_project_menu'))

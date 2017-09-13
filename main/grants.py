@@ -22,17 +22,17 @@ class GrantListView(views.ListView):
         self.formClass = GrantForm
         
     def create_entity(self, project_id):
-        return model.create_grant(('Project', project_id))
+        return model.create_grant(project_id)
 
     def load_entities(self, project_id):
-        return model.list_grants(('Project', project_id))
+        return model.list_grants(project_id)
 
 class GrantView(views.EntityView):
     def __init__(self):
         self.kind = 'Grant'
         
-    def lookup_entity(self, project_id, grant_id):
-        return  model.lookup_entity(('Project', project_id), ('Grant', grant_id))
+    def lookup_entity(self, grant_id):
+        return  model.lookup_entity(grant_id)
  
     def get_fields(self, entity):
         return GrantForm()._fields.values()
@@ -44,5 +44,5 @@ class GrantView(views.EntityView):
         return ""
 
 def add_rules(app):
-    app.add_url_rule('/project/<project_id>/grants', view_func=GrantListView.as_view('view_grant_list'))
-    app.add_url_rule('/project/<project_id>/grant/<grant_id>/', view_func=GrantView.as_view('view_grant'))
+    app.add_url_rule('/grant_list/<project_id>', view_func=GrantListView.as_view('view_grant_list'))
+    app.add_url_rule('/grant/<grant_id>/', view_func=GrantView.as_view('view_grant'))

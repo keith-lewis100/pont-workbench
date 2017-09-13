@@ -1,32 +1,31 @@
 #import db
 from dummy import db
 
-def lookup_entity(*key_pairs):
-    key = db.createKey(key_pairs)
+def lookup_entity(url):
+    key = db.createKey(url)
     return key.get()
         
-def create_fund(*key_pairs):
-    parent = db.createKey(key_pairs)
-    return db.Fund(parent=parent)
+def create_fund():
+    return db.Fund()
     
 def cap_fund_query():
     return db.Fund.query(ancestor=db.cap_key) # ugly query
 
-def create_project(*key_pairs):
-    parent = db.createKey(key_pairs)
+def create_project(url):
+    parent = db.createKey(url)
     return db.Project(parent=parent)
         
-def list_projects(*key_pairs):
-    parent = db.createKey(key_pairs)
+def list_projects(url):
+    parent = db.createKey(url)
     return db.Project.query(ancestor=parent).fetch()
     
-def create_grant(*key_pairs):
-    parent = db.createKey(key_pairs)
+def create_grant(url):
+    parent = db.createKey(url)
     project = parent.get()
     return db.Grant(parent=parent, dest_fund=project.dest_fund)
     
-def list_grants(*key_pairs):
-    parent = db.createKey(key_pairs)
+def list_grants(url):
+    parent = db.createKey(url)
     return db.Grant.query(ancestor=parent).fetch()
 
 def create_supplier():

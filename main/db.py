@@ -1,9 +1,9 @@
 from google.appengine.ext import ndb
 
-def createKey(url):
-    return ndb.Key(safeurl=url)
+def createKey(pairs):
+    return ndb.Key(pairs=pairs)
     
-class Organisation(ndb.Model):
+class Supplier(ndb.Model):
     name = ndb.StringProperty()
 
 # ancestor = Organisation   
@@ -13,6 +13,8 @@ class Fund(ndb.Model):
 # ancestor = Fund   
 class Project(ndb.Model):
     name = ndb.StringProperty()
+    dest_fund = ndb.KeyProperty(kind=Fund)
+    state = ndb.StringProperty()
 
 class Money(ndb.Model):
     currency = ndb.IntegerProperty()
@@ -20,6 +22,8 @@ class Money(ndb.Model):
 
 # ancestor = Project   
 class Grant(ndb.Model):
-    state = ndb.IntegerProperty()
     amount = ndb.StructuredProperty(Money)
     dest_fund = ndb.KeyProperty(kind=Fund)
+    state = ndb.IntegerProperty()
+
+cap_key = Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key

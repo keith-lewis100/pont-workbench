@@ -9,7 +9,7 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return redirect('/projects')
+    return redirect('/project_list')
 
 projects.add_rules(app)
 grants.add_rules(app)
