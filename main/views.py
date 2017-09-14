@@ -2,6 +2,15 @@ from flask import render_template, redirect, request
 from flask.views import View
 import renderers
 
+class Label:
+    def __init__(self, text):
+        self.text = text
+
+class ReadOnlyField:
+    def __init__(self, name, label):
+        self.name = name
+        self.label = Label(label)
+
 class ListView(View):
     methods = ['GET', 'POST']
         
@@ -15,7 +24,8 @@ class ListView(View):
             
         rendered_form = renderers.render_fields(*form._fields.values())
         entities = self.load_entities(**kwargs)
-        entity_table = renderers.render_entity_list(entities, *form._fields.values())
+        fields = self.get_fields(entity)
+        entity_table = renderers.render_entity_list(entities, *fields)
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
                 new_entity_form=rendered_form)
         

@@ -68,6 +68,9 @@ class Query:
             if key._parent == self.ancestor:
                 result.append(value)
         return result
+        
+    def count(self):
+        return len(self.fetch()
 
 class Model:
     @classmethod

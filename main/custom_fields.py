@@ -28,5 +28,7 @@ class KeyPropertyField(fields.SelectFieldBase):
                     self.data = entity.key
 
     def get_display_value(self, key):
+        if key is None:
+            return ""
         entity = key.get()
         return getattr(entity, self.name_attr)

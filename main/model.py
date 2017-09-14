@@ -1,5 +1,9 @@
-#import db
-from dummy import db
+#_*_ coding: UTF-8 _*_
+
+import db
+#from dummy import db
+
+cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
 
 def lookup_entity(url):
     key = db.createKey(url)
@@ -9,11 +13,11 @@ def create_fund():
     return db.Fund()
     
 def cap_fund_query():
-    return db.Fund.query(ancestor=db.cap_key) # ugly query
+    return db.Fund.query(ancestor=cap_key) # ugly query
 
 def create_project(url):
     parent = db.createKey(url)
-    return db.Project(parent=parent)
+    return db.Project(parent=parent, state='approvalPending')
         
 def list_projects(url):
     parent = db.createKey(url)
@@ -22,7 +26,9 @@ def list_projects(url):
 def create_grant(url):
     parent = db.createKey(url)
     project = parent.get()
-    return db.Grant(parent=parent, dest_fund=project.dest_fund)
+    return db.Grant(parent=parent, amount=db.Money(),
+                    dest_fund=project.dest_fund,
+                    state='transferPending')
     
 def list_grants(url):
     parent = db.createKey(url)
@@ -42,3 +48,8 @@ def is_action_allowed(action, entity):
 def perform_action(action, entity):
     if action == 'approve':
         entity.state = 'approved'
+        entity.put()
+
+if cap_fund_query().count() == 0:
+    db.Fund(parent=cap_key, name="Livelihoods").put()
+    db.Fund(parent=cap_key, name="Churches").put()

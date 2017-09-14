@@ -10,7 +10,7 @@ import views
 class MoneyForm(wtforms.Form):
     currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=renderers.radio_field_widget)
-    value = wtforms.DecimalField()
+    value = wtforms.IntegerField()
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
@@ -26,6 +26,11 @@ class GrantListView(views.ListView):
 
     def load_entities(self, project_id):
         return model.list_grants(project_id)
+        
+    def get_fields(self, entity):
+        form = GrantForm()
+        state = views.ReadOnlyField('state', 'State')
+        return (form._fields['amount'], state)
 
 class GrantView(views.EntityView):
     def __init__(self):
@@ -35,7 +40,10 @@ class GrantView(views.EntityView):
         return  model.lookup_entity(grant_id)
  
     def get_fields(self, entity):
-        return GrantForm()._fields.values()
+        form = GrantForm()
+        state = views.ReadOnlyField('state', 'State')
+        dest_fund = views.ReadOnlyField('dest_fund', 'Destination Fund')
+        return (form._fields['amount'], dest_fund, state)
         
     def title(self, entity):
         return ""
