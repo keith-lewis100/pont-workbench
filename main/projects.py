@@ -21,11 +21,11 @@ class ProjectListView(views.ListView):
         self.kind = 'Projects'
         self.formClass = ProjectForm
         
-    def create_entity(self):
-        return model.create_project(None)
+    def create_entity(self, db_id):
+        return model.create_project(db_id)
 
-    def load_entities(self):
-        return model.list_projects(None)
+    def load_entities(self, db_id):
+        return model.list_projects(db_id)
         
     def get_fields(self, entity):
         form = ProjectForm()
@@ -36,9 +36,6 @@ class ProjectView(views.EntityView):
     def __init__(self):
         self.kind = 'Project'
         
-    def lookup_entity(self, project_id):
-        return  model.lookup_entity(project_id)
-        
     def get_fields(self, entity):
         form = ProjectForm()
         state = views.ReadOnlyField('state', 'State')
@@ -48,23 +45,25 @@ class ProjectView(views.EntityView):
         return entity.name
         
     def get_menu(self, entity):
-        url = url_for('view_grant_list', project_id=entity.key.urlsafe())
-        showGrants = renderers.render_link('Show Grants', url=url, class_="button")
+        grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
+        showGrants = renderers.render_link('Show Grants', url=grants_url, class_="button")
+        pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())        
+        showPledges = renderers.render_link('Show Pledges', url=pledges_url, class_="button")
         approveEnabled = model.is_action_allowed('approve', entity)
         approve = renderers.render_button('Approve', name='action', value='approve', 
                         disabled=not approveEnabled)
-        return renderers.render_form(showGrants, approve, action='./menu')
+        return renderers.render_form(showGrants, showPledges, approve, action='./menu')
 
 class ProjectMenuView(View):
     methods = ['POST']
     
-    def dispatch_request(self, project_id):
-        entity = model.lookup_entity(project_id)
+    def dispatch_request(self, db_id):
+        entity = model.lookup_entity(db_id)
         action = request.form['action']
         model.perform_action(action, entity)
-        return redirect('/project/' + project_id)
+        return redirect('/project/' + db_id)
 
 def add_rules(app):
     app.add_url_rule('/project_list', view_func=ProjectListView.as_view('view_project_list'))
-    app.add_url_rule('/project/<project_id>/', view_func=ProjectView.as_view('view_project'))        
-    app.add_url_rule('/project/<project_id>/menu', view_func=ProjectMenuView.as_view('handle_project_menu'))
+    app.add_url_rule('/project/<db_id>/', view_func=ProjectView.as_view('view_project'))        
+    app.add_url_rule('/project/<db_id>/menu', view_func=ProjectMenuView.as_view('handle_project_menu'))

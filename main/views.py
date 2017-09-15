@@ -1,6 +1,7 @@
 from flask import render_template, redirect, request
 from flask.views import View
 import renderers
+import model
 
 class Label:
     def __init__(self, text):
@@ -14,8 +15,8 @@ class ReadOnlyField:
 class ListView(View):
     methods = ['GET', 'POST']
         
-    def dispatch_request(self, **kwargs):
-        entity = self.create_entity(**kwargs)
+    def dispatch_request(self, db_id=None):
+        entity = self.create_entity(db_id)
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
@@ -23,15 +24,15 @@ class ListView(View):
             return redirect(request.base_url)
             
         rendered_form = renderers.render_fields(*form._fields.values())
-        entities = self.load_entities(**kwargs)
+        entities = self.load_entities(db_id)
         fields = self.get_fields(entity)
         entity_table = renderers.render_entity_list(entities, *fields)
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
                 new_entity_form=rendered_form)
         
 class EntityView(View):
-    def dispatch_request(self, **kwargs):
-        entity = self.lookup_entity(**kwargs)
+    def dispatch_request(self, db_id):
+        entity = model.lookup_entity(db_id)
         fields = self.get_fields(entity)
         menu = self.get_menu(entity)
         rendered_entity = renderers.render_entity(entity, *fields)

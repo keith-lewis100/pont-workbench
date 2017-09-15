@@ -15,17 +15,16 @@ class MoneyForm(wtforms.Form):
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
 
-
 class GrantListView(views.ListView):
     def __init__(self):
         self.kind = 'Grants'
         self.formClass = GrantForm
         
-    def create_entity(self, project_id):
-        return model.create_grant(project_id)
+    def create_entity(self, db_id):
+        return model.create_grant(db_id)
 
-    def load_entities(self, project_id):
-        return model.list_grants(project_id)
+    def load_entities(self, db_id):
+        return model.list_grants(db_id)
         
     def get_fields(self, entity):
         form = GrantForm()
@@ -36,14 +35,10 @@ class GrantView(views.EntityView):
     def __init__(self):
         self.kind = 'Grant'
         
-    def lookup_entity(self, grant_id):
-        return  model.lookup_entity(grant_id)
- 
     def get_fields(self, entity):
         form = GrantForm()
         state = views.ReadOnlyField('state', 'State')
-        dest_fund = views.ReadOnlyField('dest_fund', 'Destination Fund')
-        return (form._fields['amount'], dest_fund, state)
+        return (form._fields['amount'], state)
         
     def title(self, entity):
         return ""
@@ -52,5 +47,5 @@ class GrantView(views.EntityView):
         return ""
 
 def add_rules(app):
-    app.add_url_rule('/grant_list/<project_id>', view_func=GrantListView.as_view('view_grant_list'))
-    app.add_url_rule('/grant/<grant_id>/', view_func=GrantView.as_view('view_grant'))
+    app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
+    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))

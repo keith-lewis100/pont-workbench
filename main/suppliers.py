@@ -27,9 +27,6 @@ class SupplierView(views.EntityView):
         self.kind = 'Supplier'
         self.formClass = SupplierForm
         
-    def lookup_entity(self, supplier_id):
-        return  model.lookup_entity(('Supplier', supplier_id))
-        
     def get_fields(self, entity):
         return SupplierForm()._fields.values()
         
@@ -41,4 +38,4 @@ class SupplierView(views.EntityView):
 
 def add_rules(app):
     app.add_url_rule('/suppliers', view_func=SupplierListView.as_view('view_supplier_list'))
-    app.add_url_rule('/supplier/<supplier_id>', view_func=SupplierView.as_view('view_supplier'))
+    app.add_url_rule('/supplier/<db_id>/', view_func=SupplierView.as_view('view_supplier'))
