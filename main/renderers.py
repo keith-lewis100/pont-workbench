@@ -59,11 +59,8 @@ def render_property(entity, field):
     value = get_display_value(field, property)
     return html.div(label, value, class_="four columns")
 
-def render_entity_list(entity_list, *fields):
+def render_entity_list(rows, *fields):
     head = render_header(fields)
-    rows = []
-    for entity in entity_list:
-        rows.append(render_row(entity, fields))
     body = html.tbody(*rows)
     return html.table(head, body, class_="u-full-width")
     
@@ -74,13 +71,12 @@ def render_header(fields):
     row = html.tr(*children)
     return html.thead(row)
     
-def render_row(entity, fields):
+def render_row(entity, url, *fields):
     children = []
     for field in fields:
         property = getattr(entity, field.name)
         value = get_display_value(field, property)
         children.append(html.td(value))
-    url = url_for_key(entity.key)
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)
 

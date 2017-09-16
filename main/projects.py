@@ -26,7 +26,7 @@ class ProjectListView(views.ListView):
 
     def load_entities(self, db_id):
         return model.list_projects(db_id)
-        
+                
     def get_fields(self, entity):
         form = ProjectForm()
         state = views.ReadOnlyField('state', 'State')
@@ -54,16 +54,7 @@ class ProjectView(views.EntityView):
                         disabled=not approveEnabled)
         return renderers.render_form(showGrants, showPledges, approve, action='./menu')
 
-class ProjectMenuView(View):
-    methods = ['POST']
-    
-    def dispatch_request(self, db_id):
-        entity = model.lookup_entity(db_id)
-        action = request.form['action']
-        model.perform_action(action, entity)
-        return redirect('/project/' + db_id)
-
 def add_rules(app):
     app.add_url_rule('/project_list', view_func=ProjectListView.as_view('view_project_list'))
     app.add_url_rule('/project/<db_id>/', view_func=ProjectView.as_view('view_project'))        
-    app.add_url_rule('/project/<db_id>/menu', view_func=ProjectMenuView.as_view('handle_project_menu'))
+    app.add_url_rule('/project/<db_id>/menu', view_func=views.MenuView.as_view('handle_project_menu'))
