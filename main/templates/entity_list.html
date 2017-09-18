@@ -7,14 +7,19 @@
     <link rel="stylesheet" href="/static/css/normalize.css">
     <link rel="stylesheet" href="/static/css/skeleton.css">
     <link rel="stylesheet" href="/static/css/main.css">
+    <script src="/static/js/main.js"></script>
 </head>
 <body>
   <div class="container">
     <h1>{{ kind }}</h1>
-    <form method="post">
+    <button onclick="openDialog('m1');">New</button>
+    <div id="m1" class="modal">
+    <form method="post" class="modal-content">
+        <span class="close" onclick="closeDialog('m1');">&times;</span>
         {{ new_entity_form }}
         <input class="button-primary" type="submit" value="Submit">
     </form>
+    </div>
     <div>
 {{ entity_table }}
     </div>
