@@ -47,23 +47,19 @@ def create_supplier():
 
 def list_suppliers():
     return db.Supplier.query().fetch()
-    
-def is_action_allowed(action, entity):
-    if action == 'approve':
-        return entity.state == states.PROJECT_APPROVAL_PENDING
-    if action == 'fulfill':
-        return entity.state == states.PLEDGE_PENDING
-    return False
-    
-def perform_action(action, entity):
-    if action == 'approve':
-        entity.state = states.PROJECT_APPROVED
-        entity.put()
-        return
-    if action == 'fulfill':
-        entity.state = states.PLEDGE_FULFILLED
-        entity.put()
-        return
+
+def is_action_allowed(action, entity): 
+    if not entity.state.isAllowed(action):
+        return False
+    return True
+
+def perform_action(action_index, entity):
+    kind = entity.key.kind()
+    newState = states.getState(kind, action_index)
+    if newState is None:
+        raise BadAction
+    entity.state = newState
+    entity.put()
 
 if cap_fund_query().count() == 0:
     db.Fund(parent=cap_key, name="Livelihoods").put()

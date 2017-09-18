@@ -38,14 +38,26 @@ class ListView(View):
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
                 new_entity_form=rendered_form)
         
+def action_button(index, action_name, entity):
+    enabled = model.is_action_allowed(('state-change', index), entity)
+    return renderers.render_button(action_name, name='action', value=str(index), 
+                disabled=not enabled)
+
 class EntityView(View):
+    def create_menu(self, entity):
+        buttons = []
+        for index, action_name in self.actions:
+            buttons.append(action_button(index, action_name, entity))
+        return renderers.render_form(*buttons, action='./menu')
+
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)
         fields = self.get_fields(entity)
-        menu = self.get_menu(entity)
+        links = self.get_links(entity)
         rendered_entity = renderers.render_entity(entity, *fields)
         name = self.title(entity)
-        return render_template('entity.html', kind=entity.key.kind(), name=name, menu=menu, 
+        menu = self.create_menu(entity)
+        return render_template('entity.html', kind=entity.key.kind(), name=name, links=links, menu=menu, 
                         entity=rendered_entity)
 
 class MenuView(View):
@@ -54,5 +66,5 @@ class MenuView(View):
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)
         action = request.form['action']
-        model.perform_action(action, entity)
+        model.perform_action(int(action), entity)
         return redirect(url_for_entity(entity))

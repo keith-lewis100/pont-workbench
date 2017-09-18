@@ -35,6 +35,7 @@ class ProjectListView(views.ListView):
 class ProjectView(views.EntityView):
     def __init__(self):
         self.kind = 'Project'
+        self.actions = [(1, 'Approve')]
         
     def get_fields(self, entity):
         form = ProjectForm()
@@ -44,15 +45,12 @@ class ProjectView(views.EntityView):
     def title(self, entity):
         return entity.name
         
-    def get_menu(self, entity):
+    def get_links(self, entity):
         grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
         showGrants = renderers.render_link('Show Grants', url=grants_url, class_="button")
         pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())        
         showPledges = renderers.render_link('Show Pledges', url=pledges_url, class_="button")
-        approveEnabled = model.is_action_allowed('approve', entity)
-        approve = renderers.render_button('Approve', name='action', value='approve', 
-                        disabled=not approveEnabled)
-        return renderers.render_form(showGrants, showPledges, approve, action='./menu')
+        return renderers.render_div(showGrants, showPledges)
 
 def add_rules(app):
     app.add_url_rule('/project_list', view_func=ProjectListView.as_view('view_project_list'))

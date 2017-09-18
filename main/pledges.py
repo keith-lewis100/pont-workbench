@@ -36,6 +36,7 @@ class PledgeListView(views.ListView):
 class PledgeView(views.EntityView):
     def __init__(self):
         self.kind = 'Pledge'
+        self.actions = [(1, 'Fulfill')]
         
     def get_fields(self, entity):
         form = PledgeForm()
@@ -45,22 +46,10 @@ class PledgeView(views.EntityView):
     def title(self, entity):
         return ""
 
-    def get_menu(self, entity):
-        enabled = model.is_action_allowed('fulfill', entity)
-        fulfilled = renderers.render_button('Fulfill', name='action', value='fulfill', 
-                        disabled=not enabled)
-        return renderers.render_form(fulfilled, action='./menu')
-        
-class ProjectMenuView(View):
-    methods = ['POST']
-    
-    def dispatch_request(self, db_id):
-        entity = model.lookup_entity(db_id)
-        action = request.form['action']
-        model.perform_action(action, entity)
-        return redirect('/pledge/' + db_id)
+    def get_links(self, entity):
+        return ""
 
 def add_rules(app):
     app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))
     app.add_url_rule('/pledge/<db_id>/', view_func=PledgeView.as_view('view_pledge'))
-    app.add_url_rule('/pledge/<db_id>/menu', view_func=ProjectMenuView.as_view('handle_pledge_menu'))
+    app.add_url_rule('/pledge/<db_id>/menu', view_func=views.MenuView.as_view('handle_pledge_menu'))

@@ -34,6 +34,7 @@ class GrantListView(views.ListView):
 class GrantView(views.EntityView):
     def __init__(self):
         self.kind = 'Grant'
+        self.actions = []
         
     def get_fields(self, entity):
         form = GrantForm()
@@ -43,7 +44,7 @@ class GrantView(views.EntityView):
     def title(self, entity):
         return ""
 
-    def get_menu(self, entity):
+    def get_links(self, entity):
         return ""
 
 def add_rules(app):

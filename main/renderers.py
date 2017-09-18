@@ -89,5 +89,8 @@ def render_button(label, type='submit', **kwargs):
 def render_form(*content, **kwargs):
     return html.form(*content, method="post", **kwargs)
     
+def render_div(*content, **kwargs):
+    return html.div(*content, **kwargs)
+
 def url_for_key(key): #TODO: move up to views.py
     return '/%s/%s' % (key.kind().lower(), key.urlsafe())
