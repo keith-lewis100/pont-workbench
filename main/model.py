@@ -2,6 +2,7 @@
 
 import db
 #from dummy import db
+import states
 
 cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
 
@@ -49,18 +50,18 @@ def list_suppliers():
     
 def is_action_allowed(action, entity):
     if action == 'approve':
-        return entity.state == 'approvalPending'
+        return entity.state == states.PROJECT_APPROVAL_PENDING
     if action == 'fulfill':
-        return entity.state == 'pending'
+        return entity.state == states.PLEDGE_PENDING
     return False
     
 def perform_action(action, entity):
     if action == 'approve':
-        entity.state = 'approved'
+        entity.state = states.PROJECT_APPROVED
         entity.put()
         return
     if action == 'fulfill':
-        entity.state = 'fulfilled'
+        entity.state = states.PLEDGE_FULFILLED
         entity.put()
         return
 

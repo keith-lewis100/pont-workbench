@@ -2,6 +2,7 @@
 
 from google.appengine.ext import ndb
 import json
+import states
 
 def createKey(db_id):
     if db_id is None:
@@ -28,13 +29,27 @@ class MoneyProperty(ndb.StringProperty):
             raise TypeError('expected a Money value, got %s' % repr(value))
 
     def _to_base_type(self, value):
-        money_dict = { 'c': value.currency, 'v': value.value }
+        money_dict = { 'currency': value.currency, 'value': value.value }
         return json.dumps(money_dict)
 
     def _from_base_type(self, base):
         money_dict = json.loads(base)
-        return Money(money_dict['c'], money_dict['v'])
+        return Money(money_dict['currency'], money_dict['value'])
 
+class EnumProperty(ndb.IntegerProperty):
+    def __init__(self, enumArray, **kwargs):
+        super(EnumProperty, self).__init__(**kwargs)
+        self.enumArray = enumArray
+        
+    def _validate(self, enum):
+         pass
+       
+    def _to_base_type(self, enum):
+        return enum.index
+
+    def _from_base_type(self, index):
+        return self.enumArray[index]
+        
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
 
@@ -46,14 +61,14 @@ class Fund(ndb.Model):
 class Project(ndb.Model):
     name = ndb.StringProperty()
     dest_fund = ndb.KeyProperty(kind=Fund)
-    state = ndb.StringProperty(default='approvalPending')
+    state = EnumProperty(states.projectStates, default=states.PROJECT_APPROVAL_PENDING, required=True)
 
 # ancestor = Project   
 class Grant(ndb.Model):
     amount = MoneyProperty()
-    state = ndb.StringProperty(default='transferPending')
+    state = EnumProperty(states.grantStates, default=states.GRANT_TRANSFER_PENDING, required=True)
 
 # ancestor = Project   
 class Pledge(ndb.Model):
     amount = MoneyProperty()
-    state = ndb.StringProperty(default='pending')
+    state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING, required=True)
