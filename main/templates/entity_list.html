@@ -12,17 +12,8 @@
 <body>
   <div class="container">
     <h1>{{ kind }}</h1>
-    <button onclick="openDialog('m1');">New</button>
-    <div id="m1" class="modal">
-    <form method="post" class="modal-content">
-        <span class="close" onclick="closeDialog('m1');">&times;</span>
-        {{ new_entity_form }}
-        <input class="button-primary" type="submit" value="Submit">
-    </form>
-    </div>
-    <div>
-{{ entity_table }}
-    </div>
+    {{ new_entity_form }}
+    {{ entity_table }}
   </div>
 </body>
 </html>

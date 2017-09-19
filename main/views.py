@@ -27,7 +27,9 @@ class ListView(View):
             entity.put()
             return redirect(request.base_url)
             
-        rendered_form = renderers.render_fields(*form._fields.values())
+        rendered_form = renderers.render_form(form)
+        enabled = model.is_action_allowed(('create', self.kind), entity)
+        modal = renderers.render_modal(rendered_form, 'New', 'm1', enabled)
         entity_list = self.load_entities(db_id)
         fields = self.get_fields(entity)
         rows = []
@@ -36,7 +38,7 @@ class ListView(View):
             rows.append(renderers.render_row(e, url, *fields))
         entity_table = renderers.render_entity_list(rows, *fields)
         return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
-                new_entity_form=rendered_form)
+                new_entity_form=modal)
         
 def action_button(index, action_name, entity):
     enabled = model.is_action_allowed(('state-change', index), entity)
@@ -48,7 +50,7 @@ class EntityView(View):
         buttons = []
         for index, action_name in self.actions:
             buttons.append(action_button(index, action_name, entity))
-        return renderers.render_form(*buttons, action='./menu')
+        return renderers.render_menu('./menu', *buttons)
 
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)

@@ -19,15 +19,21 @@ def render_field(field):
     if field.errors and not field is wtforms.FormField:
         elements.append(html.span(' '.join(*field.errors), class_="error"))
     return elements
-        
-def render_fields(*fields, **kwargs):
-    children = []
-    for field in fields:
-        children.append(render_field(field))
-    return html.div(*children, **kwargs)
+
+def render_form(form, **kwargs):
+    form_fields = render_fields(form)
+    submit = html.input(type="submit", value="Submit", class_="button-primary")
+    return html.form(form_fields, submit, method="post", **kwargs)
+
+def render_fields(form):
+    elements = []
+    for field in form._fields.values():
+        elements += render_field(field)
+    return elements
 
 def form_field_widget(form_field, **kwargs):
-    return render_fields(*form_field._fields.values(), **kwargs)
+    children = render_fields(form_field)
+    return html.div(*children, **kwargs)
 
 def get_display_value(field, property):
     if hasattr(field, 'get_display_value'):
@@ -86,11 +92,15 @@ def render_link(label, url, **kwargs):
 def render_button(label, type='submit', **kwargs):
     return html.button(label, type=type, **kwargs)
 
-def render_form(*content, **kwargs):
-    return html.form(*content, method="post", **kwargs)
+def render_menu(url, *content):
+    return html.form(*content, method="post", action=url)
     
 def render_div(*content, **kwargs):
     return html.div(*content, **kwargs)
-
-def url_for_key(key): #TODO: move up to views.py
-    return '/%s/%s' % (key.kind().lower(), key.urlsafe())
+        
+def render_modal(element, legend, id, enabled):
+    button = html.button(legend, onclick="openDialog('m1');", disabled=not enabled)
+    close = html.span("&times;", class_="close", onclick="closeDialog('m1');")
+    content = html.div(close, element, class_="modal-content")
+    modal = html.div(content, id=id, class_="modal")
+    return html.div(button, modal)
