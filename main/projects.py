@@ -35,10 +35,10 @@ class ProjectListView(views.ListView):
 class ProjectView(views.EntityView):
     def __init__(self):
         self.kind = 'Project'
+        self.formClass = ProjectForm
         self.actions = [(1, 'Approve')]
         
-    def get_fields(self, entity):
-        form = ProjectForm()
+    def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
         return form._fields.values() + [state]
     

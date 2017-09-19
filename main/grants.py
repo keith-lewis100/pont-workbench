@@ -34,10 +34,10 @@ class GrantListView(views.ListView):
 class GrantView(views.EntityView):
     def __init__(self):
         self.kind = 'Grant'
+        self.formClass = GrantForm
         self.actions = []
         
-    def get_fields(self, entity):
-        form = GrantForm()
+    def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
         return (form._fields['amount'], state)
         

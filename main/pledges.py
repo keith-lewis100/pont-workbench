@@ -36,10 +36,10 @@ class PledgeListView(views.ListView):
 class PledgeView(views.EntityView):
     def __init__(self):
         self.kind = 'Pledge'
+        self.formClass = PledgeForm
         self.actions = [(1, 'Fulfill')]
         
-    def get_fields(self, entity):
-        form = PledgeForm()
+    def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
         return (form._fields['amount'], state)
         

@@ -15,13 +15,13 @@ class State:
         return 'State(%s, %s)' % (self.index, self.display_name)
         
 PROJECT_APPROVAL_PENDING = State(0, 'Approval Pending',
-                ('state-change', 1))
-PROJECT_APPROVED = State(1, 'Approved', ('create', 'Grant'), ('create', 'Pledge'))
+                ('state-change', 1), ('update',))
+PROJECT_APPROVED = State(1, 'Approved', ('create', 'Grant'), ('create', 'Pledge'), ('update',))
 
-GRANT_TRANSFER_PENDING = State(0, 'Transfer Pending')
+GRANT_TRANSFER_PENDING = State(0, 'Transfer Pending', ('update',))
 GRANT_TRANSFERED = State(1, 'Transfer Pending')
 
-PLEDGE_PENDING = State(0, 'Pending', ('state-change', 1))
+PLEDGE_PENDING = State(0, 'Pending', ('state-change', 1), ('update',))
 PLEDGE_FULFILLED = State(1, 'Fulfilled')
 
 projectStates = [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED]
@@ -29,7 +29,7 @@ grantStates = [GRANT_TRANSFER_PENDING, GRANT_TRANSFERED]
 pledgeStates = [PLEDGE_PENDING, PLEDGE_FULFILLED]
 
 stateMap = {'Project': projectStates,
-             'Grant': grantStates,
+           'Grant': grantStates,
              'Pledge': pledgeStates}
 
 def getState(kind, index):

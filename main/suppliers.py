@@ -26,15 +26,16 @@ class SupplierView(views.EntityView):
     def __init__(self):
         self.kind = 'Supplier'
         self.formClass = SupplierForm
+        self.actions = []
         
-    def get_fields(self, entity):
-        return SupplierForm()._fields.values()
+    def get_fields(self, form):
+        return form._fields.values()
         
     def title(self, entity):
         return entity.name
                 
-    def get_menu(self, entity):
-        return None
+    def get_links(self, entity):
+        return ""
 
 def add_rules(app):
     app.add_url_rule('/suppliers', view_func=SupplierListView.as_view('view_supplier_list'))

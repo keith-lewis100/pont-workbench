@@ -1,6 +1,10 @@
 import wtforms
 from html_builder import html
 
+class SafeString(unicode):
+    def __html__(self):
+        return self
+
 def radio_field_widget(field, **kwargs):
     kwargs.setdefault('id', field.id)
     children = []
@@ -89,8 +93,8 @@ def render_row(entity, url, *fields):
 def render_link(label, url, **kwargs):
     return html.a(label, href=url, **kwargs)
     
-def render_button(label, type='submit', **kwargs):
-    return html.button(label, type=type, **kwargs)
+def render_submit_button(label, **kwargs):
+    return html.button(label, type="submit", **kwargs)
 
 def render_menu(url, *content):
     return html.form(*content, method="post", action=url)
@@ -98,9 +102,10 @@ def render_menu(url, *content):
 def render_div(*content, **kwargs):
     return html.div(*content, **kwargs)
         
-def render_modal(element, legend, id, enabled):
-    button = html.button(legend, onclick="openDialog('m1');", disabled=not enabled)
-    close = html.span("&times;", class_="close", onclick="closeDialog('m1');")
+def render_modal_open(legend, id, enabled):
+    return html.button(legend, type="button", onclick="openDialog('%s');" % id, disabled=not enabled)
+    
+def render_modal_dialog(element, id):
+    close = html.span(SafeString("&times;"), class_="close", onclick="closeDialog('%s');" % id)
     content = html.div(close, element, class_="modal-content")
-    modal = html.div(content, id=id, class_="modal")
-    return html.div(button, modal)
+    return html.div(content, id=id, class_="modal")
