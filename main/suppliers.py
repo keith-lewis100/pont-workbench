@@ -1,5 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
+from flask import url_for
 from flask.views import View
 import wtforms
 
@@ -13,18 +14,20 @@ class SupplierForm(wtforms.Form):
 
 class SupplierListView(views.ListView):
     def __init__(self):
-        self.kind = 'Suppliers'
+        self.kind = 'Supplier'
         self.formClass = SupplierForm
         
-    def create_entity(self):
+    def create_entity(self, db_id):
         return model.create_supplier()
 
-    def load_entities(self):
+    def load_entities(self, db_id):
         return model.list_suppliers()
+        
+    def get_fields(self, form):
+        return (form._fields['name'], )
 
 class SupplierView(views.EntityView):
     def __init__(self):
-        self.kind = 'Supplier'
         self.formClass = SupplierForm
         self.actions = []
         
@@ -32,10 +35,12 @@ class SupplierView(views.EntityView):
         return form._fields.values()
         
     def title(self, entity):
-        return entity.name
+        return 'Supplier ' + entity.name
                 
     def get_links(self, entity):
-        return ""
+        funds_url = url_for('view_fund_list', db_id=entity.key.urlsafe())
+        showFunds = renderers.render_link('Show Funds', url=funds_url, class_="button")
+        return renderers.render_div(showFunds)
 
 def add_rules(app):
     app.add_url_rule('/suppliers', view_func=SupplierListView.as_view('view_supplier_list'))

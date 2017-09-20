@@ -7,11 +7,19 @@ import states
 cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
 
 def lookup_entity(db_id):
+    if db_id is None:
+        return None
     key = db.createKey(db_id)
     return key.get()
         
-def create_fund():
-    return db.Fund()
+def create_fund(db_id):
+    parent = db.createKey(db_id)
+    return db.Fund(parent=parent, pont=(parent is None))
+    
+def list_funds(db_id):
+    parent = db.createKey(db_id)
+    return db.Fund.query(ancestor=parent).filter(
+                    db.Fund.pont==(parent is None)).fetch()
     
 def cap_fund_query():
     return db.Fund.query(ancestor=cap_key) # ugly query
@@ -49,7 +57,7 @@ def list_suppliers():
     return db.Supplier.query().fetch()
 
 def is_action_allowed(action, entity): 
-    if not entity.state.isAllowed(action):
+    if hasattr(entity, 'state') and not entity.state.isAllowed(action):
         return False
     return True
 

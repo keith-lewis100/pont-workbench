@@ -17,7 +17,7 @@ class GrantForm(wtforms.Form):
 
 class GrantListView(views.ListView):
     def __init__(self):
-        self.kind = 'Grants'
+        self.kind = 'Grant'
         self.formClass = GrantForm
         
     def create_entity(self, db_id):
@@ -33,7 +33,6 @@ class GrantListView(views.ListView):
 
 class GrantView(views.EntityView):
     def __init__(self):
-        self.kind = 'Grant'
         self.formClass = GrantForm
         self.actions = []
         
@@ -42,7 +41,7 @@ class GrantView(views.EntityView):
         return (form._fields['amount'], state)
         
     def title(self, entity):
-        return ""
+        return "Grant"
 
     def get_links(self, entity):
         return ""

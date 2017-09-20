@@ -18,7 +18,7 @@ class ProjectForm(wtforms.Form):
 
 class ProjectListView(views.ListView):
     def __init__(self):
-        self.kind = 'Projects'
+        self.kind = 'Project'
         self.formClass = ProjectForm
         
     def create_entity(self, db_id):
@@ -27,14 +27,12 @@ class ProjectListView(views.ListView):
     def load_entities(self, db_id):
         return model.list_projects(db_id)
                 
-    def get_fields(self, entity):
-        form = ProjectForm()
+    def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
         return (form._fields['name'], state)
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        self.kind = 'Project'
         self.formClass = ProjectForm
         self.actions = [(1, 'Approve')]
         
@@ -43,7 +41,7 @@ class ProjectView(views.EntityView):
         return form._fields.values() + [state]
     
     def title(self, entity):
-        return entity.name
+        return 'Project ' + entity.name
         
     def get_links(self, entity):
         grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
@@ -53,6 +51,6 @@ class ProjectView(views.EntityView):
         return renderers.render_div(showGrants, showPledges)
 
 def add_rules(app):
-    app.add_url_rule('/project_list', view_func=ProjectListView.as_view('view_project_list'))
+    app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))
     app.add_url_rule('/project/<db_id>/', view_func=ProjectView.as_view('view_project'))        
     app.add_url_rule('/project/<db_id>/menu', view_func=views.MenuView.as_view('handle_project_menu'))

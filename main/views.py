@@ -19,7 +19,17 @@ def url_for_entity(entity):
 class ListView(View):
     methods = ['GET', 'POST']
         
+    def render_entities(self, db_id, form):
+        entity_list = self.load_entities(db_id)
+        fields = self.get_fields(form)
+        rows = []
+        for e in entity_list:
+            url = url_for_entity(e)
+            rows.append(renderers.render_row(e, url, *fields))
+        return renderers.render_entity_list(rows, *fields)
+
     def dispatch_request(self, db_id=None):
+        parent = model.lookup_entity(db_id)
         entity = self.create_entity(db_id)
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
@@ -28,17 +38,11 @@ class ListView(View):
             return redirect(request.base_url)
             
         rendered_form = renderers.render_form(form)
-        enabled = model.is_action_allowed(('create', self.kind), entity)
+        enabled = model.is_action_allowed(('create', self.kind), parent)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1')
-        entity_list = self.load_entities(db_id)
-        fields = self.get_fields(entity)
-        rows = []
-        for e in entity_list:
-            url = url_for_entity(e)
-            rows.append(renderers.render_row(e, url, *fields))
-        entity_table = renderers.render_entity_list(rows, *fields)
-        return render_template('entity_list.html',  kind=self.kind, entity_table=entity_table, 
+        entity_table = self.render_entities(db_id, form)
+        return render_template('entity_list.html',  title=self.kind + ' List', entity_table=entity_table, 
                 new_button=open_modal, new_dialog=dialog)
         
 def action_button(index, action_name, entity):
@@ -65,6 +69,7 @@ class EntityView(View):
             entity.put()
             return redirect(request.base_url)
             
+        title = self.title(entity)
         menu = self.create_menu(entity)
         links = self.get_links(entity)
         rendered_form = renderers.render_form(form)
@@ -72,8 +77,7 @@ class EntityView(View):
         
         fields = self.get_fields(form)
         rendered_entity = renderers.render_entity(entity, *fields)
-        name = self.title(entity)
-        return render_template('entity.html', kind=entity.key.kind(), name=name, links=links, menu=menu, 
+        return render_template('entity.html', title=title, links=links, menu=menu, 
                         edit_dialog=dialog, entity=rendered_entity)
 
 class MenuView(View):

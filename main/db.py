@@ -56,6 +56,7 @@ class Supplier(ndb.Model):
 # ancestor = Organisation   
 class Fund(ndb.Model):
     name = ndb.StringProperty()
+    pont = ndb.BooleanProperty(default=False)
 
 # ancestor = Fund   
 class Project(ndb.Model):

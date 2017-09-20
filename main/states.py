@@ -19,7 +19,7 @@ PROJECT_APPROVAL_PENDING = State(0, 'Approval Pending',
 PROJECT_APPROVED = State(1, 'Approved', ('create', 'Grant'), ('create', 'Pledge'), ('update',))
 
 GRANT_TRANSFER_PENDING = State(0, 'Transfer Pending', ('update',))
-GRANT_TRANSFERED = State(1, 'Transfer Pending')
+GRANT_TRANSFERED = State(1, 'Transferred')
 
 PLEDGE_PENDING = State(0, 'Pending', ('state-change', 1), ('update',))
 PLEDGE_FULFILLED = State(1, 'Fulfilled')
@@ -29,8 +29,8 @@ grantStates = [GRANT_TRANSFER_PENDING, GRANT_TRANSFERED]
 pledgeStates = [PLEDGE_PENDING, PLEDGE_FULFILLED]
 
 stateMap = {'Project': projectStates,
-           'Grant': grantStates,
-             'Pledge': pledgeStates}
+            'Grant': grantStates,
+            'Pledge': pledgeStates}
 
 def getState(kind, index):
     return stateMap[kind][index]

@@ -19,7 +19,7 @@ class PledgeForm(wtforms.Form):
     
 class PledgeListView(views.ListView):
     def __init__(self):
-        self.kind = 'Pledges'
+        self.kind = 'Pledge'
         self.formClass = PledgeForm
         
     def create_entity(self, db_id):
@@ -35,7 +35,6 @@ class PledgeListView(views.ListView):
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        self.kind = 'Pledge'
         self.formClass = PledgeForm
         self.actions = [(1, 'Fulfill')]
         
@@ -44,7 +43,7 @@ class PledgeView(views.EntityView):
         return (form._fields['amount'], state)
         
     def title(self, entity):
-        return ""
+        return "Pledge"
 
     def get_links(self, entity):
         return ""
