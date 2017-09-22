@@ -12,43 +12,52 @@ def lookup_entity(db_id):
     key = db.createKey(db_id)
     return key.get()
         
-def create_fund(db_id):
-    parent = db.createKey(db_id)
-    return db.Fund(parent=parent, pont=(parent is None))
+def create_fund(parent):
+    key = None
+    pont = True
+    if parent:
+        key = parent.key
+        pont = False
+    return db.Fund(parent=key, pont=pont)
     
-def list_funds(db_id):
-    parent = db.createKey(db_id)
-    return db.Fund.query(ancestor=parent).filter(
-                    db.Fund.pont==(parent is None)).fetch()
+def list_funds(parent):
+    key = None
+    pont = True
+    if parent:
+        key = parent.key
+        pont = False
+    return db.Fund.query(ancestor=key).filter(
+                    db.Fund.pont==pont).fetch()
+
+def pont_fund_query():
+    return db.Fund.query().filter(db.Fund.pont==True)
     
 def cap_fund_query():
     return db.Fund.query(ancestor=cap_key) # ugly query
 
-def create_project(db_id):
-    parent = db.createKey(db_id)
-    return db.Project(parent=parent)
+def create_project(parent):
+    return db.Project(parent=parent.key)
         
-def list_projects(db_id):
-    parent = db.createKey(db_id)
-    return db.Project.query(ancestor=parent).fetch()
+def list_projects(parent):
+    return db.Project.query(ancestor=parent.key).fetch()
     
-def create_grant(db_id):
-    parent = db.createKey(db_id)
-    project = parent.get()
-    return db.Grant(parent=parent, amount=db.Money())
+def create_transfer(parent):
+    return db.InternalTransfer(parent=parent.key)
+        
+def list_transfers(parent):
+    return db.InternalTransfer.query(ancestor=parent.key).fetch()
     
-def list_grants(db_id):
-    parent = db.createKey(db_id)
-    return db.Grant.query(ancestor=parent).fetch()
+def create_grant(parent):
+    return db.Grant(parent=parent.key)
     
-def create_pledge(db_id):
-    parent = db.createKey(db_id)
-    project = parent.get()
-    return db.Pledge(parent=parent, amount=db.Money())
+def list_grants(parent):
+    return db.Grant.query(ancestor=parent.key).fetch()
     
-def list_pledges(db_id):
-    parent = db.createKey(db_id)
-    return db.Pledge.query(ancestor=parent).fetch()
+def create_pledge(parent):
+    return db.Pledge(parent=parent.key)
+    
+def list_pledges(parent):
+    return db.Pledge.query(ancestor=parent.key).fetch()
 
 def create_supplier():
     return db.Supplier()

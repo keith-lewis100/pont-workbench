@@ -13,6 +13,7 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
 class GrantForm(wtforms.Form):
+    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
 
 class GrantListView(views.ListView):
@@ -20,11 +21,11 @@ class GrantListView(views.ListView):
         self.kind = 'Grant'
         self.formClass = GrantForm
         
-    def create_entity(self, db_id):
-        return model.create_grant(db_id)
+    def create_entity(self, parent):
+        return model.create_grant(parent)
 
-    def load_entities(self, db_id):
-        return model.list_grants(db_id)
+    def load_entities(self, parent):
+        return model.list_grants(parent)
         
     def get_fields(self, entity):
         form = GrantForm()
@@ -38,7 +39,7 @@ class GrantView(views.EntityView):
         
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
-        return (form._fields['amount'], state)
+        return form._fields.values() + [state]
         
     def title(self, entity):
         return "Grant"

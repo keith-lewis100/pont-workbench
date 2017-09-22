@@ -42,12 +42,10 @@ def form_field_widget(form_field, **kwargs):
 def get_display_value(field, property):
     if hasattr(field, 'get_display_value'):
         return field.get_display_value(property)
-    if hasattr(field, 'iter_choices'): # TODO: use choices and coerce instead
-        field.data = property
-        for val, label, selected in field.iter_choices():
-            if selected:
+    if hasattr(field, 'choices'):
+        for value, label in field.choices:
+            if field.coerce(value) == property:
                 return label
-        field.data = None
     return unicode(property)
 
 def render_entity(entity, *fields):

@@ -17,10 +17,10 @@ class SupplierListView(views.ListView):
         self.kind = 'Supplier'
         self.formClass = SupplierForm
         
-    def create_entity(self, db_id):
+    def create_entity(self, parent):
         return model.create_supplier()
 
-    def load_entities(self, db_id):
+    def load_entities(self, parent):
         return model.list_suppliers()
         
     def get_fields(self, form):

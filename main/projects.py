@@ -12,6 +12,7 @@ import logging
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    description = wtforms.TextAreaField()
     dest_fund = custom_fields.KeyPropertyField('Destination Fund',
                     validators=[wtforms.validators.InputRequired()],
                     query=model.cap_fund_query())
@@ -21,11 +22,11 @@ class ProjectListView(views.ListView):
         self.kind = 'Project'
         self.formClass = ProjectForm
         
-    def create_entity(self, db_id):
-        return model.create_project(db_id)
+    def create_entity(self, parent):
+        return model.create_project(parent)
 
-    def load_entities(self, db_id):
-        return model.list_projects(db_id)
+    def load_entities(self, parent):
+        return model.list_projects(parent)
                 
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')

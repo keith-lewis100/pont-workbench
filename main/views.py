@@ -19,8 +19,8 @@ def url_for_entity(entity):
 class ListView(View):
     methods = ['GET', 'POST']
         
-    def render_entities(self, db_id, form):
-        entity_list = self.load_entities(db_id)
+    def render_entities(self, parent, form):
+        entity_list = self.load_entities(parent)
         fields = self.get_fields(form)
         rows = []
         for e in entity_list:
@@ -30,7 +30,7 @@ class ListView(View):
 
     def dispatch_request(self, db_id=None):
         parent = model.lookup_entity(db_id)
-        entity = self.create_entity(db_id)
+        entity = self.create_entity(parent)
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
@@ -41,7 +41,7 @@ class ListView(View):
         enabled = model.is_action_allowed(('create', self.kind), parent)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1')
-        entity_table = self.render_entities(db_id, form)
+        entity_table = self.render_entities(parent, form)
         return render_template('entity_list.html',  title=self.kind + ' List', entity_table=entity_table, 
                 new_button=open_modal, new_dialog=dialog)
         

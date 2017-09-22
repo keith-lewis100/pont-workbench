@@ -1,6 +1,5 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import redirect, request, url_for
 from flask.views import View
 import wtforms
 
@@ -8,7 +7,6 @@ import model
 import renderers
 import custom_fields
 import views
-import logging
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -22,11 +20,11 @@ class PledgeListView(views.ListView):
         self.kind = 'Pledge'
         self.formClass = PledgeForm
         
-    def create_entity(self, db_id):
-        return model.create_pledge(db_id)
+    def create_entity(self, parent):
+        return model.create_pledge(parent)
 
-    def load_entities(self, db_id):
-        return model.list_pledges(db_id)
+    def load_entities(self, parent):
+        return model.list_pledges(parent)
         
     def get_fields(self, entity):
         form = PledgeForm()

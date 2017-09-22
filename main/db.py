@@ -56,20 +56,29 @@ class Supplier(ndb.Model):
 # ancestor = Organisation   
 class Fund(ndb.Model):
     name = ndb.StringProperty()
+    description = ndb.StringProperty()
     pont = ndb.BooleanProperty(default=False)
+
+class InternalTransfer(ndb.Model):
+    description = ndb.StringProperty()
+    amount = MoneyProperty(default=Money())
+    dest_fund = ndb.KeyProperty(kind=Fund)
+    state = EnumProperty(states.transferStates, default=states.TRANSFER_PENDING)
 
 # ancestor = Fund   
 class Project(ndb.Model):
     name = ndb.StringProperty()
+    description = ndb.StringProperty()
     dest_fund = ndb.KeyProperty(kind=Fund)
-    state = EnumProperty(states.projectStates, default=states.PROJECT_APPROVAL_PENDING, required=True)
+    state = EnumProperty(states.projectStates, default=states.PROJECT_APPROVAL_PENDING)
 
 # ancestor = Project   
 class Grant(ndb.Model):
-    amount = MoneyProperty()
-    state = EnumProperty(states.grantStates, default=states.GRANT_TRANSFER_PENDING, required=True)
+    description = ndb.StringProperty()
+    amount = MoneyProperty(default=Money())
+    state = EnumProperty(states.grantStates, default=states.GRANT_TRANSFER_PENDING)
 
 # ancestor = Project   
 class Pledge(ndb.Model):
-    amount = MoneyProperty()
-    state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING, required=True)
+    amount = MoneyProperty(default=Money())
+    state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)
