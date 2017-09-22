@@ -50,6 +50,9 @@ class EnumProperty(ndb.IntegerProperty):
     def _from_base_type(self, index):
         return self.enumArray[index]
         
+class WorkBench(ndb.Model):
+    last_ref_id = ndb.IntegerProperty(default=0)
+
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
 
@@ -81,4 +84,5 @@ class Grant(ndb.Model):
 # ancestor = Project   
 class Pledge(ndb.Model):
     amount = MoneyProperty(default=Money())
+    ref_id = ndb.StringProperty()
     state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)

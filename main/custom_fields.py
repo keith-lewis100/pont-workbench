@@ -1,4 +1,5 @@
 #_*_ coding: UTF-8 _*_
+
 from wtforms import fields, widgets
 
 class KeyPropertyField(fields.SelectFieldBase):

@@ -11,7 +11,6 @@ import views
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
-
 class PledgeForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     
@@ -28,8 +27,9 @@ class PledgeListView(views.ListView):
         
     def get_fields(self, entity):
         form = PledgeForm()
+        ref_id = views.ReadOnlyField('ref_id', 'Reference')
         state = views.ReadOnlyField('state', 'State')
-        return (form._fields['amount'], state)
+        return (ref_id, form._fields['amount'], state)
 
 class PledgeView(views.EntityView):
     def __init__(self):
@@ -38,7 +38,8 @@ class PledgeView(views.EntityView):
         
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
-        return (form._fields['amount'], state)
+        ref_id = views.ReadOnlyField('ref_id', 'Reference')
+        return (ref_id, form._fields['amount'], state)
         
     def title(self, entity):
         return "Pledge"

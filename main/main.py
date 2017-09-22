@@ -2,6 +2,8 @@
 
 from flask import Flask, url_for, render_template
 from flask.views import View
+#_*_ coding: UTF-8 _*_
+
 import wtforms
 
 import renderers

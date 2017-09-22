@@ -1,3 +1,4 @@
+#_*_ coding: UTF-8 _*_
 
 class State:
     def __init__(self, index, display_name, *actions):

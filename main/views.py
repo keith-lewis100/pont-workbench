@@ -1,3 +1,5 @@
+#_*_ coding: UTF-8 _*_
+
 from flask import render_template, redirect, request, url_for
 from flask.views import View
 import renderers
@@ -34,7 +36,7 @@ class ListView(View):
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            entity.put()
+            model.perform_action(('create', self.kind), entity)
             return redirect(request.base_url)
             
         rendered_form = renderers.render_form(form)
@@ -66,7 +68,7 @@ class EntityView(View):
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            entity.put()
+            model.perform_action(('update',), entity)
             return redirect(request.base_url)
             
         title = self.title(entity)
@@ -85,6 +87,6 @@ class MenuView(View):
     
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)
-        action = request.form['action']
-        model.perform_action(int(action), entity)
+        index = int(request.form['action'])
+        model.perform_action(('state-change', index), entity)
         return redirect(url_for_entity(entity))

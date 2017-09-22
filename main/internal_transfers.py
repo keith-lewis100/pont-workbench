@@ -1,3 +1,5 @@
+#_*_ coding: UTF-8 _*_
+
 from flask.views import View
 import wtforms
 

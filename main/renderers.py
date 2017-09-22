@@ -1,3 +1,5 @@
+#_*_ coding: UTF-8 _*_
+
 import wtforms
 from html_builder import html
 

@@ -5,6 +5,7 @@ import db
 import states
 
 cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
+workbench = db.WorkBench.get_or_insert('main')
 
 def lookup_entity(db_id):
     if db_id is None:
@@ -26,8 +27,7 @@ def list_funds(parent):
     if parent:
         key = parent.key
         pont = False
-    return db.Fund.query(ancestor=key).filter(
-                    db.Fund.pont==pont).fetch()
+    return db.Fund.query(ancestor=key).filter(db.Fund.pont==pont).fetch()
 
 def pont_fund_query():
     return db.Fund.query().filter(db.Fund.pont==True)
@@ -59,6 +59,12 @@ def create_pledge(parent):
 def list_pledges(parent):
     return db.Pledge.query(ancestor=parent.key).fetch()
 
+def _get_next_ref():
+    ref = workbench.last_ref_id + 1
+    workbench.last_ref_id = ref
+    workbench.put()
+    return ref
+
 def create_supplier():
     return db.Supplier()
 
@@ -70,9 +76,16 @@ def is_action_allowed(action, entity):
         return False
     return True
 
-def perform_action(action_index, entity):
+def perform_action(action, entity):
+    type, index = action
+    if action == ('create', 'Pledge'):
+        ref = _get_next_ref()
+        entity.ref_id = 'PL%04d' % ref
+    if (type != 'state-change'):
+        entity.put()
+        return
     kind = entity.key.kind()
-    newState = states.getState(kind, action_index)
+    newState = states.getState(kind, index)
     if newState is None:
         raise BadAction
     entity.state = newState
