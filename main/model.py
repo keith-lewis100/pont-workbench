@@ -56,6 +56,12 @@ def create_pledge(parent):
 def list_pledges(parent):
     return db.Pledge.query(ancestor=parent.key).fetch()
 
+def create_purchase(parent):
+    return db.Purchase(parent=parent.key)
+    
+def list_purchases(parent):
+    return db.Purchase.query(ancestor=parent.key).fetch()
+
 def _get_next_ref():
     ref = workbench.last_ref_id + 1
     workbench.last_ref_id = ref

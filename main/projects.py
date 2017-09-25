@@ -45,11 +45,13 @@ class ProjectView(views.EntityView):
         return 'Project ' + entity.name
         
     def get_links(self, entity):
+        grants_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
+        showPurchases = renderers.render_link('Show Purchase Requests', url=grants_url, class_="button")
         grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
         showGrants = renderers.render_link('Show Grants', url=grants_url, class_="button")
         pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())        
         showPledges = renderers.render_link('Show Pledges', url=pledges_url, class_="button")
-        return renderers.render_div(showGrants, showPledges)
+        return renderers.render_div(showPurchases, showGrants, showPledges)
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))

@@ -86,3 +86,9 @@ class Pledge(ndb.Model):
     amount = MoneyProperty(default=Money())
     ref_id = ndb.StringProperty()
     state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)
+    
+class Purchase(ndb.Model):
+    description = ndb.StringProperty()
+    amount = MoneyProperty(default=Money())
+    state = EnumProperty(states.purchaseStates, default=states.PURCHASE_APPROVING)
+    po_number = ndb.StringProperty()

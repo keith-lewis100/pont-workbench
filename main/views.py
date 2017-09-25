@@ -14,12 +14,15 @@ class ReadOnlyField:
         self.name = name
         self.label = Label(label)
 
+def url_for_entity(entity):
+    key = entity.key
+    return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
+
 class ListView(View):
     methods = ['GET', 'POST']
         
     def url_for_entity(self, entity):
-        key = entity.key
-        return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
+        return url_for_entity(entity)
     
     def render_entities(self, parent, form):
         entity_list = self.load_entities(parent)

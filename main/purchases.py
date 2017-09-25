@@ -12,40 +12,42 @@ class MoneyForm(wtforms.Form):
                     widget=renderers.radio_field_widget)
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
 
-class GrantForm(wtforms.Form):
+class PurchaseForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
 
-class GrantListView(views.ListView):
+class PurchaseListView(views.ListView):
     def __init__(self):
-        self.kind = 'Grant'
-        self.formClass = GrantForm
+        self.kind = 'Purchase'
+        self.formClass = PurchaseForm
         
     def create_entity(self, parent):
-        return model.create_grant(parent)
+        return model.create_purchase(parent)
 
     def load_entities(self, parent):
-        return model.list_grants(parent)
+        return model.list_purchases(parent)
         
     def get_fields(self, form):
+        po_number = views.ReadOnlyField('po_number', 'PO number')
         state = views.ReadOnlyField('state', 'State')
-        return (form._fields['amount'], state)
+        return (form._fields['amount'], po_number, state)
 
-class GrantView(views.EntityView):
+class PurchaseView(views.EntityView):
     def __init__(self):
-        self.formClass = GrantForm
-        self.actions = []
+        self.formClass = PurchaseForm
+        self.actions = [(2, 'Approve'), (3, 'Ordered'), (4, 'Fulfilled'), (5, 'Close')]
         
     def get_fields(self, form):
+        po_number = views.ReadOnlyField('po_number', 'PO number')
         state = views.ReadOnlyField('state', 'State')
-        return form._fields.values() + [state]
+        return form._fields.values() + [po_number, state]
         
     def title(self, entity):
-        return "Grant"
+        return "Purchase"
 
     def get_links(self, entity):
         return ""
 
 def add_rules(app):
-    app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
-    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))
+    app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
+    app.add_url_rule('/purchase/<db_id>/', view_func=PurchaseView.as_view('view_purchase'))

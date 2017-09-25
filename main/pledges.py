@@ -25,8 +25,7 @@ class PledgeListView(views.ListView):
     def load_entities(self, parent):
         return model.list_pledges(parent)
         
-    def get_fields(self, entity):
-        form = PledgeForm()
+    def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
         state = views.ReadOnlyField('state', 'State')
         return (ref_id, form._fields['amount'], state)

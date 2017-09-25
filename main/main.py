@@ -15,6 +15,7 @@ import grants
 import pledges
 import suppliers
 import internal_transfers
+import purchases
 
 app = Flask(__name__)
 
@@ -34,3 +35,4 @@ grants.add_rules(app)
 pledges.add_rules(app)
 suppliers.add_rules(app)
 internal_transfers.add_rules(app)
+purchases.add_rules(app)
