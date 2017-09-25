@@ -105,7 +105,10 @@ def render_div(*content, **kwargs):
 def render_modal_open(legend, id, enabled):
     return html.button(legend, type="button", onclick="openDialog('%s');" % id, disabled=not enabled)
     
-def render_modal_dialog(element, id):
+def render_modal_dialog(element, id, open=False):
     close = html.span(SafeString("&times;"), class_="close", onclick="closeDialog('%s');" % id)
     content = html.div(close, element, class_="modal-content")
-    return html.div(content, id=id, class_="modal")
+    class_val = "modal"
+    if open:
+        class_val = "modal modal-open"
+    return html.div(content, id=id, class_="%s" % class_val)

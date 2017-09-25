@@ -14,23 +14,20 @@ def lookup_entity(db_id):
     return key.get()
         
 def create_fund(parent):
-    key = None
-    pont = True
     if parent:
-        key = parent.key
-        pont = False
-    return db.Fund(parent=key, pont=pont)
+        return db.Fund(parent=parent.key)
+    return db.Fund()
     
+def list_committees():
+    return db.committeeList
+
 def list_funds(parent):
-    key = None
-    pont = True
     if parent:
-        key = parent.key
-        pont = False
-    return db.Fund.query(ancestor=key).filter(db.Fund.pont==pont).fetch()
+        return db.Fund.query(ancestor=parent.key).fetch()
+    return db.Fund.query().filter(db.Fund.committee != None).fetch()
 
 def pont_fund_query():
-    return db.Fund.query().filter(db.Fund.pont==True)
+    return db.Fund.query().filter(db.Fund.committee != None)
     
 def cap_fund_query():
     return db.Fund.query(ancestor=cap_key) # ugly query
@@ -77,13 +74,13 @@ def is_action_allowed(action, entity):
     return True
 
 def perform_action(action, entity):
-    type, index = action
     if action == ('create', 'Pledge'):
         ref = _get_next_ref()
         entity.ref_id = 'PL%04d' % ref
-    if (type != 'state-change'):
+    if (action[0] != 'state-change'):
         entity.put()
         return
+    type, index = action
     kind = entity.key.kind()
     newState = states.getState(kind, index)
     if newState is None:

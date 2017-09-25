@@ -49,7 +49,7 @@ class EnumProperty(ndb.IntegerProperty):
 
     def _from_base_type(self, index):
         return self.enumArray[index]
-        
+
 class WorkBench(ndb.Model):
     last_ref_id = ndb.IntegerProperty(default=0)
 
@@ -60,7 +60,7 @@ class Supplier(ndb.Model):
 class Fund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
-    pont = ndb.BooleanProperty(default=False)
+    committee = ndb.StringProperty()
 
 class InternalTransfer(ndb.Model):
     description = ndb.StringProperty()

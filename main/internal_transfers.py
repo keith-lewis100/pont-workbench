@@ -31,7 +31,7 @@ class InternalTransferListView(views.ListView):
                 
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
-        return (form._fields['dest_fund'], state)
+        return (form._fields['dest_fund'], form._fields['amount'],state)
 
 class InternalTransferView(views.EntityView):
     def __init__(self):

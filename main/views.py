@@ -14,19 +14,19 @@ class ReadOnlyField:
         self.name = name
         self.label = Label(label)
 
-def url_for_entity(entity):
-    key = entity.key
-    return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
-
 class ListView(View):
     methods = ['GET', 'POST']
         
+    def url_for_entity(self, entity):
+        key = entity.key
+        return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
+    
     def render_entities(self, parent, form):
         entity_list = self.load_entities(parent)
         fields = self.get_fields(form)
         rows = []
         for e in entity_list:
-            url = url_for_entity(e)
+            url = self.url_for_entity(e)
             rows.append(renderers.render_row(e, url, *fields))
         return renderers.render_entity_list(rows, *fields)
 
@@ -42,7 +42,7 @@ class ListView(View):
         rendered_form = renderers.render_form(form)
         enabled = model.is_action_allowed(('create', self.kind), parent)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
-        dialog = renderers.render_modal_dialog(rendered_form, 'm1')
+        dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         entity_table = self.render_entities(parent, form)
         return render_template('entity_list.html',  title=self.kind + ' List', entity_table=entity_table, 
                 new_button=open_modal, new_dialog=dialog)
@@ -75,7 +75,7 @@ class EntityView(View):
         menu = self.create_menu(entity)
         links = self.get_links(entity)
         rendered_form = renderers.render_form(form)
-        dialog = renderers.render_modal_dialog(rendered_form, 'm1')
+        dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         
         fields = self.get_fields(form)
         rendered_entity = renderers.render_entity(entity, *fields)

@@ -25,6 +25,9 @@ button:disabled {
     background-color: rgba(0,0,0,0.4); /* Black w/ opacity */
 }
 
+.modal-open {
+    display: block;
+}
 /* Modal Content/Box */
 .modal-content {
     background-color: #fefefe;
