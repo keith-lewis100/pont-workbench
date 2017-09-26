@@ -45,7 +45,8 @@ purchaseStates = [PURCHASE_AUTHORISING, PURCHASE_APPROVING, PURCHASE_APPROVED, P
 stateMap = {'Project': projectStates,
             'Grant': grantStates,
             'Pledge': pledgeStates,
-            'InternalTransfer': transferStates}
+            'InternalTransfer': transferStates,
+            'Purchase': purchaseStates}
 
 def getState(kind, index):
     return stateMap[kind][index]

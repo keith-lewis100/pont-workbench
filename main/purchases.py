@@ -51,3 +51,4 @@ class PurchaseView(views.EntityView):
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
     app.add_url_rule('/purchase/<db_id>/', view_func=PurchaseView.as_view('view_purchase'))
+    app.add_url_rule('/purchase/<db_id>/menu', view_func=views.MenuView.as_view('handle_purchase_menu'))
