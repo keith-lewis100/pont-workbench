@@ -73,6 +73,12 @@ def create_supplier():
 
 def list_suppliers():
     return db.Supplier.query().fetch()
+    
+def create_user():
+    return db.User()
+
+def list_users():
+    return db.User.query().fetch()
 
 def is_action_allowed(action, entity): 
     if hasattr(entity, 'state') and not entity.state.isAllowed(action):
@@ -93,7 +99,3 @@ def perform_action(action, entity):
         raise BadAction
     entity.state = newState
     entity.put()
-
-if cap_fund_query().count() == 0:
-    db.Fund(parent=cap_key, name="Livelihoods").put()
-    db.Fund(parent=cap_key, name="Churches").put()

@@ -55,13 +55,17 @@ class WorkBench(ndb.Model):
 
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
+    
+class User(ndb.Model):
+    name = ndb.StringProperty()
 
-# ancestor = Organisation   
+# ancestor = Supplier or None   
 class Fund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
     committee = ndb.StringProperty()
 
+# ancestor = Fund   
 class InternalTransfer(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
@@ -87,6 +91,7 @@ class Pledge(ndb.Model):
     ref_id = ndb.StringProperty()
     state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)
     
+# ancestor = Project
 class Purchase(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
