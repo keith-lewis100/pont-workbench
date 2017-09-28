@@ -79,20 +79,27 @@ def create_user():
 
 def list_users():
     return db.User.query().fetch()
+    
+def user_by_email(email):
+    return db.User.query().filter(db.User.email == email).get()
 
 def is_action_allowed(action, entity): 
     if hasattr(entity, 'state') and not entity.state.isAllowed(action):
         return False
     return True
 
-def perform_action(action, entity):
-    if action == ('create', 'Pledge'):
+def perform_create(entity, user):
+    if entity.key.kind() == 'Pledge':
         ref = _get_next_ref()
         entity.ref_id = 'PL%04d' % ref
-    if (action[0] != 'state-change'):
-        entity.put()
-        return
-    type, index = action
+    if hasattr(entity, 'creator'):
+        entity.creator = user.key
+    entity.put()
+
+def perform_update(entity):
+    entity.put()
+
+def perform_state_change(index, entity):
     kind = entity.key.kind()
     newState = states.getState(kind, index)
     if newState is None:

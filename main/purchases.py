@@ -40,7 +40,8 @@ class PurchaseView(views.EntityView):
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
         state = views.ReadOnlyField('state', 'State')
-        return form._fields.values() + [po_number, state]
+        creator = views.ReadOnlyKeyField('creator', 'Creator')
+        return form._fields.values() + [po_number, state, creator]
         
     def title(self, entity):
         return "Purchase"

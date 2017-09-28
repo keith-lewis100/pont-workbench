@@ -58,6 +58,7 @@ class Supplier(ndb.Model):
     
 class User(ndb.Model):
     name = ndb.StringProperty()
+    email = ndb.StringProperty()
 
 # ancestor = Supplier or None   
 class Fund(ndb.Model):
@@ -71,6 +72,7 @@ class InternalTransfer(ndb.Model):
     amount = MoneyProperty(default=Money())
     dest_fund = ndb.KeyProperty(kind=Fund)
     state = EnumProperty(states.transferStates, default=states.TRANSFER_PENDING)
+    creator = ndb.KeyProperty(kind=User)
 
 # ancestor = Fund   
 class Project(ndb.Model):
@@ -84,12 +86,14 @@ class Grant(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
     state = EnumProperty(states.grantStates, default=states.GRANT_TRANSFER_PENDING)
+    creator = ndb.KeyProperty(kind=User)
 
 # ancestor = Project   
 class Pledge(ndb.Model):
     amount = MoneyProperty(default=Money())
     ref_id = ndb.StringProperty()
     state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)
+    creator = ndb.KeyProperty(kind=User)
     
 # ancestor = Project
 class Purchase(ndb.Model):
@@ -97,3 +101,4 @@ class Purchase(ndb.Model):
     amount = MoneyProperty(default=Money())
     state = EnumProperty(states.purchaseStates, default=states.PURCHASE_APPROVING)
     po_number = ndb.StringProperty()
+    creator = ndb.KeyProperty(kind=User)

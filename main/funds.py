@@ -65,10 +65,10 @@ class FundView(views.EntityView):
         if entity.key.parent():
             return ""
         projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
-        showProjects = renderers.render_link('Show Projects', url=projects_url, class_="button")
+        showProjects = renderers.render_link('Show Projects', projects_url)
         transfers_url = url_for('view_transfer_list', db_id=entity.key.urlsafe())
-        showTransfers = renderers.render_link('Show Transfers', url=transfers_url, class_="button")        
-        return renderers.render_div(showProjects, showTransfers)
+        showTransfers = renderers.render_link('Show Transfers', transfers_url)        
+        return renderers.render_nav(showProjects, showTransfers)
 
 def add_rules(app):
     app.add_url_rule('/pont_fund_list', view_func=FundListView.as_view('view_pont_fund_list', True))

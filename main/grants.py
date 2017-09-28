@@ -38,7 +38,8 @@ class GrantView(views.EntityView):
         
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
-        return form._fields.values() + [state]
+        creator = views.ReadOnlyKeyField('creator', 'Creator')
+        return form._fields.values() + [state, creator]
         
     def title(self, entity):
         return "Grant"

@@ -38,7 +38,8 @@ class PledgeView(views.EntityView):
     def get_fields(self, form):
         state = views.ReadOnlyField('state', 'State')
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
-        return (ref_id, form._fields['amount'], state)
+        creator = views.ReadOnlyKeyField('creator', 'Creator')
+        return (ref_id, form._fields['amount'], state, creator)
         
     def title(self, entity):
         return "Pledge"

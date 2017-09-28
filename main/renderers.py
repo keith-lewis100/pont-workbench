@@ -90,18 +90,21 @@ def render_row(entity, url, *fields):
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)
 
-def render_link(label, url, **kwargs):
-    return html.a(label, href=url, **kwargs)
+def render_link(label, url):
+    return html.a(label, href=url, class_="button")
     
 def render_submit_button(label, **kwargs):
     return html.button(label, type="submit", **kwargs)
 
 def render_menu(url, *content):
-    return html.form(*content, method="post", action=url)
-    
-def render_div(*content, **kwargs):
-    return html.div(*content, **kwargs)
-        
+    return html.nav(html.form(*content, method="post", action=url))
+
+def render_nav(*content):
+    return html.nav(*content)
+
+def render_logout(user, url):
+    return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))
+         
 def render_modal_open(legend, id, enabled):
     return html.button(legend, type="button", onclick="openDialog('%s');" % id, disabled=not enabled)
     

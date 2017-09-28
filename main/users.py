@@ -1,8 +1,15 @@
-import renderers
+#_*_ coding: UTF-8 _*_
+
+from flask import url_for
+import wtforms
+
+import model
 import views
+import custom_fields
 
 class UserForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    email =  wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
 class UserListView(views.ListView):
     def __init__(self):
@@ -16,7 +23,7 @@ class UserListView(views.ListView):
         return model.list_users()
         
     def get_fields(self, form):
-        return (form._fields['name'], po_number, state)
+        return form._fields.values()
 
 class UserView(views.EntityView):
     def __init__(self):
@@ -33,6 +40,5 @@ class UserView(views.EntityView):
         return ""
 
 def add_rules(app):
-    app.add_url_rule('/user_list/<db_id>', view_func=UserListView.as_view('view_user_list'))
+    app.add_url_rule('/user_list', view_func=UserListView.as_view('view_user_list'))
     app.add_url_rule('/user/<db_id>/', view_func=UserView.as_view('view_user'))
-    app.add_url_rule('/user/<db_id>/menu', view_func=views.MenuView.as_view('handle_user_menu'))
