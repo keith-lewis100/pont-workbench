@@ -17,9 +17,6 @@ def create_fund(parent):
     if parent:
         return db.Fund(parent=parent.key)
     return db.Fund()
-    
-def list_committees():
-    return db.committeeList
 
 def list_funds(parent):
     if parent:
@@ -83,13 +80,15 @@ def list_users():
 def user_by_email(email):
     return db.User.query().filter(db.User.email == email).get()
 
-def is_action_allowed(action, entity): 
+def is_action_allowed(action, entity, user): 
+    if user is None:
+        return False
     if hasattr(entity, 'state') and not entity.state.isAllowed(action):
         return False
     return True
 
-def perform_create(entity, user):
-    if entity.key.kind() == 'Pledge':
+def perform_create(kind, entity, user):
+    if kind == 'Pledge':
         ref = _get_next_ref()
         entity.ref_id = 'PL%04d' % ref
     if hasattr(entity, 'creator'):

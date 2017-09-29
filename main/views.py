@@ -17,15 +17,16 @@ class ReadOnlyField:
         self.label = Label(label)
 
 class ReadOnlyKeyField:
-    def __init__(self, name, label):
+    def __init__(self, name, label, title_of=lambda e : e.name):
         self.name = name
         self.label = Label(label)
+        self.title_of = title_of
 
     def get_display_value(self, key):
         if not key:
             return ""
         entity = key.get()
-        return entity.name
+        return self.title_of(entity)
 
 def url_for_entity(entity):
     key = entity.key
@@ -55,41 +56,43 @@ class ListView(View):
         return renderers.render_entity_list(rows, *fields)
 
     def dispatch_request(self, db_id=None):
+        email = users.get_current_user().email()
+        user = model.user_by_email(email)
         parent = model.lookup_entity(db_id)
         entity = self.create_entity(parent)
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            email = users.get_current_user().email()
-            user = model.user_by_email(email)
-            model.perform_create(entity, user)
+            model.perform_create(self.kind, entity, user)
             return redirect(request.base_url)
             
         rendered_form = renderers.render_form(form)
-        enabled = model.is_action_allowed(('create', self.kind), parent)
+        enabled = model.is_action_allowed(('create', self.kind), parent, user)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         entity_table = self.render_entities(parent, form)
         return render_template('entity_list.html',  title=self.kind + ' List', user=render_user(),
                 entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
         
-def action_button(index, action_name, entity):
-    enabled = model.is_action_allowed(('state-change', index), entity)
+def action_button(index, action_name, entity, user):
+    enabled = model.is_action_allowed(('state-change', index), entity, user)
     return renderers.render_submit_button(action_name, name='new_state', value=str(index), 
                 disabled=not enabled)
 
 class EntityView(View):
     methods = ['GET', 'POST']
     
-    def create_menu(self, entity):
+    def create_menu(self, entity, user):
         buttons = []
         for index, action_name in self.actions:
-            buttons.append(action_button(index, action_name, entity))
-        enabled = model.is_action_allowed(('update',), entity)
+            buttons.append(action_button(index, action_name, entity, user))
+        enabled = model.is_action_allowed(('update',), entity, user)
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
 
     def dispatch_request(self, db_id):
+        email = users.get_current_user().email()
+        user = model.user_by_email(email)
         entity = model.lookup_entity(db_id)
         form = self.formClass(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
@@ -98,7 +101,7 @@ class EntityView(View):
             return redirect(request.base_url)
             
         title = self.title(entity)
-        menu = self.create_menu(entity)
+        menu = self.create_menu(entity, user)
         links = self.get_links(entity)
         rendered_form = renderers.render_form(form)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)

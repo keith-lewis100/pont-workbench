@@ -6,17 +6,17 @@ from google.appengine.api import users
 class KeyPropertyField(fields.SelectFieldBase):
     widget = widgets.Select()
 
-    def __init__(self, label=None, validators=None, query=None, name_attr='name', **kwargs):
+    def __init__(self, label=None, validators=None, query=None, title_of=lambda e: e.name, **kwargs):
         super(KeyPropertyField, self).__init__(label, validators, **kwargs)
         self.query = query
-        self.name_attr = name_attr
+        self.title_of = title_of
         
     def iter_choices(self):
         entities = self.query.fetch()
         
         for entity in entities:
             val = entity.key.urlsafe()
-            name = getattr(entity, self.name_attr)
+            name = self.title_of(entity)
             selected = self.data and val == self.data.urlsafe()
             yield val, name, selected
 
@@ -33,7 +33,7 @@ class KeyPropertyField(fields.SelectFieldBase):
         if key is None:
             return ""
         entity = key.get()
-        return getattr(entity, self.name_attr)
+        return self.title_of(entity)
 
 
             
