@@ -6,11 +6,12 @@ import wtforms
 import model
 import renderers
 import views
+import custom_fields
 
 class MoneyForm(wtforms.Form):
-    currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=renderers.radio_field_widget)
-    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
+    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=50)])
 
 class PurchaseForm(wtforms.Form):
     description = wtforms.TextAreaField()

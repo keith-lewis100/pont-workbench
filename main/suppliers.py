@@ -39,7 +39,7 @@ class SupplierView(views.EntityView):
                 
     def get_links(self, entity):
         funds_url = url_for('view_fund_list', db_id=entity.key.urlsafe())
-        showFunds = renderers.render_link('Show Funds', funds_url)
+        showFunds = renderers.render_link('Show Funds', funds_url, class_="button")
         return renderers.render_nav(showFunds)
 
 def add_rules(app):

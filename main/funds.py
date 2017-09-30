@@ -15,7 +15,7 @@ class FundForm(wtforms.Form):
 
 class PontFundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = wtforms.SelectField(choices=[
+    committee = custom_fields.SelectField(choices=[
         ('PHC', 'PrimaryHealth'),
         ('EDU', 'SecondaryHealth'),
         ('LIV', 'Livelihoods'), 
@@ -65,9 +65,9 @@ class FundView(views.EntityView):
         if entity.key.parent():
             return ""
         projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
-        showProjects = renderers.render_link('Show Projects', projects_url)
+        showProjects = renderers.render_link('Show Projects', projects_url, class_="button")
         transfers_url = url_for('view_transfer_list', db_id=entity.key.urlsafe())
-        showTransfers = renderers.render_link('Show Transfers', transfers_url)        
+        showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
         return renderers.render_nav(showProjects, showTransfers)
 
 def add_rules(app):

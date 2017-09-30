@@ -44,10 +44,6 @@ def form_field_widget(form_field, **kwargs):
 def get_display_value(field, property):
     if hasattr(field, 'get_display_value'):
         return field.get_display_value(property)
-    if hasattr(field, 'choices'):
-        for value, label in field.choices:
-            if field.coerce(value) == property:
-                return label
     return unicode(property)
 
 def render_entity(entity, *fields):
@@ -90,8 +86,8 @@ def render_row(entity, url, *fields):
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)
 
-def render_link(label, url):
-    return html.a(label, href=url, class_="button")
+def render_link(label, url, **kwargs):
+    return html.a(label, href=url, **kwargs)
     
 def render_submit_button(label, **kwargs):
     return html.button(label, type="submit", **kwargs)

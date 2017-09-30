@@ -1,7 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
 from wtforms import fields, widgets
-from google.appengine.api import users
 
 class KeyPropertyField(fields.SelectFieldBase):
     widget = widgets.Select()
@@ -35,5 +34,9 @@ class KeyPropertyField(fields.SelectFieldBase):
         entity = key.get()
         return self.title_of(entity)
 
-
-            
+class SelectField(fields.SelectField):
+    def get_display_value(self, property):
+        for value, label in self.choices:
+            if self.coerce(value) == property:
+                return label
+        return ""

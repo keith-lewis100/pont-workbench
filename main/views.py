@@ -26,7 +26,7 @@ class ReadOnlyKeyField:
         if not key:
             return ""
         entity = key.get()
-        return self.title_of(entity)
+        return renderers.render_link(self.title_of(entity), url_for_entity(entity))
 
 def url_for_entity(entity):
     key = entity.key
