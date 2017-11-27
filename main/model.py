@@ -12,7 +12,13 @@ def lookup_entity(db_id):
         return None
     key = db.createKey(db_id)
     return key.get()
-        
+
+def getParent(entity):
+    parentKey = entity.key.parent()
+    if parentKey is None:
+        return None
+    return parentKey.get()
+
 def create_fund(parent):
     if parent:
         return db.Fund(parent=parent.key)
@@ -104,4 +110,7 @@ def perform_state_change(index, entity):
     if newState is None:
         raise BadAction
     entity.state = newState
+    if kind == 'Purchase' and newState == states.PURCHASE_APPROVED:
+        ref = _get_next_ref()    
+        entity.po_number = 'MB%04d' % ref
     entity.put()

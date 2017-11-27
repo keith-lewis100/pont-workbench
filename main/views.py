@@ -90,6 +90,14 @@ class EntityView(View):
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
 
+    def create_breadcrumbs(self, entity):
+        if entity is None:
+            return []
+        parent = model.getParent(entity)
+        parentBreadcrumbs = self.create_breadcrumbs(parent)
+        return parentBreadcrumbs + ["/ ", 
+                    renderers.render_link(entity.name, url_for_entity(entity))]
+
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
         user = model.user_by_email(email)
@@ -101,6 +109,7 @@ class EntityView(View):
             return redirect(request.base_url)
             
         title = self.title(entity)
+        breadcrumbs = self.create_breadcrumbs(model.getParent(entity))
         menu = self.create_menu(entity, user)
         links = self.get_links(entity)
         rendered_form = renderers.render_form(form)
@@ -108,8 +117,9 @@ class EntityView(View):
         
         fields = self.get_fields(form)
         rendered_entity = renderers.render_entity(entity, *fields)
-        return render_template('entity.html', title=title, links=links, menu=menu, user=render_user(),
-                        edit_dialog=dialog, entity=rendered_entity)
+        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
+        return render_template('entity.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), menu=menu,
+                        edit_dialog=dialog, entity=rendered_entity, links=links)
 
 class MenuView(View):
     methods = ['POST']

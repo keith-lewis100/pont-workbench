@@ -98,6 +98,9 @@ def render_menu(url, *content):
 def render_nav(*content):
     return html.nav(*content)
 
+def render_breadcrumbs(*content):
+    return html.div(*content)
+
 def render_logout(user, url):
     return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))
          
