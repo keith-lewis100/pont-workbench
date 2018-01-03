@@ -17,6 +17,7 @@ import suppliers
 import internal_transfers
 import purchases
 import users
+import roles
 
 app = Flask(__name__)
 
@@ -40,3 +41,4 @@ suppliers.add_rules(app)
 internal_transfers.add_rules(app)
 purchases.add_rules(app)
 users.add_rules(app)
+roles.add_rules(app)

@@ -5,6 +5,7 @@ import wtforms
 
 import model
 import views
+import renderers
 import custom_fields
 
 class UserForm(wtforms.Form):
@@ -34,10 +35,12 @@ class UserView(views.EntityView):
         return form._fields.values()
         
     def title(self, entity):
-        return "User"
+        return "User " + entity.name
 
     def get_links(self, entity):
-        return ""
+        roles_url = url_for('view_role_list', db_id=entity.key.urlsafe())
+        showRoles = renderers.render_link('Show Roles', roles_url, class_="button")        
+        return renderers.render_nav(showRoles)
 
 def add_rules(app):
     app.add_url_rule('/user_list', view_func=UserListView.as_view('view_user_list'))

@@ -1,7 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
 from flask import url_for
-from flask.views import View
 import wtforms
 
 import model
@@ -15,14 +14,7 @@ class FundForm(wtforms.Form):
 
 class PontFundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = custom_fields.SelectField(choices=[
-        ('PHC', 'PrimaryHealth'),
-        ('EDU', 'SecondaryHealth'),
-        ('LIV', 'Livelihoods'), 
-        ('ENG', 'Engineering'),
-        ('EDU', 'Education'), 
-        ('CHU', 'Churches'), 
-        ('WEC', 'Wildlife Centre')])
+    committee = custom_fields.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
 
 class FundListView(views.ListView):

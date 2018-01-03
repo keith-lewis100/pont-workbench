@@ -91,12 +91,12 @@ class EntityView(View):
         return renderers.render_menu('./menu', open_modal, *buttons)
 
     def create_breadcrumbs(self, entity):
-        if entity is None:
-            return []
         parent = model.getParent(entity)
+        if parent is None:
+            return [renderers.render_link('Dashboard', '/')]
         parentBreadcrumbs = self.create_breadcrumbs(parent)
-        return parentBreadcrumbs + ["/ ", 
-                    renderers.render_link(entity.name, url_for_entity(entity))]
+        return parentBreadcrumbs + [" / ", 
+                    renderers.render_link(parent.name, url_for_entity(parent))]
 
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
@@ -109,7 +109,7 @@ class EntityView(View):
             return redirect(request.base_url)
             
         title = self.title(entity)
-        breadcrumbs = self.create_breadcrumbs(model.getParent(entity))
+        breadcrumbs = self.create_breadcrumbs(entity)
         menu = self.create_menu(entity, user)
         links = self.get_links(entity)
         rendered_form = renderers.render_form(form)

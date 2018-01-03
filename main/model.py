@@ -6,6 +6,14 @@ import states
 
 cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
 workbench = db.WorkBench.get_or_insert('main')
+committee_labels=[
+        ('PHC', 'PrimaryHealth'),
+        ('EDU', 'SecondaryHealth'),
+        ('LIV', 'Livelihoods'), 
+        ('ENG', 'Engineering'),
+        ('EDU', 'Education'), 
+        ('CHU', 'Churches'), 
+        ('WEC', 'Wildlife Centre')]
 
 def lookup_entity(db_id):
     if db_id is None:
@@ -83,12 +91,18 @@ def create_user():
 def list_users():
     return db.User.query().fetch()
     
+def create_role(parent):
+    return db.Role(parent=parent.key)
+    
+def list_roles(parent):
+    return db.Role.query(ancestor=parent.key).fetch()
+
 def user_by_email(email):
     return db.User.query().filter(db.User.email == email).get()
 
 def is_action_allowed(action, entity, user): 
-    if user is None:
-        return False
+#    if user is None:
+#        return False
     if hasattr(entity, 'state') and not entity.state.isAllowed(action):
         return False
     return True

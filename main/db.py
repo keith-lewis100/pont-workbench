@@ -3,6 +3,7 @@
 from google.appengine.ext import ndb
 import json
 import states
+#import role_types
 
 def createKey(db_id):
     if db_id is None:
@@ -59,6 +60,11 @@ class Supplier(ndb.Model):
 class User(ndb.Model):
     name = ndb.StringProperty()
     email = ndb.StringProperty()
+
+# ancestor = User
+class Role(ndb.Model):
+    type_index = ndb.IntegerProperty()
+    committee = ndb.StringProperty()
 
 # ancestor = Supplier or None   
 class Fund(ndb.Model):
