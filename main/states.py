@@ -15,8 +15,7 @@ class State:
     def __repr__(self):
         return 'State(%s, %s)' % (self.index, self.display_name)
         
-PROJECT_APPROVAL_PENDING = State(0, 'Approval Pending',
-                ('state-change', 1), ('update',))
+PROJECT_APPROVAL_PENDING = State(0, 'Approval Pending', ('state-change', 1), ('update',))
 PROJECT_APPROVED = State(1, 'Approved', ('create', 'Purchase'), ('create', 'Grant'), ('create', 'Pledge'), ('update',))
 
 GRANT_TRANSFER_PENDING = State(0, 'Transfer Pending', ('update',))

@@ -1,14 +1,18 @@
 #_*_ coding: UTF-8 _*_
 
+import logging
 import db
 #from dummy import db
 import states
+import role_types
+
+logger = logging.getLogger('model')
 
 cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
 workbench = db.WorkBench.get_or_insert('main')
 committee_labels=[
         ('PHC', 'PrimaryHealth'),
-        ('EDU', 'SecondaryHealth'),
+        ('SEC', 'SecondaryHealth'),
         ('LIV', 'Livelihoods'), 
         ('ENG', 'Engineering'),
         ('EDU', 'Education'), 
@@ -21,7 +25,7 @@ def lookup_entity(db_id):
     key = db.createKey(db_id)
     return key.get()
 
-def getParent(entity):
+def get_parent(entity):
     parentKey = entity.key.parent()
     if parentKey is None:
         return None
@@ -99,13 +103,32 @@ def list_roles(parent):
 
 def user_by_email(email):
     return db.User.query().filter(db.User.email == email).get()
+    
+def get_owning_committee(entity):
+    while entity:
+        if entity.key.kind() == 'Fund':
+            return entity.committee
+        entity = get_parent(entity)
+    return None
 
 def is_action_allowed(action, entity, user): 
-#    if user is None:
-#        return False
-    if hasattr(entity, 'state') and not entity.state.isAllowed(action):
-        return False
-    return True
+    if user is None: # who creates first user?
+       logger.debug("no user")
+       return False
+    roles = list_roles(user)
+    committee = get_owning_committee(entity)
+    kind = None
+    if entity:
+        kind = entity.key.kind()
+    if not role_types.has_permission(roles, kind, action, committee):
+       logger.debug("no permission")
+       return False
+    if not hasattr(entity, 'state'):
+        return True
+    if entity.state.isAllowed(action):
+        return True
+    logger.debug("action not allowed in state")
+    return False
 
 def perform_create(kind, entity, user):
     if kind == 'Pledge':
@@ -128,3 +151,6 @@ def perform_state_change(index, entity):
         ref = _get_next_ref()    
         entity.po_number = 'MB%04d' % ref
     entity.put()
+
+def perform_delete(entity):
+    entity.key.delete()

@@ -42,7 +42,7 @@ def render_user():
 
 class ListView(View):
     methods = ['GET', 'POST']
-        
+       
     def url_for_entity(self, entity):
         return url_for_entity(entity)
     
@@ -80,8 +80,8 @@ def action_button(index, action_name, entity, user):
                 disabled=not enabled)
 
 class EntityView(View):
-    methods = ['GET', 'POST']
-    
+    methods = ['GET', 'POST', 'DELETE']
+
     def create_menu(self, entity, user):
         buttons = []
         for index, action_name in self.actions:
@@ -91,7 +91,7 @@ class EntityView(View):
         return renderers.render_menu('./menu', open_modal, *buttons)
 
     def create_breadcrumbs(self, entity):
-        parent = model.getParent(entity)
+        parent = model.get_parent(entity)
         if parent is None:
             return [renderers.render_link('Dashboard', '/')]
         parentBreadcrumbs = self.create_breadcrumbs(parent)
@@ -106,8 +106,7 @@ class EntityView(View):
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
             model.perform_update(entity)
-            return redirect(request.base_url)
-            
+            return redirect(request.base_url)    
         title = self.title(entity)
         breadcrumbs = self.create_breadcrumbs(entity)
         menu = self.create_menu(entity, user)

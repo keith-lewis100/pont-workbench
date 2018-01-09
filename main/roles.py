@@ -12,7 +12,7 @@ import role_types
 
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
-    committee = custom_fields.SelectField(choices=model.committee_labels)
+    committee = custom_fields.SelectField(choices=[("", "")] + model.committee_labels)
 
 class RoleListView(views.ListView):
     def __init__(self):
