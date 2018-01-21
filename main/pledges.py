@@ -7,6 +7,13 @@ import model
 import renderers
 import custom_fields
 import views
+import states
+       
+PLEDGE_PENDING = states.State(0, 'Pending', ('state-change', 1), ('update',))
+PLEDGE_FULFILLED = states.State(1, 'Fulfilled', ('state-change', 2))
+PLEDGE_BOOKED = states.State(2, 'Booked')
+
+pledgeStates = [PLEDGE_PENDING, PLEDGE_FULFILLED, PLEDGE_BOOKED]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -14,10 +21,13 @@ class MoneyForm(wtforms.Form):
 class PledgeForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     
-class PledgeListView(views.ListView):
+class Pledge(views.EntityType):
     def __init__(self):
-        self.kind = 'Pledge'
+        self.name = 'Pledge'
         self.formClass = PledgeForm
+
+    def get_state(self, index):
+        return pledgeStates[index]
         
     def create_entity(self, parent):
         return model.create_pledge(parent)
@@ -25,27 +35,31 @@ class PledgeListView(views.ListView):
     def load_entities(self, parent):
         return model.list_pledges(parent)
         
+    def title(self, entity):
+        return 'Pledge'
+    
+class PledgeListView(views.ListView):
+    def __init__(self):
+        self.entityType = Pledge()
+        
     def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
-        state = views.ReadOnlyField('state', 'State')
+        state = views.StateField(pledgeStates)
         return (ref_id, form._fields['amount'], state)
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        self.formClass = PledgeForm
-        self.actions = [(1, 'Fulfill')]
+        self.entityType = Pledge()
+        self.actions = [(1, 'Fulfill'), (2, 'Book')]
         
     def get_fields(self, form):
-        state = views.ReadOnlyField('state', 'State')
+        state = views.StateField(pledgeStates)
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
         creator = views.ReadOnlyKeyField('creator', 'Creator')
         return (ref_id, form._fields['amount'], state, creator)
-        
-    def title(self, entity):
-        return "Pledge"
 
     def get_links(self, entity):
-        return ""
+        return []
 
 def add_rules(app):
     app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))

@@ -10,60 +10,48 @@ import views
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    description = wtforms.TextAreaField()
-
-class PontFundForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
-
-class FundListView(views.ListView):
-    def __init__(self, pont_only):
-        self.kind = 'Fund'
+    
+class Fund(views.EntityType):
+    def __init__(self):
+        self.name = 'Fund'
         self.formClass = FundForm
-        if pont_only:
-            self.formClass = PontFundForm
+
+    def get_state(self, index):
+        return fundStates[index]
         
     def create_entity(self, parent):
-        return model.create_fund(parent)
+        return model.create_fund()
 
     def load_entities(self, parent):
-        return model.list_funds(parent)
-
-    def get_fields(self, form):
-        if self.formClass == PontFundForm:
-            return (form._fields['name'],form._fields['committee'])
-        return (form._fields['name'],)
+        return model.list_funds()
         
-    def url_for_entity(self, entity):
-        if self.formClass == PontFundForm:
-            return '/pont_fund/%s/' % entity.key.urlsafe()
-        return '/fund/%s/' % entity.key.urlsafe()
+    def title(self, entity):
+        return 'Fund ' + entity.name
 
+class FundListView(views.ListView):
+    def __init__(self):
+        self.entityType = Fund()
+        
+    def get_fields(self, form):
+        return (form._fields['name'],form._fields['committee'])
+        
 class FundView(views.EntityView):
-    def __init__(self, pont_only):
-        self.formClass = FundForm
-        if pont_only:
-            self.formClass = PontFundForm
+    def __init__(self):
+        self.entityType = Fund()
         self.actions = []
         
     def get_fields(self, form):
         return form._fields.values()
-    
-    def title(self, entity):
-        return'Fund ' + entity.name
         
     def get_links(self, entity):
-        if entity.key.parent():
-            return ""
         projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
         showProjects = renderers.render_link('Show Projects', projects_url, class_="button")
         transfers_url = url_for('view_transfer_list', db_id=entity.key.urlsafe())
         showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
-        return renderers.render_nav(showProjects, showTransfers)
+        return [showProjects, showTransfers]
 
 def add_rules(app):
-    app.add_url_rule('/pont_fund_list', view_func=FundListView.as_view('view_pont_fund_list', True))
-    app.add_url_rule('/fund_list/<db_id>', view_func=FundListView.as_view('view_fund_list', False))
-    app.add_url_rule('/pont_fund/<db_id>/', view_func=FundView.as_view('view_pont_fund', True))        
-    app.add_url_rule('/fund/<db_id>/', view_func=FundView.as_view('view_fund', False))        
+    app.add_url_rule('/fund_list', view_func=FundListView.as_view('view_fund_list'))
+    app.add_url_rule('/fund/<db_id>/', view_func=FundView.as_view('view_fund'))        

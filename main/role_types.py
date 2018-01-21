@@ -6,27 +6,24 @@ class RoleType:
     def has_permission(self, permission):
         return permission in self.permissions
 
-class SuperUser(RoleType):
-    def __init__(self):
-        RoleType.__init__(self, 'SuperUser')
-
-    def has_permission(self, permission):
-        return True
-
-role_types = [SuperUser(),
+role_types = [
     RoleType('UserAdmin', (None, 'create', 'User'), ('User', 'update'), 
                              ('User', 'create', 'Role'), ('Role', 'update')),
+    RoleType('SupplierAdmin', (None, 'create', 'Supplier'), ('Supplier', 'update'),
+                               ('Supplier', 'create', 'SupplierFund'),
+                               ('SupplierFund', 'update')),
     RoleType('FundAdmin', (None, 'create', 'Fund'), ('Fund', 'update'), 
                           ('InternalTransfer', 'state-change', 1),
-                          ('Purchase', 'state-change', 2)),
+                          ('Purchase', 'state-change', 2),
+                          ('Pledge', 'state-change', 2)),
     RoleType('CommitteeAdmin', ('Fund', 'create', 'Project'), ('Project', 'update'),
                         ('Fund', 'create', 'InternalTransfer'), ('InternalTransfer', 'update'),
-                        ('Fund', 'create', 'Project'), ('Project', 'update'),
                         ('Project', 'create', 'Pledge'), ('Pledge', 'update'),
                         ('Project', 'create', 'Grant'), ('Grant', 'update'),
                         ('Project', 'create', 'Purchase'), ('Purchase', 'update'), ('Purchase', 'state-change', 3), 
                         ('Purchase', 'state-change', 4), ('Purchase', 'state-change', 5)),
-    RoleType('IncomeAdmin', ('Pledge', 'state-change', 1))
+    RoleType('IncomeAdmin', ('Pledge', 'state-change', 1)),
+    RoleType('ProjectApprover', ('Project', 'state-change', 1))
     ]
 
 def get_choices():

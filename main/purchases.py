@@ -7,6 +7,17 @@ import model
 import renderers
 import views
 import custom_fields
+import states
+
+PURCHASE_AUTHORISING = states.State(0, 'Authorising', ('state-change', 1), ('state-change', 5), ('update',))
+PURCHASE_APPROVING = states.State(1, 'Approving', ('state-change', 2), ('state-change', 5), ('update',))
+PURCHASE_APPROVED = states.State(2, 'Approved', ('state-change', 3), ('state-change', 5))
+PURCHASE_ORDERED = states.State(3, 'Ordered', ('state-change', 4))
+PURCHASE_FULFILLED = states.State(4, 'Fulfilled', ('state-change', 5))
+PURCHASE_CLOSED = states.State(5, 'Closed')
+
+purchaseStates = [PURCHASE_AUTHORISING, PURCHASE_APPROVING, PURCHASE_APPROVED, PURCHASE_ORDERED,
+                  PURCHASE_FULFILLED, PURCHASE_CLOSED]
 
 class MoneyForm(wtforms.Form):
     currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
@@ -16,39 +27,46 @@ class MoneyForm(wtforms.Form):
 class PurchaseForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
-
-class PurchaseListView(views.ListView):
+    
+class Purchase(views.EntityType):
     def __init__(self):
-        self.kind = 'Purchase'
+        self.name = 'Purchase'
         self.formClass = PurchaseForm
+
+    def get_state(self, index):
+        return purchaseStates[index]
         
     def create_entity(self, parent):
         return model.create_purchase(parent)
 
     def load_entities(self, parent):
         return model.list_purchases(parent)
-        
+                        
+    def title(self, entity):
+        return 'Purchase'
+
+class PurchaseListView(views.ListView):
+    def __init__(self):
+        self.entityType = Purchase()
+
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
-        state = views.ReadOnlyField('state', 'State')
+        state = views.StateField(purchaseStates)
         return (form._fields['amount'], po_number, state)
 
 class PurchaseView(views.EntityView):
     def __init__(self):
-        self.formClass = PurchaseForm
+        self.entityType = Purchase()
         self.actions = [(2, 'Approve'), (3, 'Ordered'), (4, 'Fulfilled'), (5, 'Close')]
         
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
-        state = views.ReadOnlyField('state', 'State')
+        state = views.StateField(purchaseStates)
         creator = views.ReadOnlyKeyField('creator', 'Creator')
         return form._fields.values() + [po_number, state, creator]
-        
-    def title(self, entity):
-        return "Purchase"
 
     def get_links(self, entity):
-        return ""
+        return []
 
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))

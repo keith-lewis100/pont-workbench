@@ -2,9 +2,8 @@
 
 import logging
 import db
-#from dummy import db
-import states
 import role_types
+from google.appengine.api import users
 
 logger = logging.getLogger('model')
 
@@ -19,6 +18,17 @@ committee_labels=[
         ('CHU', 'Churches'), 
         ('WEC', 'Wildlife Centre')]
 
+if db.User.query().count() == 0:
+    user = db.User();
+    user.name = 'Admin'
+    user.email = 'admin@pont-mbale.org.uk'
+    key = user.put()
+    
+    role = db.Role(parent=key)
+    role.type_index = 0
+    role.committee = ''
+    role.put()
+ 
 def lookup_entity(db_id):
     if db_id is None:
         return None
@@ -31,15 +41,17 @@ def get_parent(entity):
         return None
     return parentKey.get()
 
-def create_fund(parent):
-    if parent:
-        return db.Fund(parent=parent.key)
+def create_fund():
     return db.Fund()
 
-def list_funds(parent):
-    if parent:
-        return db.Fund.query(ancestor=parent.key).fetch()
-    return db.Fund.query().filter(db.Fund.committee != None).fetch()
+def list_funds():
+    return db.Fund.query().fetch()
+
+def create_supplier_fund(parent):
+    return db.SupplierFund(parent=parent.key)
+    
+def list_supplier_funds(parent):
+    return db.SupplierFund.query(ancestor=parent.key).fetch()
 
 def pont_fund_query():
     return db.Fund.query().filter(db.Fund.committee != None)
@@ -111,8 +123,10 @@ def get_owning_committee(entity):
         entity = get_parent(entity)
     return None
 
-def is_action_allowed(action, entity, user): 
-    if user is None: # who creates first user?
+def is_user_allowed_action(action, entity): 
+    email = users.get_current_user().email()
+    user = user_by_email(email)
+    if user is None:
        logger.debug("no user")
        return False
     roles = list_roles(user)
@@ -121,35 +135,28 @@ def is_action_allowed(action, entity, user):
     if entity:
         kind = entity.key.kind()
     if not role_types.has_permission(roles, kind, action, committee):
-       logger.debug("no permission")
        return False
-    if not hasattr(entity, 'state'):
-        return True
-    if entity.state.isAllowed(action):
-        return True
-    logger.debug("action not allowed in state")
-    return False
+    logger.debug("no permission")
+    return True
 
-def perform_create(kind, entity, user):
+def perform_create(kind, entity):
     if kind == 'Pledge':
         ref = _get_next_ref()
         entity.ref_id = 'PL%04d' % ref
     if hasattr(entity, 'creator'):
+        email = users.get_current_user().email()
+        user = user_by_email(email)
         entity.creator = user.key
     entity.put()
 
 def perform_update(entity):
     entity.put()
 
-def perform_state_change(index, entity):
-    kind = entity.key.kind()
-    newState = states.getState(kind, index)
-    if newState is None:
-        raise BadAction
-    entity.state = newState
-    if kind == 'Purchase' and newState == states.PURCHASE_APPROVED:
-        ref = _get_next_ref()    
-        entity.po_number = 'MB%04d' % ref
+def perform_state_change(entity, state_index):
+    entity.state_index = state_index
+#    if kind == 'Purchase' and newState == states.PURCHASE_APPROVED:
+#        ref = _get_next_ref()    
+#        entity.po_number = 'MB%04d' % ref
     entity.put()
 
 def perform_delete(entity):

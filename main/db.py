@@ -2,7 +2,6 @@
 
 from google.appengine.ext import ndb
 import json
-import states
 #import role_types
 
 def createKey(db_id):
@@ -37,25 +36,15 @@ class MoneyProperty(ndb.StringProperty):
         money_dict = json.loads(base)
         return Money(money_dict['currency'], money_dict['value'])
 
-class EnumProperty(ndb.IntegerProperty):
-    def __init__(self, enumArray, **kwargs):
-        super(EnumProperty, self).__init__(**kwargs)
-        self.enumArray = enumArray
-        
-    def _validate(self, enum):
-         pass
-       
-    def _to_base_type(self, enum):
-        return enum.index
-
-    def _from_base_type(self, index):
-        return self.enumArray[index]
-
 class WorkBench(ndb.Model):
     last_ref_id = ndb.IntegerProperty(default=0)
 
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
+    
+class SupplierFund(ndb.Model):
+    name = ndb.StringProperty()
+    description = ndb.StringProperty()
     
 class User(ndb.Model):
     name = ndb.StringProperty()
@@ -77,7 +66,7 @@ class InternalTransfer(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
     dest_fund = ndb.KeyProperty(kind=Fund)
-    state = EnumProperty(states.transferStates, default=states.TRANSFER_PENDING)
+    state_index = ndb.IntegerProperty(default=0)
     creator = ndb.KeyProperty(kind=User)
 
 # ancestor = Fund   
@@ -85,26 +74,26 @@ class Project(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
     dest_fund = ndb.KeyProperty(kind=Fund)
-    state = EnumProperty(states.projectStates, default=states.PROJECT_APPROVAL_PENDING)
+    state_index = ndb.IntegerProperty(default=0)
 
 # ancestor = Project   
 class Grant(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
-    state = EnumProperty(states.grantStates, default=states.GRANT_TRANSFER_PENDING)
+    state_index = ndb.IntegerProperty(default=0)
     creator = ndb.KeyProperty(kind=User)
 
 # ancestor = Project   
 class Pledge(ndb.Model):
     amount = MoneyProperty(default=Money())
     ref_id = ndb.StringProperty()
-    state = EnumProperty(states.pledgeStates, default=states.PLEDGE_PENDING)
+    state_index = ndb.IntegerProperty(default=0)
     creator = ndb.KeyProperty(kind=User)
     
 # ancestor = Project
 class Purchase(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
-    state = EnumProperty(states.purchaseStates, default=states.PURCHASE_APPROVING)
+    state_index = ndb.IntegerProperty(default=0)
     po_number = ndb.StringProperty()
     creator = ndb.KeyProperty(kind=User)
