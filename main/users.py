@@ -3,43 +3,42 @@
 from flask import url_for
 import wtforms
 
+import db
 import model
 import views
 import renderers
 import custom_fields
+from role_types import RoleType
 
 class UserForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     email =  wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-
-class User(views.EntityType):
+    
+class UserModel(model.EntityModel):
     def __init__(self):
-        self.name = 'User'
-        self.formClass = UserForm
-
-    def get_state(self, index):
-        return None
+        model.EntityModel.__init__(self, 'User', RoleType.USER_ADMIN)
         
     def create_entity(self, parent):
-        return model.create_user()
+        return db.User()
 
     def load_entities(self, parent):
-        return model.list_users()
+        return db.User.query().fetch()
         
     def title(self, entity):
         return 'User ' + entity.name
 
+user_model = UserModel()
+
 class UserListView(views.ListView):
     def __init__(self):
-        self.entityType = User()
+        views.ListView.__init__(self, user_model, UserForm)
         
     def get_fields(self, form):
         return form._fields.values()
 
 class UserView(views.EntityView):
     def __init__(self):
-        self.entityType = User()
-        self.actions = []
+        views.EntityView.__init__(self, user_model, UserForm)
         
     def get_fields(self, form):
         return form._fields.values()

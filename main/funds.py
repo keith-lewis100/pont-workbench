@@ -3,44 +3,43 @@
 from flask import url_for
 import wtforms
 
+import db
 import model
 import renderers
 import custom_fields
 import views
+from role_types import RoleType
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
-    
-class Fund(views.EntityType):
-    def __init__(self):
-        self.name = 'Fund'
-        self.formClass = FundForm
 
-    def get_state(self, index):
-        return fundStates[index]
-        
+class FundModel(model.EntityModel):
+    def __init__(self):
+        model.EntityModel.__init__(self, 'Fund', RoleType.FUND_ADMIN)
+
     def create_entity(self, parent):
-        return model.create_fund()
+        return db.Fund()
 
     def load_entities(self, parent):
-        return model.list_funds()
+        return db.Fund.query().fetch()
         
     def title(self, entity):
         return 'Fund ' + entity.name
 
+fund_model = FundModel()
+
 class FundListView(views.ListView):
     def __init__(self):
-        self.entityType = Fund()
+        views.ListView.__init__(self, fund_model, FundForm)
         
     def get_fields(self, form):
         return (form._fields['name'],form._fields['committee'])
         
 class FundView(views.EntityView):
     def __init__(self):
-        self.entityType = Fund()
-        self.actions = []
+        views.EntityView.__init__(self, fund_model, FundForm)
         
     def get_fields(self, form):
         return form._fields.values()

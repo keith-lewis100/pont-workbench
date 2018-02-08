@@ -4,42 +4,41 @@ from flask import url_for
 from flask.views import View
 import wtforms
 
+import db
 import model
 import renderers
 import custom_fields
 import views
+from role_types import RoleType
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
-class Supplier(views.EntityType):
+class SupplierModel(model.EntityModel):
     def __init__(self):
-        self.name = 'Supplier'
-        self.formClass = SupplierForm
+        model.EntityModel.__init__(self, 'Supplier', RoleType.SUPPLIER_ADMIN)
 
-    def get_state(self, index):
-        return None
-        
     def create_entity(self, parent):
-        return model.create_supplier()
+        return db.Supplier()
 
     def load_entities(self, parent):
-        return model.list_suppliers()
+        return db.Supplier.query().fetch()
         
     def title(self, entity):
         return 'Supplier ' + entity.name
 
+supplier_model = SupplierModel()
+        
 class SupplierListView(views.ListView):
     def __init__(self):
-        self.entityType = Supplier()
+        views.ListView.__init__(self, supplier_model, SupplierForm)
  
     def get_fields(self, form):
         return (form._fields['name'], )
 
 class SupplierView(views.EntityView):
     def __init__(self):
-        self.entityType = Supplier()
-        self.actions = []
+        views.EntityView.__init__(self, supplier_model, SupplierForm)
         
     def get_fields(self, form):
         return form._fields.values()

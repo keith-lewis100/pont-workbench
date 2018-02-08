@@ -1,36 +1,27 @@
-class RoleType:
-    def __init__(self, display_name, *permissions):
-        self.display_name = display_name
-        self.permissions = frozenset(permissions)
-    
-    def has_permission(self, permission):
-        return permission in self.permissions
+def enum(**named_values):
+    return type('Enum', (), named_values)
 
-role_types = [
-    RoleType('UserAdmin', (None, 'create', 'User'), ('User', 'update'), 
-                             ('User', 'create', 'Role'), ('Role', 'update')),
-    RoleType('SupplierAdmin', (None, 'create', 'Supplier'), ('Supplier', 'update'),
-                               ('Supplier', 'create', 'SupplierFund'),
-                               ('SupplierFund', 'update')),
-    RoleType('FundAdmin', (None, 'create', 'Fund'), ('Fund', 'update'), 
-                          ('InternalTransfer', 'state-change', 1),
-                          ('Purchase', 'state-change', 2),
-                          ('Pledge', 'state-change', 2)),
-    RoleType('CommitteeAdmin', ('Fund', 'create', 'Project'), ('Project', 'update'),
-                        ('Fund', 'create', 'InternalTransfer'), ('InternalTransfer', 'update'),
-                        ('Project', 'create', 'Pledge'), ('Pledge', 'update'),
-                        ('Project', 'create', 'Grant'), ('Grant', 'update'),
-                        ('Project', 'create', 'Purchase'), ('Purchase', 'update'), ('Purchase', 'state-change', 3), 
-                        ('Purchase', 'state-change', 4), ('Purchase', 'state-change', 5)),
-    RoleType('IncomeAdmin', ('Pledge', 'state-change', 1)),
-    RoleType('ProjectApprover', ('Project', 'state-change', 1))
-    ]
+RoleType = enum(USER_ADMIN='UserAdmin', 
+    SUPPLIER_ADMIN='SupplierAdmin',
+    FUND_ADMIN='FundAdmin',
+    COMMITTEE_ADMIN='CommitteeAdmin', 
+    INCOME_ADMIN='IncomeAdmin',
+    PROJECT_APPROVER='ProjectApprover',
+    PAYMENT_ADMIN='PaymentAdmin')
+
+#'User', 'Role'
+#'Supplier', 'SupplierFund'
+#'Fund'
+#'Project', 'InternalTransfer', 'Pledge', 'Grant', 'Purchase'
+
+role_types = [RoleType.USER_ADMIN, RoleType.SUPPLIER_ADMIN, RoleType.FUND_ADMIN, RoleType.COMMITTEE_ADMIN,
+                RoleType.INCOME_ADMIN, RoleType.PROJECT_APPROVER]
 
 def get_choices():
     choices = []
     for index in range(len(role_types)):
         type = role_types[index]
-        choices.append((index, type.display_name))
+        choices.append((index, type))
     return choices     
 
 def committee_matches(committee, role):
@@ -38,13 +29,10 @@ def committee_matches(committee, role):
         return True
     return role.committee == committee
     
-def has_permission(roles, kind, action, committee):
-    if len(action) == 1:
-        permission = (kind, action[0])
-    else:
-        permission = (kind, action[0], action[1])
+def get_types(roles, committee):
+    type_set = set()
     for r in roles:
        type = role_types[r.type_index]
-       if committee_matches(committee, r) and type.has_permission(permission):
-          return True
-    return False
+       if committee_matches(committee, r):
+          type_set.add(type)
+    return type_set

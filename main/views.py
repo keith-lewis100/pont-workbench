@@ -1,9 +1,10 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import render_template, redirect, request, url_for
+from flask import render_template, redirect, request
 from flask.views import View
 from google.appengine.api import users
 
+import db
 import renderers
 import model
 
@@ -37,60 +38,55 @@ class StateField:
     def get_display_value(self, index):
         state = self.state_list[index]
         return state.display_name
-
+        
+def user_by_email(email):
+    return db.User.query().filter(db.User.email == email).get()
+    
 def url_for_entity(entity):
     key = entity.key
     return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
 
 def render_user():
-    cur_user = users.get_current_user()
-    email = cur_user.email()
-    user = model.user_by_email(email)
+    email = users.get_current_user().email()
+    user = user_by_email(email)
     name = user.name if user else email
     logout_url = users.create_logout_url('/')
     return renderers.render_logout(name, logout_url)
-    
-class EntityType:
-    def is_action_allowed(self, action, entity):
-        if not model.is_user_allowed_action(action, entity):
-            return False
-        if entity is None or not hasattr(entity, 'state_index'):
-            return True
-        state = self.get_state(entity.state_index)
-        return state.is_allowed(action)
 
 class ListView(View):
     methods = ['GET', 'POST']
-       
-    def url_for_entity(self, entity):
-        return url_for_entity(entity)
-        
     
+    def __init__(self, entity_model, form_class):
+        self.entity_model = entity_model
+        self.form_class = form_class
+
     def render_entities(self, parent, form):
-        entity_list = self.entityType.load_entities(parent)
+        entity_list = self.entity_model.load_entities(parent)
         fields = self.get_fields(form)
         rows = []
         for e in entity_list:
-            url = self.url_for_entity(e)
+            url = url_for_entity(e)
             rows.append(renderers.render_row(e, url, *fields))
         return renderers.render_entity_list(rows, *fields)
 
     def dispatch_request(self, db_id=None):
-        entityType = self.entityType
+        email = users.get_current_user().email()
+        user = user_by_email(email)
+        entity_model = self.entity_model
         parent = model.lookup_entity(db_id)
-        entity = entityType.create_entity(parent)
-        form = entityType.formClass(request.form, obj=entity)
+        entity = entity_model.create_entity(parent)
+        form = self.form_class(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            model.perform_create(entityType.name, entity)
+            entity_model.perform_create(entity, user)
             return redirect(request.base_url)
             
         rendered_form = renderers.render_form(form)
-        enabled = entityType.is_action_allowed(('create', entityType.name), parent)
+        enabled = entity_model.is_create_allowed(parent, user)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         entity_table = self.render_entities(parent, form)
-        return render_template('entity_list.html',  title=entityType.name + ' List', user=render_user(),
+        return render_template('entity_list.html',  title=entity_model.name + ' List', user=render_user(),
                 entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
         
 def action_button(index, action_name, enabled):
@@ -100,13 +96,18 @@ def action_button(index, action_name, enabled):
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
-    def create_menu(self, entity):
+    def __init__(self, entity_model, form_class, *actions):
+        self.entity_model = entity_model
+        self.form_class = form_class
+        self.actions = actions
+
+    def create_menu(self, entity, user):
         buttons = []
-        entityType = self.entityType
+        entity_model = self.entity_model
         for index, action_name in self.actions:
-            enabled = entityType.is_action_allowed(('state-change', index), entity)
+            enabled = entity_model.is_transition_allowed(index, entity, user)
             buttons.append(action_button(index, action_name, enabled))
-        enabled = entityType.is_action_allowed(('update',), entity)
+        enabled = entity_model.is_update_allowed(entity, user)
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
 
@@ -119,16 +120,18 @@ class EntityView(View):
                     renderers.render_link(parent.name, url_for_entity(parent))]
 
     def dispatch_request(self, db_id):
-        entityType = self.entityType
+        email = users.get_current_user().email()
+        user = user_by_email(email)
+        entity_model = self.entity_model
         entity = model.lookup_entity(db_id)
-        form = entityType.formClass(request.form, obj=entity)
+        form = self.form_class(request.form, obj=entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            model.perform_update(entity)
+            entity.put()
             return redirect(request.base_url)    
-        title = entityType.title(entity)
+        title = entity_model.title(entity)
         breadcrumbs = self.create_breadcrumbs(entity)
-        menu = self.create_menu(entity)
+        menu = self.create_menu(entity, user)
         nav = renderers.render_nav(*self.get_links(entity))
         rendered_form = renderers.render_form(form)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
@@ -142,8 +145,11 @@ class EntityView(View):
 class MenuView(View):
     methods = ['POST']
     
+    def __init__(self, entity_model):
+        self.entity_model = entity_model
+
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)
         state_index = int(request.form['state_index'])
-        model.perform_state_change(entity, state_index)
+        self.entity_model.perform_state_change(entity, state_index)
         return redirect(url_for_entity(entity))

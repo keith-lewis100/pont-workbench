@@ -3,8 +3,8 @@
 from flask import redirect, request, url_for
 import wtforms
 
+import db
 import model
-import renderers
 import custom_fields
 import views
 import logging
@@ -13,35 +13,32 @@ import role_types
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
     committee = custom_fields.SelectField(choices=[("", "")] + model.committee_labels)
-
-class Role(views.EntityType):
+    
+class RoleModel(model.EntityModel):
     def __init__(self):
-        self.name = 'Role'
-        self.formClass = RoleForm
+        model.EntityModel.__init__(self, 'Role', role_types.RoleType.USER_ADMIN)
 
-    def get_state(self, index):
-        return None
-        
     def create_entity(self, parent):
-        return model.create_role(parent)
+        return db.Role(parent=parent.key)
 
     def load_entities(self, parent):
-        return model.list_roles(parent)
+        return db.Role.query(ancestor=parent.key).fetch()
 
     def title(self, entity):
         return 'Role'
 
+role_model = RoleModel()
+
 class RoleListView(views.ListView):
     def __init__(self):
-        self.entityType = Role()
+        views.ListView.__init__(self, role_model, RoleForm)
                 
     def get_fields(self, form):
         return form._fields.values()
 
 class RoleView(views.EntityView):
     def __init__(self):
-        self.entityType = Role()
-        self.actions = []
+        views.EntityView.__init__(self, role_model, RoleForm)
         
     def get_fields(self, form):
         return form._fields.values()

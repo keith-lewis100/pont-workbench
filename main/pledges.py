@@ -3,15 +3,18 @@
 from flask.views import View
 import wtforms
 
+import db
 import model
 import renderers
 import custom_fields
 import views
 import states
-       
-PLEDGE_PENDING = states.State(0, 'Pending', ('state-change', 1), ('update',))
-PLEDGE_FULFILLED = states.State(1, 'Fulfilled', ('state-change', 2))
-PLEDGE_BOOKED = states.State(2, 'Booked')
+from role_types import RoleType
+from projects import project_model
+
+PLEDGE_PENDING = states.State('Pending', True, False, {1: RoleType.INCOME_ADMIN}) # 0
+PLEDGE_FULFILLED = states.State('Fulfilled', False, False, {2: RoleType.FUND_ADMIN}) # 1
+PLEDGE_BOOKED = states.State('Booked') # 2
 
 pledgeStates = [PLEDGE_PENDING, PLEDGE_FULFILLED, PLEDGE_BOOKED]
 
@@ -21,26 +24,29 @@ class MoneyForm(wtforms.Form):
 class PledgeForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     
-class Pledge(views.EntityType):
+class PledgeModel(model.EntityModel):
     def __init__(self):
-        self.name = 'Pledge'
-        self.formClass = PledgeForm
+        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, project_model, pledgeStates)
 
-    def get_state(self, index):
-        return pledgeStates[index]
-        
     def create_entity(self, parent):
-        return model.create_pledge(parent)
+        return db.Pledge(parent=parent.key)
 
     def load_entities(self, parent):
-        return model.list_pledges(parent)
+        return db.Pledge.query(ancestor=parent.key).fetch()
         
     def title(self, entity):
         return 'Pledge'
-    
+        
+    def perform_create(self, entity, user):
+        ref = model.get_next_ref()
+        entity.ref_id = 'PL%04d' % ref
+        views.EntityModel.perform_create(self, entity, user)
+
+pledge_model = PledgeModel()
+        
 class PledgeListView(views.ListView):
     def __init__(self):
-        self.entityType = Pledge()
+        views.ListView.__init__(self, pledge_model, PledgeForm)
         
     def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
@@ -49,8 +55,7 @@ class PledgeListView(views.ListView):
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        self.entityType = Pledge()
-        self.actions = [(1, 'Fulfill'), (2, 'Book')]
+        views.EntityView.__init__(self, pledge_model, PledgeForm, (1, 'Fulfill'), (2, 'Book'))
         
     def get_fields(self, form):
         state = views.StateField(pledgeStates)
@@ -64,4 +69,4 @@ class PledgeView(views.EntityView):
 def add_rules(app):
     app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))
     app.add_url_rule('/pledge/<db_id>/', view_func=PledgeView.as_view('view_pledge'))
-    app.add_url_rule('/pledge/<db_id>/menu', view_func=views.MenuView.as_view('handle_pledge_menu'))
+    app.add_url_rule('/pledge/<db_id>/menu', view_func=views.MenuView.as_view('handle_pledge_menu', pledge_model))

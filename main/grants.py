@@ -3,14 +3,18 @@
 from flask.views import View
 import wtforms
 
+import db
 import model
 import renderers
 import views
 import custom_fields
 import states
+from role_types import RoleType
+from projects import project_model
 
-GRANT_TRANSFER_PENDING = states.State(0, 'Transfer Pending', ('update',))
-GRANT_TRANSFERED = states.State(1, 'Transferred')
+GRANT_TRANSFER_PENDING = states.State('TransferPending', True, False)
+GRANT_TRANSFERED = states.State('Transferred')
+
 grantStates = [GRANT_TRANSFER_PENDING, GRANT_TRANSFERED]
 
 class MoneyForm(wtforms.Form):
@@ -21,27 +25,25 @@ class MoneyForm(wtforms.Form):
 class GrantForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
-    
-class Grant(views.EntityType):
-    def __init__(self):
-        self.name = 'Grant'
-        self.formClass = GrantForm
 
-    def get_state(self, index):
-        return grantStates[index]
+class GrantModel(model.EntityModel):
+    def __init__(self):
+        model.EntityModel.__init__(self, 'Grant', RoleType.COMMITTEE_ADMIN, project_model, grantStates)
         
     def create_entity(self, parent):
-        return model.create_grant(parent)
+        return db.Grant(parent=parent.key)
 
     def load_entities(self, parent):
-        return model.list_grants(parent)
+        return db.Grant.query(ancestor=parent.key).fetch()
         
     def title(self, entity):
         return 'Grant'
 
+grant_model = GrantModel()
+
 class GrantListView(views.ListView):
     def __init__(self):
-        self.entityType = Grant()
+        views.ListView.__init__(self, grant_model, GrantForm)
 
     def get_fields(self, form):
         state = views.StateField(grantStates)
@@ -49,8 +51,7 @@ class GrantListView(views.ListView):
 
 class GrantView(views.EntityView):
     def __init__(self):
-        self.entityType = Grant()
-        self.actions = []
+        views.EntityView.__init__(self, grant_model, GrantForm)
         
     def get_fields(self, form):
         state = views.StateField(grantStates)
@@ -62,4 +63,4 @@ class GrantView(views.EntityView):
 
 def add_rules(app):
     app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
-    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))
+    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant', grant_model))

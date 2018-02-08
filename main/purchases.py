@@ -3,18 +3,30 @@
 from flask.views import View
 import wtforms
 
+import db
 import model
 import renderers
 import views
 import custom_fields
 import states
+from role_types import RoleType
+from projects import project_model
 
-PURCHASE_AUTHORISING = states.State(0, 'Authorising', ('state-change', 1), ('state-change', 5), ('update',))
-PURCHASE_APPROVING = states.State(1, 'Approving', ('state-change', 2), ('state-change', 5), ('update',))
-PURCHASE_APPROVED = states.State(2, 'Approved', ('state-change', 3), ('state-change', 5))
-PURCHASE_ORDERED = states.State(3, 'Ordered', ('state-change', 4))
-PURCHASE_FULFILLED = states.State(4, 'Fulfilled', ('state-change', 5))
-PURCHASE_CLOSED = states.State(5, 'Closed')
+PURCHASE_AUTHORISING = states.State('Authorising', True, False, 
+        {1: RoleType.PROJECT_APPROVER, 5: RoleType.COMMITTEE_ADMIN})
+PURCHASE_APPROVING = states.State('Approving')
+PURCHASE_APPROVED = states.State('Approved')
+PURCHASE_ORDERED = states.State('Ordered')
+PURCHASE_FULFILLED = states.State('Fulfilled')
+PURCHASE_CLOSED = states.State('Closed')
+#PURCHASE_AUTHORISING.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
+#PURCHASE_APPROVING.add_required_role(PURCHASE_APPROVED, RoleType.FUND_ADMIN)
+#PURCHASE_APPROVING.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
+#PURCHASE_APPROVED.add_required_role(PURCHASE_ORDERED, RoleType.COMMITTEE_ADMIN)
+#PURCHASE_APPROVED.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
+#PURCHASE_ORDERED.add_required_role(PURCHASE_FULFILLED, RoleType.COMMITTEE_ADMIN)
+#PURCHASE_ORDERED.add_required_role(PURCHASE_CLOSED, RoleType.PAYMENT_ADMIN)
+#PURCHASE_FULFILLED.add_required_role(PURCHASE_CLOSED, RoleType.PAYMENT_ADMIN)
 
 purchaseStates = [PURCHASE_AUTHORISING, PURCHASE_APPROVING, PURCHASE_APPROVED, PURCHASE_ORDERED,
                   PURCHASE_FULFILLED, PURCHASE_CLOSED]
@@ -27,27 +39,32 @@ class MoneyForm(wtforms.Form):
 class PurchaseForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
-    
-class Purchase(views.EntityType):
-    def __init__(self):
-        self.name = 'Purchase'
-        self.formClass = PurchaseForm
 
-    def get_state(self, index):
-        return purchaseStates[index]
-        
+class PurchaseModel(model.EntityModel):
+    def __init__(self):
+        model.EntityModel.__init__(self, 'Purchase', RoleType.COMMITTEE_ADMIN, project_model, purchaseStates)
+
     def create_entity(self, parent):
-        return model.create_purchase(parent)
+        return db.Purchase(parent=parent.key)
 
     def load_entities(self, parent):
-        return model.list_purchases(parent)
+        return db.Purchase.query(ancestor=parent.key).fetch()
                         
     def title(self, entity):
         return 'Purchase'
 
+    def perform_state_change(self, entity, state_index):
+        entity.state_index = state_index
+        if state_index == PURCHASE_APPROVED.index:
+            ref = model.get_next_ref()    
+            entity.po_number = 'MB%04d' % ref
+        entity.put()
+
+purchase_model = PurchaseModel()
+
 class PurchaseListView(views.ListView):
     def __init__(self):
-        self.entityType = Purchase()
+        views.ListView.__init__(self, purchase_model, PurchaseForm)
 
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
@@ -56,8 +73,8 @@ class PurchaseListView(views.ListView):
 
 class PurchaseView(views.EntityView):
     def __init__(self):
-        self.entityType = Purchase()
-        self.actions = [(2, 'Approve'), (3, 'Ordered'), (4, 'Fulfilled'), (5, 'Close')]
+        views.EntityView.__init__(self, purchase_model, PurchaseForm, 
+                (2, 'Approve'), (3, 'Ordered'), (4, 'Fulfilled'), (5, 'Close'))
         
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
@@ -71,4 +88,4 @@ class PurchaseView(views.EntityView):
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
     app.add_url_rule('/purchase/<db_id>/', view_func=PurchaseView.as_view('view_purchase'))
-    app.add_url_rule('/purchase/<db_id>/menu', view_func=views.MenuView.as_view('handle_purchase_menu'))
+    app.add_url_rule('/purchase/<db_id>/menu', view_func=views.MenuView.as_view('handle_purchase_menu', purchase_model))

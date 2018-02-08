@@ -3,14 +3,16 @@
 from flask.views import View
 import wtforms
 
+import db
 import model
 import renderers
 import custom_fields
 import views
 import states
+from role_types import RoleType
 
-TRANSFER_PENDING = states.State(0, 'Pending', ('state-change', 1), ('update',))
-TRANSFER_COMPLETE = states.State(1, 'Transferred')
+TRANSFER_PENDING = states.State('Pending', True, True, {1: RoleType.FUND_ADMIN}) # 0
+TRANSFER_COMPLETE = states.State('Transferred') # 1
 transferStates = [TRANSFER_PENDING, TRANSFER_COMPLETE]
 
 class MoneyForm(wtforms.Form):
@@ -21,29 +23,26 @@ class InternalTransferForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     dest_fund = custom_fields.KeyPropertyField('Destination Fund',
                     validators=[wtforms.validators.InputRequired()],
-                    query=model.pont_fund_query())
-                    
-class InternalTransfer(views.EntityType):
-    def __init__(self):
-        self.name = 'InternalTransfer'
-        self.formClass = InternalTransferForm
+                    query=db.Fund.query())
 
-    def get_state(self, index):
-        return transferStates[index]
+class InternalTransferModel(model.EntityModel):
+    def __init__(self):
+        model.EntityModel.__init__(self, 'InternalTransfer', RoleType.COMMITTEE_ADMIN, None, transferStates)
         
     def create_entity(self, parent):
-        return model.create_transfer(parent)
+        return db.InternalTransfer(parent=parent.key)
 
     def load_entities(self, parent):
-        return model.list_transfers(parent)
+        return db.InternalTransfer.query(ancestor=parent.key).fetch()
                         
     def title(self, entity):
         return 'InternalTransfer'
 
+transfer_model = InternalTransferModel()
+
 class InternalTransferListView(views.ListView):
     def __init__(self):
-        self.entityType = InternalTransfer()
-        self.formClass = InternalTransferForm
+        views.ListView.__init__(self, transfer_model, InternalTransferForm)
 
     def get_fields(self, form):
         state = views.StateField(transferStates)
@@ -51,8 +50,7 @@ class InternalTransferListView(views.ListView):
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
-        self.entityType = InternalTransfer()
-        self.actions = [(1, 'Transferred')]
+        views.EntityView.__init__(self, transfer_model, InternalTransferForm, (1, 'Transferred'))
         
     def get_fields(self, form):
         state = views.StateField(transferStates)
@@ -65,4 +63,4 @@ class InternalTransferView(views.EntityView):
 def add_rules(app):
     app.add_url_rule('/internaltransfer_list/<db_id>', view_func=InternalTransferListView.as_view('view_transfer_list'))
     app.add_url_rule('/internaltransfer/<db_id>/', view_func=InternalTransferView.as_view('view_transfer'))        
-    app.add_url_rule('/internaltransfer/<db_id>/menu', view_func=views.MenuView.as_view('handle_transfer_menu'))
+    app.add_url_rule('/internaltransfer/<db_id>/menu', view_func=views.MenuView.as_view('handle_transfer_menu', transfer_model))

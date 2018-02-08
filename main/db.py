@@ -42,6 +42,7 @@ class WorkBench(ndb.Model):
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
     
+# ancestor = Supplier  
 class SupplierFund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
@@ -55,7 +56,6 @@ class Role(ndb.Model):
     type_index = ndb.IntegerProperty()
     committee = ndb.StringProperty()
 
-# ancestor = Supplier or None   
 class Fund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
@@ -73,7 +73,7 @@ class InternalTransfer(ndb.Model):
 class Project(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
-    dest_fund = ndb.KeyProperty(kind=Fund)
+    dest_fund = ndb.KeyProperty(kind=SupplierFund)
     state_index = ndb.IntegerProperty(default=0)
 
 # ancestor = Project   
@@ -96,4 +96,5 @@ class Purchase(ndb.Model):
     amount = MoneyProperty(default=Money())
     state_index = ndb.IntegerProperty(default=0)
     po_number = ndb.StringProperty()
+    supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
