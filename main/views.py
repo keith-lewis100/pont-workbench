@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import render_template, redirect, request
+from flask import render_template, redirect, request, url_for
 from flask.views import View
 from google.appengine.api import users
 
@@ -44,7 +44,13 @@ def user_by_email(email):
     
 def url_for_entity(entity):
     key = entity.key
-    return '/%s/%s/' % (key.kind().lower(), key.urlsafe())
+    return url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
+
+def url_for_list(kind, parent):
+    db_id = None
+    if parent:
+        db_id = parent.key.urlsafe()
+    return url_for('view_%s_list' % kind.lower(), db_id=db_id)
 
 def render_user():
     email = users.get_current_user().email()
@@ -52,6 +58,18 @@ def render_user():
     name = user.name if user else email
     logout_url = users.create_logout_url('/')
     return renderers.render_logout(name, logout_url)
+
+def create_breadcrumbs(entity):
+    if entity is None:
+        return [renderers.render_link('Dashboard', '/')]
+    listBreadcrumbs = create_breadcrumbs_list(entity)
+    return listBreadcrumbs + [" / ", renderers.render_link(entity.name, url_for_entity(entity))]
+
+def create_breadcrumbs_list(entity):
+    kind = entity.key.kind()
+    parent = model.get_parent(entity)
+    breadcrumbs = create_breadcrumbs(parent)
+    return breadcrumbs + [" / ", renderers.render_link(kind + " List", url_for_list(kind, parent))]
 
 class ListView(View):
     methods = ['GET', 'POST']
@@ -86,8 +104,10 @@ class ListView(View):
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         entity_table = self.render_entities(parent, form)
-        return render_template('entity_list.html',  title=entity_model.name + ' List', user=render_user(),
-                entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
+        breadcrumbs = create_breadcrumbs(parent)
+        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
+        return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
+                user=render_user(), entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
         
 def action_button(index, action_name, enabled):
     return renderers.render_submit_button(action_name, name='state_index', value=str(index), 
@@ -111,14 +131,6 @@ class EntityView(View):
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
 
-    def create_breadcrumbs(self, entity):
-        parent = model.get_parent(entity)
-        if parent is None:
-            return [renderers.render_link('Dashboard', '/')]
-        parentBreadcrumbs = self.create_breadcrumbs(parent)
-        return parentBreadcrumbs + [" / ", 
-                    renderers.render_link(parent.name, url_for_entity(parent))]
-
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
         user = user_by_email(email)
@@ -130,7 +142,6 @@ class EntityView(View):
             entity.put()
             return redirect(request.base_url)    
         title = entity_model.title(entity)
-        breadcrumbs = self.create_breadcrumbs(entity)
         menu = self.create_menu(entity, user)
         nav = renderers.render_nav(*self.get_links(entity))
         rendered_form = renderers.render_form(form)
@@ -138,6 +149,7 @@ class EntityView(View):
         
         fields = self.get_fields(form)
         rendered_entity = renderers.render_entity(entity, *fields)
+        breadcrumbs = create_breadcrumbs_list(entity)
         breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
         return render_template('entity.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), menu=menu,
                         edit_dialog=dialog, entity=rendered_entity, links=nav)

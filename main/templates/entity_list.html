@@ -1,20 +1,5 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>{{ title }}</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="//fonts.googleapis.com/css?family=Raleway:400,300,600" rel="stylesheet" type="text/css">
-    <link rel="stylesheet" href="/static/css/normalize.css">
-    <link rel="stylesheet" href="/static/css/skeleton.css">
-    <link rel="stylesheet" href="/static/css/main.css">
-    <script src="/static/js/main.js"></script>
-</head>
-<body>
-  <div class="container">
-    <div class="u-pull-right">{{user}}</div>
-    <h1>{{ title }}</h1>
+{% extends "layout.html" %}
+{% block body %}
     {{ new_button }}{{ new_dialog }}
     {{ entity_table }}
-  </div>
-</body>
-</html>
+{% endblock %}

@@ -63,4 +63,4 @@ class GrantView(views.EntityView):
 
 def add_rules(app):
     app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
-    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant', grant_model))
+    app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))

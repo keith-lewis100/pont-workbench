@@ -69,5 +69,5 @@ class ProjectView(views.EntityView):
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))
-    app.add_url_rule('/project/<db_id>/', view_func=ProjectView.as_view('view_project'))        
+    app.add_url_rule('/project/<db_id>', view_func=ProjectView.as_view('view_project'))        
     app.add_url_rule('/project/<db_id>/menu', view_func=views.MenuView.as_view('handle_project_menu', project_model))

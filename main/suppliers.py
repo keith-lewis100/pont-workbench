@@ -44,7 +44,7 @@ class SupplierView(views.EntityView):
         return form._fields.values()
                 
     def get_links(self, entity):
-        funds_url = url_for('view_supplier_fund_list', db_id=entity.key.urlsafe())
+        funds_url = url_for('view_supplierfund_list', db_id=entity.key.urlsafe())
         showFunds = renderers.render_link('Show Funds', funds_url, class_="button")
         return [showFunds]
 

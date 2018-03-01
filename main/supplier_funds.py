@@ -47,5 +47,5 @@ class SupplierFundView(views.EntityView):
         return []
         
 def add_rules(app):
-    app.add_url_rule('/supplierfund_list/<db_id>', view_func=SupplierFundListView.as_view('view_supplier_fund_list'))
-    app.add_url_rule('/supplierfund/<db_id>/', view_func=SupplierFundView.as_view('view_supplier_fund'))        
+    app.add_url_rule('/supplierfund_list/<db_id>', view_func=SupplierFundListView.as_view('view_supplierfund_list'))
+    app.add_url_rule('/supplierfund/<db_id>/', view_func=SupplierFundView.as_view('view_supplierfund'))        
