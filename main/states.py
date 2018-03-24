@@ -1,4 +1,5 @@
 #_*_ coding: UTF-8 _*_
+import model
 
 class State:
     def __init__(self, display_name, can_update=False, can_create_children=True, role_map={}):
@@ -18,6 +19,12 @@ class State:
 
     def is_update_allowed(self):
         return self.can_update
+
+    def find_transition_user(self, index):
+        role_type = self.role_map.get(index)
+        if role_type is None:
+            return None
+        return model.lookup_user_with_role(role_type)
 
     def __str__(self):
         return self.display_name

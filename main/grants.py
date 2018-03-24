@@ -2,6 +2,7 @@
 
 from flask.views import View
 import wtforms
+import wtforms.widgets.html5 as widgets
 
 import db
 import model
@@ -12,7 +13,7 @@ import states
 from role_types import RoleType
 from projects import project_model
 
-GRANT_TRANSFER_PENDING = states.State('TransferPending', True, False)
+GRANT_TRANSFER_PENDING = states.State('TransferPending', True)
 GRANT_TRANSFERED = states.State('Transferred')
 
 grantStates = [GRANT_TRANSFER_PENDING, GRANT_TRANSFERED]
@@ -25,29 +26,60 @@ class MoneyForm(wtforms.Form):
 class GrantForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
+    target_date = wtforms.DateField(widget=widgets.MonthInput(),
+                                format='%Y-%m',
+                                validators=[wtforms.validators.Optional()])
+
+class NewGrantForm(GrantForm):
+    repeat_count = wtforms.IntegerField()
+
+class NewGrantData:
+    def __init__(self, parent):
+        self.parent_key = parent.key
+        self.description = ""
+        self.amount = db.Money()
+        self.state_index = 0
+        self.creator = None
+        self.repeat_count = 1
+        
+def addNewGrant(data, user):
+    entity = db.Grant(parent=data.parent_key)
+    entity.description = data.description
+    entity.amount = data.amount
+    entity.creator = user.key
+    entity.put()
 
 class GrantModel(model.EntityModel):
     def __init__(self):
         model.EntityModel.__init__(self, 'Grant', RoleType.COMMITTEE_ADMIN, project_model, grantStates)
         
     def create_entity(self, parent):
-        return db.Grant(parent=parent.key)
+        return NewGrantData(parent)
 
     def load_entities(self, parent):
         return db.Grant.query(ancestor=parent.key).fetch()
         
     def title(self, entity):
-        return 'Grant'
+        return 'Grant ' + str(entity.key.id())
+
+    def perform_create(self, data, user):
+        addNewGrant(data, user)
+        
+#        if data.repeat_count == None:
+#            addNewGrant(data, user)
+#            return
+#        for i in range(data.repeat_count):
+#            addNewGrant(data, user)
 
 grant_model = GrantModel()
 
 class GrantListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, grant_model, GrantForm)
+        views.ListView.__init__(self, grant_model, NewGrantForm)
 
     def get_fields(self, form):
         state = views.StateField(grantStates)
-        return (form._fields['amount'], state)
+        return (form._fields['target_date'], form._fields['amount'], state)
 
 class GrantView(views.EntityView):
     def __init__(self):

@@ -23,7 +23,7 @@ def render_field(field):
     elements.append(field.label())
     elements.append(field(class_="u-full-width"))
     if field.errors and not field is wtforms.FormField:
-        elements.append(html.span(' '.join(*field.errors), class_="error"))
+        elements.append(html.span(' '.join(field.errors), class_="error"))
     return elements
 
 def render_form(form, **kwargs):
@@ -60,7 +60,10 @@ def render_entity(entity, *fields):
     return html.div(*rows)
  
 def render_property(entity, field):
-    property = getattr(entity, field.name)
+    if field.name:
+        property = getattr(entity, field.name)
+    else:
+        property = entity.key.id() # id field
     label = html.legend(field.label.text)
     value = get_display_value(field, property)
     return html.div(label, value, class_="four columns")
@@ -80,7 +83,10 @@ def render_header(fields):
 def render_row(entity, url, *fields):
     children = []
     for field in fields:
-        property = getattr(entity, field.name)
+        if field.name:
+            property = getattr(entity, field.name)
+        else:
+            property = entity.key.id() # id field
         value = get_display_value(field, property)
         children.append(html.td(value))
     return html.tr(*children, class_="selectable", 
@@ -114,3 +120,6 @@ def render_modal_dialog(element, id, open=False):
     if open:
         class_val = "modal modal-open"
     return html.div(content, id=id, class_="%s" % class_val)
+
+def month_widget(field, **kwargs):
+    return html.input(type='month', **kwargs)

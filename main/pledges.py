@@ -40,7 +40,7 @@ class PledgeModel(model.EntityModel):
     def perform_create(self, entity, user):
         ref = model.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
-        views.EntityModel.perform_create(self, entity, user)
+        model.EntityModel.perform_create(self, entity, user)
 
 pledge_model = PledgeModel()
         

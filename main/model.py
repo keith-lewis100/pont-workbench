@@ -60,6 +60,16 @@ def get_role_types(user, entity):
     committee = get_owning_committee(entity)
     return role_types.get_types(roles, committee)
         
+def lookup_user_with_role(type):
+    roles = db.Role.query(type_index=type)
+    for role in roles:
+        user = role.key.parent
+        return user
+    return None
+    
+def lookup_user_by_email(email):
+    return db.User.query().filter(db.User.email == email).get()
+
 class EntityModel:
     def __init__(self, name, update_role, parent_model=None, state_list=None):
         self.name = name
@@ -85,7 +95,6 @@ class EntityModel:
         types = get_role_types(user, parent)
         if not self.update_role in types:
             return False
-        # remainder needs to use parent entity type
         if self.parent_model is None:
             return True
         return self.parent_model.is_child_create_allowed(parent)
@@ -105,3 +114,4 @@ class EntityModel:
     def perform_state_change(self, entity, state_index):
         entity.state_index = state_index
         entity.put()
+        state = self.state_list[state_index]

@@ -36,7 +36,7 @@ class InternalTransferModel(model.EntityModel):
         return db.InternalTransfer.query(ancestor=parent.key).fetch()
                         
     def title(self, entity):
-        return 'InternalTransfer'
+        return 'InternalTransfer ' + str(entity.key.id())
 
 transfer_model = InternalTransferModel()
 
@@ -45,8 +45,9 @@ class InternalTransferListView(views.ListView):
         views.ListView.__init__(self, transfer_model, InternalTransferForm)
 
     def get_fields(self, form):
+        id = views.IdField()
         state = views.StateField(transferStates)
-        return (form._fields['dest_fund'], form._fields['amount'],state)
+        return (id, form._fields['dest_fund'], form._fields['amount'],state)
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
@@ -61,6 +62,6 @@ class InternalTransferView(views.EntityView):
         return []
 
 def add_rules(app):
-    app.add_url_rule('/internaltransfer_list/<db_id>', view_func=InternalTransferListView.as_view('view_transfer_list'))
-    app.add_url_rule('/internaltransfer/<db_id>/', view_func=InternalTransferView.as_view('view_transfer'))        
+    app.add_url_rule('/internaltransfer_list/<db_id>', view_func=InternalTransferListView.as_view('view_internaltransfer_list'))
+    app.add_url_rule('/internaltransfer/<db_id>/', view_func=InternalTransferView.as_view('view_internaltransfer'))        
     app.add_url_rule('/internaltransfer/<db_id>/menu', view_func=views.MenuView.as_view('handle_transfer_menu', transfer_model))

@@ -47,7 +47,7 @@ class FundView(views.EntityView):
     def get_links(self, entity):
         projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
         showProjects = renderers.render_link('Show Projects', projects_url, class_="button")
-        transfers_url = url_for('view_transfer_list', db_id=entity.key.urlsafe())
+        transfers_url = url_for('view_internaltransfer_list', db_id=entity.key.urlsafe())
         showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
         return [showProjects, showTransfers]
 

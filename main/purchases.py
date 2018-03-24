@@ -51,7 +51,7 @@ class PurchaseModel(model.EntityModel):
         return db.Purchase.query(ancestor=parent.key).fetch()
                         
     def title(self, entity):
-        return 'Purchase'
+        return 'Purchase ' + str(entity.key.id())
 
     def perform_state_change(self, entity, state_index):
         entity.state_index = state_index
@@ -67,9 +67,10 @@ class PurchaseListView(views.ListView):
         views.ListView.__init__(self, purchase_model, PurchaseForm)
 
     def get_fields(self, form):
+        id = views.IdField()
         po_number = views.ReadOnlyField('po_number', 'PO number')
         state = views.StateField(purchaseStates)
-        return (form._fields['amount'], po_number, state)
+        return (id, form._fields['amount'], po_number, state)
 
 class PurchaseView(views.EntityView):
     def __init__(self):

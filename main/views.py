@@ -29,6 +29,11 @@ class ReadOnlyKeyField:
         entity = key.get()
         return renderers.render_link(self.title_of(entity), url_for_entity(entity))
 
+class IdField:
+    def __init__(self):
+        self.name = None
+        self.label = Label('Id')
+
 class StateField:
     def __init__(self, state_list):
         self.name = 'state_index'
@@ -38,10 +43,7 @@ class StateField:
     def get_display_value(self, index):
         state = self.state_list[index]
         return state.display_name
-        
-def user_by_email(email):
-    return db.User.query().filter(db.User.email == email).get()
-    
+            
 def url_for_entity(entity):
     key = entity.key
     return url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
@@ -54,7 +56,7 @@ def url_for_list(kind, parent):
 
 def render_user():
     email = users.get_current_user().email()
-    user = user_by_email(email)
+    user = model.lookup_user_by_email(email)
     name = user.name if user else email
     logout_url = users.create_logout_url('/')
     return renderers.render_logout(name, logout_url)
@@ -89,7 +91,7 @@ class ListView(View):
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()
-        user = user_by_email(email)
+        user = model.lookup_user_by_email(email)
         entity_model = self.entity_model
         parent = model.lookup_entity(db_id)
         entity = entity_model.create_entity(parent)
@@ -133,7 +135,7 @@ class EntityView(View):
 
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
-        user = user_by_email(email)
+        user = model.lookup_user_by_email(email)
         entity_model = self.entity_model
         entity = model.lookup_entity(db_id)
         form = self.form_class(request.form, obj=entity)
