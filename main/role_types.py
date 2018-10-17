@@ -7,10 +7,12 @@ RoleType = enum(USER_ADMIN='UserAdmin',
     COMMITTEE_ADMIN='CommitteeAdmin',
     INCOME_ADMIN='IncomeAdmin',
     PROJECT_APPROVER='ProjectApprover',
-    PAYMENT_ADMIN='PaymentAdmin')
+    PAYMENT_ADMIN='PaymentAdmin',
+    PROJECT_CREATOR='ProjectCreator')
 
 role_types = [RoleType.USER_ADMIN, RoleType.SUPPLIER_ADMIN, RoleType.FUND_ADMIN, RoleType.COMMITTEE_ADMIN,
-                RoleType.INCOME_ADMIN, RoleType.PROJECT_APPROVER]
+                RoleType.INCOME_ADMIN, RoleType.PROJECT_APPROVER, RoleType.PAYMENT_ADMIN,
+                RoleType.PROJECT_CREATOR]
 
 def get_choices():
     choices = []
@@ -23,7 +25,7 @@ def committee_matches(committee, role):
     if role.committee == "":
         return True
     return role.committee == committee
-    
+
 def get_types(roles, committee):
     type_set = set()
     for r in roles:
@@ -31,4 +33,3 @@ def get_types(roles, committee):
        if committee_matches(committee, r):
           type_set.add(type)
     return type_set
- 

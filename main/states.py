@@ -10,8 +10,6 @@ class State:
 
     def is_transition_allowed(self, index, roles):
         required_role = self.role_map.get(index)
-#        if required_role is None:
-#            return False
         return required_role in roles
     
     def is_child_create_allowed(self):

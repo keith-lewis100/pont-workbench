@@ -18,18 +18,15 @@ PROJECT_APPROVED = states.State('Approved', True) # 1
 
 projectStates = [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED]
 
-cap_key = db.Supplier.get_or_insert('mbale-cap', name='Mbale CAP').key
-
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
-    dest_fund = custom_fields.KeyPropertyField('Destination Fund',
-                    validators=[wtforms.validators.InputRequired()],
-                    query=db.SupplierFund.query(ancestor=cap_key))
+    committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
+    multi_committee = wtforms.BooleanField()
     
 class ProjectModel(model.EntityModel):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Project', RoleType.COMMITTEE_ADMIN, None, projectStates)
+        model.EntityModel.__init__(self, 'Project', RoleType.PROJECT_CREATOR, None, projectStates)
 
     def create_entity(self, parent):
         return db.Project(parent=parent.key)
@@ -57,15 +54,6 @@ class ProjectView(views.EntityView):
     def get_fields(self, form):
         state = views.StateField(projectStates)
         return form._fields.values() + [state]
-            
-    def get_links(self, entity):
-        purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
-        showPurchases = renderers.render_link('Show Purchase Requests', purchases_url, class_="button")
-        grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
-        showGrants = renderers.render_link('Show Grants', grants_url, class_="button")
-        pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())        
-        showPledges = renderers.render_link('Show Pledges', pledges_url, class_="button")
-        return [showPurchases, showGrants, showPledges]
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))

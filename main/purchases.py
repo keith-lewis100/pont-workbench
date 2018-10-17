@@ -83,9 +83,6 @@ class PurchaseView(views.EntityView):
         creator = views.ReadOnlyKeyField('creator', 'Creator')
         return form._fields.values() + [po_number, state, creator]
 
-    def get_links(self, entity):
-        return []
-
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
     app.add_url_rule('/purchase/<db_id>/', view_func=PurchaseView.as_view('view_purchase'))

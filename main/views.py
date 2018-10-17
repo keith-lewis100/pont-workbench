@@ -133,6 +133,9 @@ class EntityView(View):
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
 
+    def get_links(self, entity):
+        return []
+
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
         user = model.lookup_user_by_email(email)

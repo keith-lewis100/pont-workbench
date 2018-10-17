@@ -45,11 +45,15 @@ class FundView(views.EntityView):
         return form._fields.values()
         
     def get_links(self, entity):
-        projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
-        showProjects = renderers.render_link('Show Projects', projects_url, class_="button")
+        purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
+        showPurchases = renderers.render_link('Show Purchase Requests', purchases_url, class_="button")
+        grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
+        showGrants = renderers.render_link('Show Grants', grants_url, class_="button")
+        pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())
+        showPledges = renderers.render_link('Show Pledges', pledges_url, class_="button")
         transfers_url = url_for('view_internaltransfer_list', db_id=entity.key.urlsafe())
         showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
-        return [showProjects, showTransfers]
+        return [showPurchases, showGrants, showPledges, showTransfers]
 
 def add_rules(app):
     app.add_url_rule('/fund_list', view_func=FundListView.as_view('view_fund_list'))
