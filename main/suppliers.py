@@ -46,7 +46,9 @@ class SupplierView(views.EntityView):
     def get_links(self, entity):
         funds_url = url_for('view_supplierfund_list', db_id=entity.key.urlsafe())
         showFunds = renderers.render_link('Show Funds', funds_url, class_="button")
-        return [showFunds]
+        payments_url = url_for('view_paymentsdue_list', db_id=entity.key.urlsafe())
+        showPayments = renderers.render_link('Show Payments Due', payments_url, class_="button")
+        return [showFunds, showPayments]
 
 def add_rules(app):
     app.add_url_rule('/supplier_list', view_func=SupplierListView.as_view('view_supplier_list'))

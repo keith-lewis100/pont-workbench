@@ -110,7 +110,36 @@ class ListView(View):
         breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
         return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
                 user=render_user(), entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
-        
+
+class ListViewNoCreate(View):
+    methods = ['GET']
+    
+    def __init__(self, entity_model, form_class):
+        self.entity_model = entity_model
+        self.form_class = form_class
+
+    def render_entities(self, parent, form):
+        entity_list = self.entity_model.load_entities(parent)
+        fields = self.get_fields(form)
+        rows = []
+        for e in entity_list:
+            url = url_for_entity(e)
+            rows.append(renderers.render_row(e, url, *fields))
+        return renderers.render_entity_list(rows, *fields)
+
+    def dispatch_request(self, db_id=None):
+        email = users.get_current_user().email()
+        user = model.lookup_user_by_email(email)
+        entity_model = self.entity_model
+        parent = model.lookup_entity(db_id)
+        entity = entity_model.create_entity(parent)
+        form = self.form_class(request.form, obj=entity)            
+        entity_table = self.render_entities(parent, form)
+        breadcrumbs = create_breadcrumbs(parent)
+        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
+        return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
+                user=render_user(), entity_table=entity_table)
+                
 def action_button(index, action_name, enabled):
     return renderers.render_submit_button(action_name, name='state_index', value=str(index), 
                 disabled=not enabled)
