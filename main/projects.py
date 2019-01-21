@@ -13,10 +13,15 @@ import logging
 import states
 from role_types import RoleType
 
-PROJECT_APPROVAL_PENDING = states.State('Approval Pending', True, False, {1: RoleType.PROJECT_APPROVER}) # 0
-PROJECT_APPROVED = states.State('Approved', True) # 1
+PROJECT_APPROVAL_PENDING = states.State('Approval Pending', True, {'approve': RoleType.PROJECT_APPROVER}) # 1
+PROJECT_APPROVED = states.State('Approved', True) # 2
+PROJECT_CLOSED = states.State('Closed') # 0
+state_map = {
+    'approve': 2,
+    'cancel': 0
+}
 
-projectStates = [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED]
+projectStates = [PROJECT_CLOSED, PROJECT_APPROVAL_PENDING, PROJECT_APPROVED]
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -36,6 +41,9 @@ class ProjectModel(model.EntityModel):
         
     def title(self, entity):
         return 'Project ' + entity.name
+    
+    def perform_state_change(self, entity, action):
+        entity.state_index = state_map.get(action)
 
 project_model = ProjectModel()
         
@@ -49,7 +57,7 @@ class ProjectListView(views.ListView):
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, project_model, ProjectForm, (1, 'Approve'))
+        views.EntityView.__init__(self, project_model, ProjectForm, ('approve', 'Approve'))
         
     def get_fields(self, form):
         state = views.StateField(projectStates)

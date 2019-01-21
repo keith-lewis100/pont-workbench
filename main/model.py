@@ -19,7 +19,7 @@ committee_labels=[
 
 if db.User.query().count() == 0:
     user = db.User();
-    user.name = 'Admin'
+    user.name = 'Keith'
     user.email = 'keith.lewis@pont-mbale.org.uk'
     key = user.put()
     
@@ -78,10 +78,10 @@ class EntityModel:
         self.parent_model = parent_model
         self.state_list = state_list
 
-    def is_transition_allowed(self, index, entity, user): 
+    def is_action_allowed(self, action, entity, user):
         state = self.state_list[entity.state_index]
         types = get_role_types(user, entity)
-        return state.is_transition_allowed(index, types)
+        return state.is_action_allowed(action, types)
 
     def is_update_allowed(self, entity, user):
         types = get_role_types(user, entity)
@@ -100,8 +100,3 @@ class EntityModel:
         if hasattr(entity, 'creator'):
             entity.creator = user.key
         entity.put()
-
-    def perform_state_change(self, entity, state_index):
-        entity.state_index = state_index
-        entity.put()
-#        state = self.state_list[state_index]

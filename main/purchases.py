@@ -12,24 +12,19 @@ import states
 from role_types import RoleType
 from projects import project_model
 
-PURCHASE_AUTHORISING = states.State('Authorising', True, False, 
-        {1: RoleType.PROJECT_APPROVER, 5: RoleType.COMMITTEE_ADMIN})
-PURCHASE_APPROVING = states.State('Approving')
-PURCHASE_APPROVED = states.State('Approved')
-PURCHASE_ORDERED = states.State('Ordered')
-PURCHASE_FULFILLED = states.State('Fulfilled')
-PURCHASE_CLOSED = states.State('Closed')
-#PURCHASE_AUTHORISING.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
-#PURCHASE_APPROVING.add_required_role(PURCHASE_APPROVED, RoleType.FUND_ADMIN)
-#PURCHASE_APPROVING.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
-#PURCHASE_APPROVED.add_required_role(PURCHASE_ORDERED, RoleType.COMMITTEE_ADMIN)
-#PURCHASE_APPROVED.add_required_role(PURCHASE_CLOSED, RoleType.COMMITTEE_ADMIN)
-#PURCHASE_ORDERED.add_required_role(PURCHASE_FULFILLED, RoleType.COMMITTEE_ADMIN)
-#PURCHASE_ORDERED.add_required_role(PURCHASE_CLOSED, RoleType.PAYMENT_ADMIN)
-#PURCHASE_FULFILLED.add_required_role(PURCHASE_CLOSED, RoleType.PAYMENT_ADMIN)
+PURCHASE_CHECKING = states.State('Checking funds') # 1
+PURCHASE_READY = states.State('Ready') # 2
+PURCHASE_ORDERED = states.State('Ordered') # 3
+PURCHASE_FULFILLED = states.State('Fulfilled') # 4
+PURCHASE_CLOSED = states.State('Closed') # 0
 
-purchaseStates = [PURCHASE_AUTHORISING, PURCHASE_APPROVING, PURCHASE_APPROVED, PURCHASE_ORDERED,
-                  PURCHASE_FULFILLED, PURCHASE_CLOSED]
+state_map = {
+    'checked': 2,
+    'ordered': 3
+}
+
+purchaseStates = [PURCHASE_CLOSED, PURCHASE_CHECKING, PURCHASE_READY, PURCHASE_ORDERED,
+                  PURCHASE_FULFILLED]
 
 class MoneyForm(wtforms.Form):
     currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
@@ -74,9 +69,9 @@ class PurchaseListView(views.ListView):
 
 class PurchaseView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, purchase_model, PurchaseForm, 
-                (2, 'Approve'), (3, 'Ordered'), (4, 'Fulfilled'), (5, 'Close'))
-        
+        views.EntityView.__init__(self, purchase_model, PurchaseForm, ('checked', 'Funds Checked'), 
+               ('ordered', 'Ordered'), ('fulfilled', 'Fulfilled'), ('paid', 'Paid'))
+                
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
         state = views.StateField(purchaseStates)

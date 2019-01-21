@@ -140,8 +140,8 @@ class ListViewNoCreate(View):
         return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
                 user=render_user(), entity_table=entity_table)
                 
-def action_button(index, action_name, enabled):
-    return renderers.render_submit_button(action_name, name='state_index', value=str(index), 
+def action_button(action, label, enabled):
+    return renderers.render_submit_button(label, name='action', value=action,
                 disabled=not enabled)
 
 class EntityView(View):
@@ -155,9 +155,9 @@ class EntityView(View):
     def create_menu(self, entity, user):
         buttons = []
         entity_model = self.entity_model
-        for index, action_name in self.actions:
-            enabled = entity_model.is_transition_allowed(index, entity, user)
-            buttons.append(action_button(index, action_name, enabled))
+        for action, label in self.actions:
+            enabled = entity_model.is_action_allowed(action, entity, user)
+            buttons.append(action_button(action, label, enabled))
         enabled = entity_model.is_update_allowed(entity, user)
         open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
         return renderers.render_menu('./menu', open_modal, *buttons)
@@ -196,6 +196,7 @@ class MenuView(View):
 
     def dispatch_request(self, db_id):
         entity = model.lookup_entity(db_id)
-        state_index = int(request.form['state_index'])
-        self.entity_model.perform_state_change(entity, state_index)
+        action = request.form['action']
+        self.entity_model.perform_state_change(entity, action)
+        entity.put()
         return redirect(url_for_entity(entity))

@@ -12,11 +12,16 @@ import states
 from role_types import RoleType
 from projects import project_model
 
-PLEDGE_PENDING = states.State('Pending', True, False, {1: RoleType.INCOME_ADMIN}) # 0
-PLEDGE_FULFILLED = states.State('Fulfilled', False, False, {2: RoleType.FUND_ADMIN}) # 1
-PLEDGE_BOOKED = states.State('Booked') # 2
+PLEDGE_PENDING = states.State('Pending', True, {'fulfilled': RoleType.INCOME_ADMIN}) # 1
+PLEDGE_FULFILLED = states.State('Fulfilled', False, {'booked': RoleType.FUND_ADMIN}) # 2
+PLEDGE_CLOSED = states.State('Closed') # 0
+state_map = {
+    'fulfilled': 2,
+    'cancel': 0,
+    'booked': 0
+}
 
-pledgeStates = [PLEDGE_PENDING, PLEDGE_FULFILLED, PLEDGE_BOOKED]
+pledgeStates = [PLEDGE_CLOSED, PLEDGE_PENDING, PLEDGE_FULFILLED]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -41,6 +46,9 @@ class PledgeModel(model.EntityModel):
         ref = model.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
         model.EntityModel.perform_create(self, entity, user)
+    
+    def perform_state_change(self, entity, action):
+        entity.state_index = state_map.get(action)
 
 pledge_model = PledgeModel()
         
@@ -55,7 +63,7 @@ class PledgeListView(views.ListView):
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, pledge_model, PledgeForm, (1, 'Fulfill'), (2, 'Book'))
+        views.EntityView.__init__(self, pledge_model, PledgeForm, ('fulfilled', 'Fulfill'), ('booked', 'Book'))
         
     def get_fields(self, form):
         state = views.StateField(pledgeStates)

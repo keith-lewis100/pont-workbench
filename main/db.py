@@ -70,7 +70,7 @@ class InternalTransfer(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
     dest_fund = ndb.KeyProperty(kind=Fund)
-    state_index = ndb.IntegerProperty(default=0)
+    state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
 
 # ancestor = SupplierFund
@@ -78,7 +78,7 @@ class Project(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
     committee = ndb.StringProperty()
-    state_index = ndb.IntegerProperty(default=0)
+    state_index = ndb.IntegerProperty(default=1)
     multi_committee = ndb.BooleanProperty()
     creator = ndb.KeyProperty(kind=User)
 
@@ -86,23 +86,23 @@ class Project(ndb.Model):
 class Grant(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
-    state_index = ndb.IntegerProperty(default=0)
+    state_index = ndb.IntegerProperty(default=1)
     project = ndb.KeyProperty(kind=Project)
     creator = ndb.KeyProperty(kind=User)
-#    target_date = ndb.DateProperty()
+    target_date = ndb.DateProperty()
 
 # ancestor = Fund
 class Pledge(ndb.Model):
     amount = MoneyProperty(default=Money())
     ref_id = ndb.StringProperty()
-    state_index = ndb.IntegerProperty(default=0)
+    state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
     
 # ancestor = Fund
 class Purchase(ndb.Model):
     description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
-    state_index = ndb.IntegerProperty(default=0)
+    state_index = ndb.IntegerProperty(default=1)
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)

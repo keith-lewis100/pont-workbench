@@ -11,9 +11,14 @@ import views
 import states
 from role_types import RoleType
 
-TRANSFER_PENDING = states.State('Pending', True, True, {1: RoleType.FUND_ADMIN}) # 0
-TRANSFER_COMPLETE = states.State('Transferred') # 1
-transferStates = [TRANSFER_PENDING, TRANSFER_COMPLETE]
+TRANSFER_PENDING = states.State('Pending', True, {'transfered': RoleType.FUND_ADMIN}) # 1
+TRANSFER_COMPLETE = states.State('Transferred') # 0
+state_map = {
+    'transferred': 0,
+    'cancel': 0
+}
+
+transferStates = [TRANSFER_COMPLETE, TRANSFER_PENDING]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -38,6 +43,9 @@ class InternalTransferModel(model.EntityModel):
     def title(self, entity):
         return 'InternalTransfer ' + str(entity.key.id())
 
+    def perform_state_change(self, entity, action):
+        entity.state_index = state_map.get(action)
+
 transfer_model = InternalTransferModel()
 
 class InternalTransferListView(views.ListView):
@@ -51,7 +59,7 @@ class InternalTransferListView(views.ListView):
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, transfer_model, InternalTransferForm, (1, 'Transferred'))
+        views.EntityView.__init__(self, transfer_model, InternalTransferForm, ('transferred', 'Transferred'))
         
     def get_fields(self, form):
         state = views.StateField(transferStates)
