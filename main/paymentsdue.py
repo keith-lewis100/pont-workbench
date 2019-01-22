@@ -9,15 +9,19 @@ import model
 import renderers
 import custom_fields
 import views
+import grants
 
-class MoneyForm(wtforms.Form):
-    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                    widget=renderers.radio_field_widget)
-    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=50)])
+payments_field_list = [
+    views.StateField(grants.grantStates),
+    views.ReadOnlyField('requestor', 'Requestor'),
+    views.ReadOnlyField('amount', 'Amount'),
+    views.ReadOnlyField('project_name', 'Project Name'),
+    views.ReadOnlyField('source_fund', 'Source Fund'),
+    views.ReadOnlyField('dest_fund', 'Destination Fund')
+]
 
-class PaymentsDueForm(wtforms.Form):
-    creator = custom_fields.KeyPropertyField("Requestor Name")
-    amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
+class Payment:
+    pass
 
 class PaymentsDueModel(model.EntityModel):
     def __init__(self):
@@ -27,7 +31,20 @@ class PaymentsDueModel(model.EntityModel):
         return None
 
     def load_entities(self, parent):
-        return db.Grant.query().fetch()
+        grant_list = db.Grant.query().fetch()
+        payments_list = []
+        for grant in grant_list:
+            p = Payment()
+            p.key = grant.key
+            p.state_index = grant.state_index
+            p.requestor = grant.creator.get().name
+            p.amount = grant.amount
+            p.project_name = None
+            p.project_name = grant.project.get().name
+            p.source_fund = grant.key.parent().get().code
+            p.dest_fund = grant.project.parent().get().name
+            payments_list.append(p)
+        return payments_list
         
     def title(self, entity):
         return 'PaymentsDue ' + entity.name
@@ -36,10 +53,10 @@ paymentsdue_model = PaymentsDueModel()
 
 class PaymentsDueView(views.ListViewNoCreate):
     def __init__(self):
-        views.ListViewNoCreate.__init__(self, paymentsdue_model, PaymentsDueForm)
+        views.ListViewNoCreate.__init__(self, paymentsdue_model)
  
-    def get_fields(self, form):
-        return form._fields.values()
+    def get_fields(self):
+        return payments_field_list
 
-def add_rules(app):
-    app.add_url_rule('/paymentsdue', view_func=PaymentsDueView.as_view('view_paymentsdue_list'))
+def add_payments_rules(app):
+    app.add_url_rule('/paymentsdue/<db_id>', view_func=PaymentsDueView.as_view('view_paymentsdue_list'))

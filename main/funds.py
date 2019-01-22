@@ -14,6 +14,7 @@ class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
+    code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
 class FundModel(model.EntityModel):
     def __init__(self):

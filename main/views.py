@@ -114,13 +114,12 @@ class ListView(View):
 class ListViewNoCreate(View):
     methods = ['GET']
     
-    def __init__(self, entity_model, form_class):
+    def __init__(self, entity_model):
         self.entity_model = entity_model
-        self.form_class = form_class
 
-    def render_entities(self, parent, form):
+    def render_entities(self, parent):
         entity_list = self.entity_model.load_entities(parent)
-        fields = self.get_fields(form)
+        fields = self.get_fields()
         rows = []
         for e in entity_list:
             url = url_for_entity(e)
@@ -132,9 +131,7 @@ class ListViewNoCreate(View):
         user = model.lookup_user_by_email(email)
         entity_model = self.entity_model
         parent = model.lookup_entity(db_id)
-        entity = entity_model.create_entity(parent)
-        form = self.form_class(request.form, obj=entity)            
-        entity_table = self.render_entities(parent, form)
+        entity_table = self.render_entities(parent)
         breadcrumbs = create_breadcrumbs(parent)
         breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
         return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,

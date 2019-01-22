@@ -8,6 +8,7 @@ logger = logging.getLogger('model')
 
 workbench = db.WorkBench.get_or_insert('main')
 committee_labels=[
+        ('AMB', 'Ambulance'),
         ('PHC', 'PrimaryHealth'),
         ('SEC', 'SecondaryHealth'),
         ('LIV', 'Livelihoods'), 

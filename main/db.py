@@ -64,6 +64,7 @@ class Fund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
     committee = ndb.StringProperty()
+    code = ndb.StringProperty()
 
 # ancestor = Fund
 class InternalTransfer(ndb.Model):
