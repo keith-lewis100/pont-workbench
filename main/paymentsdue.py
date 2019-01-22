@@ -10,12 +10,14 @@ import renderers
 import custom_fields
 import views
 import grants
+from datetime import datetime
 
 payments_field_list = [
     views.StateField(grants.grantStates),
     views.ReadOnlyField('requestor', 'Requestor'),
     views.ReadOnlyField('amount', 'Amount'),
     views.ReadOnlyField('project_name', 'Project Name'),
+    views.ReadOnlyField('partner', 'Implementing Partner'),
     views.ReadOnlyField('source_fund', 'Source Fund'),
     views.ReadOnlyField('dest_fund', 'Destination Fund')
 ]
@@ -31,7 +33,9 @@ class PaymentsDueModel(model.EntityModel):
         return None
 
     def load_entities(self, parent):
-        grant_list = db.Grant.query().fetch()
+        today = datetime.today()
+        next_month = datetime(today.year, (today.month + 1) % 12 + 1, 1)
+        grant_list = db.Grant.query(db.Grant.target_date < next_month).fetch()
         payments_list = []
         for grant in grant_list:
             p = Payment()
@@ -39,8 +43,11 @@ class PaymentsDueModel(model.EntityModel):
             p.state_index = grant.state_index
             p.requestor = grant.creator.get().name
             p.amount = grant.amount
-            p.project_name = None
-            p.project_name = grant.project.get().name
+            project = grant.project.get()
+            p.project_name = project.name
+            p.partner = None
+            if (project.partner != None):
+              p.partner = project.partner.get().name
             p.source_fund = grant.key.parent().get().code
             p.dest_fund = grant.project.parent().get().name
             payments_list.append(p)

@@ -20,7 +20,7 @@ import purchases
 import users
 import roles
 import paymentsdue
-import partner
+import partners
 
 app = Flask(__name__)
 
@@ -47,4 +47,4 @@ purchases.add_rules(app)
 users.add_rules(app)
 roles.add_rules(app)
 paymentsdue.add_rules(app)
-partner.add_rules(app)
+partners.add_rules(app)
