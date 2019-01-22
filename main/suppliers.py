@@ -44,11 +44,14 @@ class SupplierView(views.EntityView):
         return form._fields.values()
                 
     def get_links(self, entity):
-        funds_url = url_for('view_supplierfund_list', db_id=entity.key.urlsafe())
+        db_id = entity.key.urlsafe()
+        funds_url = url_for('view_supplierfund_list', db_id=db_id)
         showFunds = renderers.render_link('Show Funds', funds_url, class_="button")
-        payments_url = url_for('view_paymentsdue_list', db_id=entity.key.urlsafe())
+        payments_url = url_for('view_paymentsdue_list', db_id=db_id)
         showPayments = renderers.render_link('Show Payments Due', payments_url, class_="button")
-        return [showFunds, showPayments]
+        partners_url = url_for('view_partner_list', db_id=db_id)
+        showPartners = renderers.render_link('Show Partners', partners_url, class_="button")
+        return [showFunds, showPartners, showPayments]
 
 def add_rules(app):
     app.add_url_rule('/supplier_list', view_func=SupplierListView.as_view('view_supplier_list'))

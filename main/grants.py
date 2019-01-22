@@ -37,7 +37,7 @@ class GrantForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     project = custom_fields.KeyPropertyField('Project',
                     validators=[wtforms.validators.InputRequired()],
-                    query=db.Project.query())
+                    query=db.Project.query(db.Project.state_index == 2))
     target_date = wtforms.DateField(widget=widgets.MonthInput(),
                                 format='%Y-%m',
                                 validators=[wtforms.validators.Optional()])

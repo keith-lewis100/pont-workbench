@@ -48,6 +48,10 @@ class Supplier(ndb.Model):
 class SupplierFund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
+
+# ancestor = Supplier
+class Partner(ndb.Model):
+    name = ndb.StringProperty()
     
 # Top level
 class User(ndb.Model):
@@ -82,6 +86,7 @@ class Project(ndb.Model):
     state_index = ndb.IntegerProperty(default=1)
     multi_committee = ndb.BooleanProperty()
     creator = ndb.KeyProperty(kind=User)
+    partner = ndb.KeyProperty(kind=Partner)
 
 # ancestor = Fund
 class Grant(ndb.Model):

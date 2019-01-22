@@ -58,5 +58,5 @@ class PaymentsDueView(views.ListViewNoCreate):
     def get_fields(self):
         return payments_field_list
 
-def add_payments_rules(app):
+def add_rules(app):
     app.add_url_rule('/paymentsdue/<db_id>', view_func=PaymentsDueView.as_view('view_paymentsdue_list'))

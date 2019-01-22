@@ -28,6 +28,9 @@ class ProjectForm(wtforms.Form):
     description = wtforms.TextAreaField()
     committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
     multi_committee = wtforms.BooleanField()
+    partner = custom_fields.KeyPropertyField('Partner',
+                    validators=[wtforms.validators.Optional()],
+                    query=db.Partner.query())
     
 class ProjectModel(model.EntityModel):
     def __init__(self):

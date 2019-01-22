@@ -12,6 +12,8 @@ class KeyPropertyField(fields.SelectFieldBase):
         
     def iter_choices(self):
         entities = self.query.fetch()
+        if self.flags.optional:
+            yield None, "", self.data == None
         
         for entity in entities:
             val = entity.key.urlsafe()
