@@ -33,8 +33,7 @@ def home():
     users_url = url_for('view_user_list')        
     showUsers = renderers.render_link('Show Users', users_url, class_="button")
     links = renderers.render_nav(showFunds, showSuppliers, showUsers)
-    return render_template('entity.html', title='DashBoard', user=views.render_user(), links=links, 
-                    menu="", edit_dialog="", entity="")
+    return render_template('entity.html', title='DashBoard', user=views.render_user(), main=links)
 
 funds.add_rules(app)
 projects.add_rules(app)

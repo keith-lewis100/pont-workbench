@@ -96,6 +96,7 @@ class Grant(ndb.Model):
     project = ndb.KeyProperty(kind=Project)
     creator = ndb.KeyProperty(kind=User)
     target_date = ndb.DateProperty()
+    exchange_rate = ndb.IntegerProperty()
 
 # ancestor = Fund
 class Pledge(ndb.Model):

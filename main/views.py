@@ -107,7 +107,7 @@ class ListView(View):
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
-        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
+        breadcrumbHtml = renderers.render_div(*breadcrumbs);
         return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
                 user=render_user(), entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
 
@@ -133,14 +133,18 @@ class ListViewNoCreate(View):
         parent = model.lookup_entity(db_id)
         entity_table = self.render_entities(parent)
         breadcrumbs = create_breadcrumbs(parent)
-        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
+        breadcrumbHtml = renderers.render_div(*breadcrumbs);
         return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
                 user=render_user(), entity_table=entity_table)
-                
-def action_button(action, label, enabled):
-    return renderers.render_submit_button(label, name='action', value=action,
-                disabled=not enabled)
 
+def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields):
+    breadcrumbHtml = renderers.render_div(*breadcrumbs);
+    nav = renderers.render_nav(*links)
+    menu = renderers.render_menu('.', *buttons)
+    grid = renderers.render_entity(entity, *fields)
+    main = renderers.render_div(nav, menu, dialogs, grid)
+    return render_template('entity.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+    
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
@@ -149,41 +153,52 @@ class EntityView(View):
         self.form_class = form_class
         self.actions = actions
 
-    def create_menu(self, entity, user):
-        buttons = []
-        entity_model = self.entity_model
-        for action, label in self.actions:
-            enabled = entity_model.is_action_allowed(action, entity, user)
-            buttons.append(action_button(action, label, enabled))
-        enabled = entity_model.is_update_allowed(entity, user)
-        open_modal = renderers.render_modal_open('Edit', 'm1', enabled)
-        return renderers.render_menu('./menu', open_modal, *buttons)
-
     def get_links(self, entity):
         return []
+        
+    def process_edit_button(self, user, form, entity, buttons, dialogs):
+        if request.method == 'POST' and not request.form.has_key('action') and form.validate():
+            form.populate_obj(entity)
+            entity.put()
+            return True
+        enabled = self.entity_model.is_update_allowed(entity, user)
+        button = renderers.render_modal_open('Edit', 'd-edit', enabled)
+        rendered_form = renderers.render_form(form)
+        dialog = renderers.render_modal_dialog(rendered_form, 'd-edit', form.errors)
+        buttons.append(button)
+        dialogs.append(dialog)
+        return False
+    
+    def process_action_button(self, action, label, enabled, entity, buttons, dialogs):
+        if (request.method == 'POST' and request.form.has_key('action') and
+                request.form['action'] == action):
+            self.entity_model.perform_state_change(entity, action)
+            entity.put()
+            return True
+
+        button = renderers.render_submit_button(label, name='action', value=action,
+                disabled=not enabled)
+        buttons.append(button)
+        return False
 
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
         user = model.lookup_user_by_email(email)
-        entity_model = self.entity_model
         entity = model.lookup_entity(db_id)
         form = self.form_class(request.form, obj=entity)
-        if request.method == 'POST' and form.validate():
-            form.populate_obj(entity)
-            entity.put()
+        buttons = []
+        dialogs = []
+        if self.process_edit_button(user, form, entity, buttons, dialogs):
             return redirect(request.base_url)    
-        title = entity_model.title(entity)
-        menu = self.create_menu(entity, user)
-        nav = renderers.render_nav(*self.get_links(entity))
-        rendered_form = renderers.render_form(form)
-        dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
-        
-        fields = self.get_fields(form)
-        rendered_entity = renderers.render_entity(entity, *fields)
+        for action, label in self.actions:
+          enabled = self.entity_model.is_action_allowed(action, entity, user)
+          if self.process_action_button(action, label, enabled, entity, buttons, dialogs):
+            return redirect(request.base_url)
+        title = self.entity_model.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)
-        breadcrumbHtml = renderers.render_breadcrumbs(*breadcrumbs);
-        return render_template('entity.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), menu=menu,
-                        edit_dialog=dialog, entity=rendered_entity, links=nav)
+        links = self.get_links(entity)
+        fields = self.get_fields(form)
+        return render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields)
 
 class MenuView(View):
     methods = ['POST']

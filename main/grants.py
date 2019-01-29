@@ -1,6 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
 from flask.views import View
+from flask import request
 import wtforms
 import wtforms.widgets.html5 as widgets
 from datetime import date, timedelta
@@ -42,6 +43,10 @@ class GrantForm(wtforms.Form):
                                 format='%Y-%m',
                                 validators=[wtforms.validators.Optional()])
 
+class ExchangeRateForm(wtforms.Form):
+    action = wtforms.HiddenField(default='transferred')
+    exchange_rate = wtforms.IntegerField('Exchange Rate', validators=[wtforms.validators.InputRequired()])
+
 class GrantModel(model.EntityModel):
     def __init__(self):
         model.EntityModel.__init__(self, 'Grant', RoleType.COMMITTEE_ADMIN, project_model, grantStates)
@@ -55,7 +60,7 @@ class GrantModel(model.EntityModel):
         return db.Grant.query(ancestor=parent.key).fetch()
         
     def title(self, entity):
-        return 'Grant ' + str(entity.key.id())
+        return 'Grant to ' + entity.project.get().name + ' on ' + str(entity.target_date)
 
     def perform_state_change(self, entity, action):
         entity.state_index = state_map.get(action)
@@ -78,11 +83,27 @@ class GrantView(views.EntityView):
     def get_fields(self, form):
         state = views.StateField(grantStates)
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return form._fields.values() + [state, creator]
+        rate = views.ReadOnlyField('exchange_rate', 'Exchange Rate')
+        return form._fields.values() + [state, rate, creator]
 
-    def get_links(self, entity):
-        return []
-
+    def process_action_button(self, action, label, enabled, entity, buttons, dialogs):
+        if action != 'transferred':
+            return views.EntityView.process_action_button(self, action, label, 
+                                        enabled, entity, buttons, dialogs)
+        form = ExchangeRateForm(request.form)
+        if (request.method == 'POST' and request.form.get('action') == 'transferred' 
+                  and form.validate()):
+            form.populate_obj(entity)
+            entity.state_index = 3
+            entity.put()
+            return True
+        rendered_form = renderers.render_form(form)
+        dialog = renderers.render_modal_dialog(rendered_form, 'd-transferred', form.errors)
+        dialogs.append(dialog)
+        button = renderers.render_modal_open(label, 'd-transferred', enabled)
+        buttons.append(button)
+        return False
+    
 def add_rules(app):
     app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
     app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))

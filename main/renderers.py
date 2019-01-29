@@ -57,7 +57,7 @@ def render_entity(entity, *fields):
             field = fields[x + y]
             cols.append(render_property(entity, field))
         rows.append(html.div(*cols, class_="row"))    
-    return html.div(*rows)
+    return rows
  
 def render_property(entity, field):
     if field.name:
@@ -104,7 +104,7 @@ def render_menu(url, *content):
 def render_nav(*content):
     return html.nav(*content)
 
-def render_breadcrumbs(*content):
+def render_div(*content):
     return html.div(*content)
 
 def render_logout(user, url):

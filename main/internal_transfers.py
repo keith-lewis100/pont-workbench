@@ -41,7 +41,7 @@ class InternalTransferModel(model.EntityModel):
         return db.InternalTransfer.query(ancestor=parent.key).fetch()
                         
     def title(self, entity):
-        return 'InternalTransfer ' + str(entity.key.id())
+        return 'InternalTransfer to ' + entity.dest_fund.get().name
 
     def perform_state_change(self, entity, action):
         entity.state_index = state_map.get(action)
@@ -53,9 +53,8 @@ class InternalTransferListView(views.ListView):
         views.ListView.__init__(self, transfer_model, InternalTransferForm)
 
     def get_fields(self, form):
-        id = views.IdField()
         state = views.StateField(transferStates)
-        return (id, form._fields['dest_fund'], form._fields['amount'],state)
+        return (form._fields['dest_fund'], form._fields['amount'],state)
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
