@@ -41,15 +41,20 @@ def form_field_widget(form_field, **kwargs):
     children = render_fields(form_field)
     return html.div(*children, **kwargs)
 
-def get_display_value(field, property):
+def get_display_value(field, entity):
     if hasattr(field, 'get_display_value'):
-        return field.get_display_value(property)
-    return unicode(property)
+        return field.get_display_value(entity)
+    return unicode(getattr(entity, field.name))
 
 def render_entity(entity, *fields):
     rows = []
     numFields = len(fields)
-    for x in range(0, numFields, 3):
+    start = 0
+    if fields[0].type == 'TextAreaField':
+        first = render_property(entity, fields[0], class_="u-full-width")
+        rows.append(html.div(first, class_="row"))
+        start = 1
+    for x in range(start, numFields, 3):
         cols = []
         for y in range(3):
             if x + y >= numFields:
@@ -59,14 +64,10 @@ def render_entity(entity, *fields):
         rows.append(html.div(*cols, class_="row"))    
     return rows
  
-def render_property(entity, field):
-    if field.name:
-        property = getattr(entity, field.name)
-    else:
-        property = entity.key.id() # id field
+def render_property(entity, field, class_="four columns"):
+    value = get_display_value(field, entity)
     label = html.legend(field.label.text)
-    value = get_display_value(field, property)
-    return html.div(label, value, class_="four columns")
+    return html.div(label, value, class_=class_)
 
 def render_entity_list(rows, *fields):
     head = render_header(fields)
@@ -83,11 +84,7 @@ def render_header(fields):
 def render_row(entity, url, *fields):
     children = []
     for field in fields:
-        if field.name:
-            property = getattr(entity, field.name)
-        else:
-            property = entity.key.id() # id field
-        value = get_display_value(field, property)
+        value = get_display_value(field, entity)
         children.append(html.td(value))
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)

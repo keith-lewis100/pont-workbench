@@ -33,9 +33,27 @@ class MoneyForm(wtforms.Form):
                     widget=renderers.radio_field_widget)
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
 
+class ExchangeCurrencyField:
+    def __init__(self, label, to_currency):
+        self.label = views.Label(label)
+        self.to_currency = to_currency
+
+    def get_display_value(self, entity):
+        if (entity.exchange_rate == None):
+            return ""
+        from_amount = entity.amount
+        if from_amount.currency == self.to_currency:
+            return unicode(from_amount)
+        if self.to_currency == 'ugx':
+            value = int(from_amount.value * entity.exchange_rate)
+            return unicode(db.Money('ugx', value))
+        if self.to_currency == 'sterling':
+            value = int(from_amount.value / entity.exchange_rate)
+            return unicode(db.Money('sterling', value))
+        
 class GrantForm(wtforms.Form):
     description = wtforms.TextAreaField()
-    amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
+    amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=renderers.form_field_widget)
     project = custom_fields.KeyPropertyField('Project',
                     validators=[wtforms.validators.InputRequired()],
                     query=db.Project.query(db.Project.state_index == 2))
@@ -84,7 +102,9 @@ class GrantView(views.EntityView):
         state = views.StateField(grantStates)
         creator = views.ReadOnlyKeyField('creator', 'Creator')
         rate = views.ReadOnlyField('exchange_rate', 'Exchange Rate')
-        return form._fields.values() + [state, rate, creator]
+        transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
+        transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
+        return form._fields.values() + [state, rate, transferred_sterling, transferred_ugx, creator]
 
     def process_action_button(self, action, label, enabled, entity, buttons, dialogs):
         if action != 'transferred':

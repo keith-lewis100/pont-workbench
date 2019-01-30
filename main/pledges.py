@@ -27,6 +27,7 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
 class PledgeForm(wtforms.Form):
+    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
     
 class PledgeModel(model.EntityModel):
@@ -69,7 +70,7 @@ class PledgeView(views.EntityView):
         state = views.StateField(pledgeStates)
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return (ref_id, form._fields['amount'], state, creator)
+        return form._fields.values() + [ref_id, state, creator]
 
     def get_links(self, entity):
         return []

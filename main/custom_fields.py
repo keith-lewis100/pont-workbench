@@ -30,14 +30,16 @@ class KeyPropertyField(fields.SelectFieldBase):
                 if entity.key.urlsafe() == val:
                     self.data = entity.key
 
-    def get_display_value(self, key):
+    def get_display_value(self, entity):
+        key = getattr(entity, self.name)
         if key is None:
             return ""
-        entity = key.get()
-        return self.title_of(entity)
+        target = key.get()
+        return self.title_of(target)
 
 class SelectField(fields.SelectField):
-    def get_display_value(self, property):
+    def get_display_value(self, entity):
+        property = getattr(entity, self.name)
         for value, label in self.choices:
             if self.coerce(value) == property:
                 return label

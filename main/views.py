@@ -23,25 +23,20 @@ class ReadOnlyKeyField:
         self.label = Label(label)
         self.title_of = title_of
 
-    def get_display_value(self, key):
+    def get_display_value(self, entity):
+        key = getattr(entity, self.name)
         if not key:
             return ""
-        entity = key.get()
-        return renderers.render_link(self.title_of(entity), url_for_entity(entity))
-
-class IdField:
-    def __init__(self):
-        self.name = None
-        self.label = Label('Id')
+        target = key.get()
+        return renderers.render_link(self.title_of(target), url_for_entity(target))
 
 class StateField:
     def __init__(self, state_list):
-        self.name = 'state_index'
         self.label = Label('State')
         self.state_list = state_list
         
-    def get_display_value(self, index):
-        state = self.state_list[index]
+    def get_display_value(self, entity):
+        state = self.state_list[entity.state_index]
         return state.display_name
             
 def url_for_entity(entity):

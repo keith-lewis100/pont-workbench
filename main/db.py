@@ -17,11 +17,11 @@ class Money:
     def __repr__(self):
         return 'Money(currency=%s,value=%s)' % (self.currency, self.value)
 
-    def __str__(self):
+    def __unicode__(self):
         if self.currency=='sterling':
-            return u'£' + str(self.value)
+            return u'£' + unicode(self.value)
         else:
-            return str(self.value) + ' Ush'
+            return unicode(self.value) + u' Ush'
 
 class MoneyProperty(ndb.StringProperty):
     def _validate(self, value):
@@ -100,6 +100,7 @@ class Grant(ndb.Model):
 
 # ancestor = Fund
 class Pledge(ndb.Model):
+    description = ndb.StringProperty()
     amount = MoneyProperty(default=Money())
     ref_id = ndb.StringProperty()
     state_index = ndb.IntegerProperty(default=1)

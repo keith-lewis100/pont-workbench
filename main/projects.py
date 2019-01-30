@@ -24,8 +24,8 @@ state_map = {
 projectStates = [PROJECT_CLOSED, PROJECT_APPROVAL_PENDING, PROJECT_APPROVED]
 
 class ProjectForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
     multi_committee = wtforms.BooleanField()
     partner = custom_fields.KeyPropertyField('Partner',
