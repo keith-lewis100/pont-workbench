@@ -21,7 +21,7 @@ class Money:
         if self.currency=='sterling':
             return u'£' + unicode(self.value)
         else:
-            return unicode(self.value) + u' Ush'
+            return "{:,}".format(self.value) + ' Ush'
 
 class MoneyProperty(ndb.StringProperty):
     def _validate(self, value):
