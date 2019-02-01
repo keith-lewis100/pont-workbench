@@ -10,7 +10,7 @@ import renderers
 import custom_fields
 import views
 import grants
-from datetime import datetime
+import datetime
 
 payments_field_list = [
     views.StateField(grants.grantStates),
@@ -33,9 +33,8 @@ class PaymentsDueModel(model.EntityModel):
         return None
 
     def load_entities(self, parent):
-        today = datetime.today()
-        next_month = datetime(today.year, (today.month + 1) % 12 + 1, 1)
-        grant_list = db.Grant.query(db.Grant.target_date < next_month).fetch()
+        cutoff_date = datetime.date.today() + datetime.timedelta(21)
+        grant_list = db.find_pending_payments(cutoff_date)
         payments_list = []
         for grant in grant_list:
             p = Payment()

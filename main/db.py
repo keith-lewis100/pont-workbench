@@ -98,6 +98,10 @@ class Grant(ndb.Model):
     target_date = ndb.DateProperty()
     exchange_rate = ndb.IntegerProperty()
 
+def find_pending_payments(cutoff_date):
+    return Grant.query(Grant.target_date <= cutoff_date).filter(
+                ndb.OR(Grant.state_index == 1, Grant.state_index == 2)).fetch()
+
 # ancestor = Fund
 class Pledge(ndb.Model):
     description = ndb.StringProperty()
