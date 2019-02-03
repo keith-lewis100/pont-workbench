@@ -8,23 +8,27 @@ import model
 import renderers
 import views
 import custom_fields
-import states
 from role_types import RoleType
 from projects import project_model
 
-PURCHASE_CHECKING = states.State('Checking funds') # 1
-PURCHASE_READY = states.State('Ready') # 2
-PURCHASE_ORDERED = states.State('Ordered') # 3
-PURCHASE_FULFILLED = states.State('Fulfilled') # 4
-PURCHASE_CLOSED = states.State('Closed') # 0
+PURCHASE_CHECKING = 1
+#states.State('Checking funds') # 1
+PURCHASE_READY = 2
+#states.State('Ready') # 2
+PURCHASE_ORDERED = 3
+#states.State('Ordered') # 3
+PURCHASE_FULFILLED = 4
+#states.State('Fulfilled') # 4
+PURCHASE_CLOSED = 5
+#states.State('Closed') # 0
 
-state_map = {
-    'checked': 2,
-    'ordered': 3
-}
+state_field = views.StateField('Closed', 'Ready', 'Ordered', 'Fulfilled', 'Closed')
 
-purchaseStates = [PURCHASE_CLOSED, PURCHASE_CHECKING, PURCHASE_READY, PURCHASE_ORDERED,
-                  PURCHASE_FULFILLED]
+ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, PURCHASE_READY, [PURCHASE_CHECKING])
+ACTION_ORDERED = model.Action('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN, PURCHASE_ORDERED, [PURCHASE_READY])
+ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.COMMITTEE_ADMIN, PURCHASE_FULFILLED, [ACTION_ORDERED])
+ACTION_PAID = model.Action('paid', 'Paid', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_FULFILLED])
+ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_CHECKING])
 
 class MoneyForm(wtforms.Form):
     currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
@@ -37,7 +41,7 @@ class PurchaseForm(wtforms.Form):
 
 class PurchaseModel(model.EntityModel):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Purchase', RoleType.COMMITTEE_ADMIN, project_model, purchaseStates)
+        model.EntityModel.__init__(self, 'Purchase', RoleType.COMMITTEE_ADMIN, PURCHASE_CHECKING)
 
     def create_entity(self, parent):
         return db.Purchase(parent=parent.key)
@@ -48,9 +52,9 @@ class PurchaseModel(model.EntityModel):
     def title(self, entity):
         return 'Purchase '
 
-    def perform_state_change(self, entity, state_index):
-        entity.state_index = state_index
-        if state_index == PURCHASE_APPROVED.index:
+    def perform_state_change(self, entity, action):
+        entity.state_index = action.next_state
+        if action.next_state == PURCHASE_APPROVED.index:
             ref = model.get_next_ref()    
             entity.po_number = 'MB%04d' % ref
         entity.put()
@@ -63,21 +67,18 @@ class PurchaseListView(views.ListView):
 
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
-        state = views.StateField(purchaseStates)
-        return (form._fields['amount'], po_number, state)
+        return (form._fields['amount'], po_number, state_field)
 
 class PurchaseView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, purchase_model, PurchaseForm, ('checked', 'Funds Checked'), 
-               ('ordered', 'Ordered'), ('fulfilled', 'Fulfilled'), ('paid', 'Paid'))
+        views.EntityView.__init__(self, purchase_model, PurchaseForm, ACTION_CHECKED, ACTION_ORDERED, 
+                            ACTION_FULFILLED, ACTION_PAID, ACTION_CANCEL)
                 
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
-        state = views.StateField(purchaseStates)
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return form._fields.values() + [po_number, state, creator]
+        return form._fields.values() + [po_number, state_field, creator]
 
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
     app.add_url_rule('/purchase/<db_id>/', view_func=PurchaseView.as_view('view_purchase'))
-    app.add_url_rule('/purchase/<db_id>/menu', view_func=views.MenuView.as_view('handle_purchase_menu', purchase_model))

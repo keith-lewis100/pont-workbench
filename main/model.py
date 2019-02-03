@@ -71,33 +71,44 @@ def lookup_user_with_role(type):
 
 def lookup_user_by_email(email):
     return db.User.query().filter(db.User.email == email).get()
-
-class EntityModel:
-    def __init__(self, name, update_role, parent_model=None, state_list=None):
+    
+class Action:
+    def __init__(self, name, label, required_role, next_state=None, allowed_states=[]):
         self.name = name
-        self.update_role = update_role
-        self.parent_model = parent_model
-        self.state_list = state_list
+        self.label = label
+        self.required_role = required_role
+        self.next_state = next_state
+        self.allowed_states = allowed_states
 
-    def is_action_allowed(self, action, entity, user):
-        state = self.state_list[entity.state_index]
+    def is_allowed(self, entity, user):
         types = get_role_types(user, entity)
-        return state.is_action_allowed(action, types)
-
-    def is_update_allowed(self, entity, user):
-        types = get_role_types(user, entity)
-        if not self.update_role in types:
+        if not self.required_role in types:
             return False
         if not hasattr(entity, 'state_index'):
             return True
-        state = self.state_list[entity.state_index]
-        return state.is_update_allowed()
+        state = entity.state_index
+        return state in self.allowed_states
+
+class EntityModel:
+    def __init__(self, name, create_role, *update_states):
+        self.name = name
+        self.create_role = create_role
+        self.update_action = Action('edit', 'Edit', create_role, None, update_states)
 
     def is_create_allowed(self, parent, user):
         types = get_role_types(user, parent)
-        return self.update_role in types
+        return self.create_role in types
+
+    def is_update_allowed(self, entity, user):
+        return self.update_action.is_allowed(entity, user)
 
     def perform_create(self, entity, user):
         if hasattr(entity, 'creator'):
             entity.creator = user.key
+        entity.put()
+
+    def perform_state_change(self, entity, action):
+        if action.next_state == None:
+            raise Exception('No new state for action' + action.name)
+        entity.state_index = action.next_state
         entity.put()

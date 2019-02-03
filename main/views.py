@@ -31,13 +31,15 @@ class ReadOnlyKeyField:
         return renderers.render_link(self.title_of(target), url_for_entity(target))
 
 class StateField:
-    def __init__(self, state_list):
+    def __init__(self, *state_names):
         self.label = Label('State')
-        self.state_list = state_list
+        self.state_names = state_names
         
     def get_display_value(self, entity):
-        state = self.state_list[entity.state_index]
-        return state.display_name
+        state = entity.state_index
+        if state == None:
+            return "None"
+        return self.state_names[state]
             
 def url_for_entity(entity):
     key = entity.key
@@ -151,7 +153,7 @@ class EntityView(View):
     def get_links(self, entity):
         return []
         
-    def process_edit_button(self, user, form, entity, buttons, dialogs):
+    def process_edit_button(self, form, entity, user, buttons, dialogs):
         if request.method == 'POST' and not request.form.has_key('action') and form.validate():
             form.populate_obj(entity)
             entity.put()
@@ -164,14 +166,14 @@ class EntityView(View):
         dialogs.append(dialog)
         return False
     
-    def process_action_button(self, action, label, enabled, entity, buttons, dialogs):
+    def process_action_button(self, action, entity, user, buttons, dialogs):
         if (request.method == 'POST' and request.form.has_key('action') and
-                request.form['action'] == action):
+                request.form['action'] == action.name):
             self.entity_model.perform_state_change(entity, action)
-            entity.put()
             return True
 
-        button = renderers.render_submit_button(label, name='action', value=action,
+        enabled = action.is_allowed(entity, user)
+        button = renderers.render_submit_button(action.label, name='action', value=action.name,
                 disabled=not enabled)
         buttons.append(button)
         return False
@@ -183,27 +185,13 @@ class EntityView(View):
         form = self.form_class(request.form, obj=entity)
         buttons = []
         dialogs = []
-        if self.process_edit_button(user, form, entity, buttons, dialogs):
+        if self.process_edit_button(form, entity, user, buttons, dialogs):
             return redirect(request.base_url)    
-        for action, label in self.actions:
-          enabled = self.entity_model.is_action_allowed(action, entity, user)
-          if self.process_action_button(action, label, enabled, entity, buttons, dialogs):
+        for action in self.actions:
+          if self.process_action_button(action, entity, user, buttons, dialogs):
             return redirect(request.base_url)
         title = self.entity_model.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)
         return render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields)
-
-class MenuView(View):
-    methods = ['POST']
-    
-    def __init__(self, entity_model):
-        self.entity_model = entity_model
-
-    def dispatch_request(self, db_id):
-        entity = model.lookup_entity(db_id)
-        action = request.form['action']
-        self.entity_model.perform_state_change(entity, action)
-        entity.put()
-        return redirect(url_for_entity(entity))

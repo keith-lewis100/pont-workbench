@@ -13,7 +13,7 @@ import grants
 import datetime
 
 payments_field_list = [
-    views.StateField(grants.grantStates),
+    grants.state_field,
     views.ReadOnlyField('requestor', 'Requestor'),
     views.ReadOnlyField('amount', 'Amount'),
     views.ReadOnlyField('project_name', 'Project Name'),
