@@ -33,15 +33,21 @@ fund_model = FundModel()
 
 class FundListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, fund_model, FundForm)
+        views.ListView.__init__(self, fund_model)
         
+    def create_form(self, request_input, entity):
+        return FundForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return (form._fields['name'], form._fields['code'], form._fields['committee'])
         
 class FundView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, fund_model, FundForm)
+        views.EntityView.__init__(self, fund_model)
         
+    def create_form(self, request_input, entity):
+        return FundForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return form._fields.values()
         

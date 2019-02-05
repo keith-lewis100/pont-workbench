@@ -31,14 +31,20 @@ supplier_fund_model = SupplierFundModel()
 
 class SupplierFundListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, supplier_fund_model, SupplierFundForm)
+        views.ListView.__init__(self, supplier_fund_model)
+
+    def create_form(self, request_input, entity):
+        return SupplierFundForm(request_input, obj=entity)
 
     def get_fields(self, form):
         return [form._fields['name']]
 
 class SupplierFundView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, supplier_fund_model, SupplierFundForm)
+        views.EntityView.__init__(self, supplier_fund_model)
+
+    def create_form(self, request_input, entity):
+        return SupplierFundForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values()

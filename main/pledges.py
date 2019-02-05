@@ -18,6 +18,9 @@ PLEDGE_FULFILLED = 2
 PLEDGE_CLOSED = 3
 #states.State('Closed') # 0
 
+ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED)
+ACTION_BOOKED = model.Action('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED)
+
 state_field = views.StateField('Closed', 'Pending', 'Fulfilled')
 
 class MoneyForm(wtforms.Form):
@@ -29,7 +32,7 @@ class PledgeForm(wtforms.Form):
     
 class PledgeModel(model.EntityModel):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, [1])
+        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, [PLEDGE_PENDING])
 
     def create_entity(self, parent):
         return db.Pledge(parent=parent.key)
@@ -49,15 +52,21 @@ pledge_model = PledgeModel()
         
 class PledgeListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, pledge_model, PledgeForm)
+        views.ListView.__init__(self, pledge_model)
         
+    def create_form(self, request_input, entity):
+        return PledgeForm(request_input, obj=entity)
+
     def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
         return (ref_id, form._fields['amount'], state_field)
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, pledge_model, PledgeForm, ('fulfilled', 'Fulfill'), ('booked', 'Book'))
+        views.EntityView.__init__(self, pledge_model, ACTION_FULFILLED, ACTION_BOOKED)
+        
+    def create_form(self, request_input, entity):
+        return PledgeForm(request_input, obj=entity)
         
     def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')

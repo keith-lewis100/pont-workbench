@@ -63,7 +63,10 @@ purchase_model = PurchaseModel()
 
 class PurchaseListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, purchase_model, PurchaseForm)
+        views.ListView.__init__(self, purchase_model)
+
+    def create_form(self, request_input, entity):
+        return PurchaseForm(request_input, obj=entity)
 
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
@@ -71,8 +74,11 @@ class PurchaseListView(views.ListView):
 
 class PurchaseView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, purchase_model, PurchaseForm, ACTION_CHECKED, ACTION_ORDERED, 
+        views.EntityView.__init__(self, purchase_model, ACTION_CHECKED, ACTION_ORDERED, 
                             ACTION_FULFILLED, ACTION_PAID, ACTION_CANCEL)
+
+    def create_form(self, request_input, entity):
+        return PurchaseForm(request_input, obj=entity)
                 
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')

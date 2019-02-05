@@ -88,15 +88,21 @@ grant_model = GrantModel()
 
 class GrantListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, grant_model, GrantForm)
+        views.ListView.__init__(self, grant_model)
+
+    def create_form(self, request_input, entity):
+        return GrantForm(request_input, obj=entity)
 
     def get_fields(self, form):
         return (form._fields['project'], form._fields['amount'], state_field)
 
 class GrantView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, grant_model, GrantForm, ACTION_CHECKED, ACTION_EXCHANGE, 
+        views.EntityView.__init__(self, grant_model, ACTION_CHECKED, ACTION_EXCHANGE, 
                 ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED, ACTION_CANCEL)
+
+    def create_form(self, request_input, entity):
+        return GrantForm(request_input, obj=entity)
 
     def get_fields(self, form):
         creator = views.ReadOnlyKeyField('creator', 'Creator')

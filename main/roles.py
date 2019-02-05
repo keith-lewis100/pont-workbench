@@ -31,14 +31,20 @@ role_model = RoleModel()
 
 class RoleListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, role_model, RoleForm)
+        views.ListView.__init__(self, role_model)
                 
+    def create_form(self, request_input, entity):
+        return RoleForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return form._fields.values()
 
 class RoleView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, role_model, RoleForm)
+        views.EntityView.__init__(self, role_model)
+                
+    def create_form(self, request_input, entity):
+        return RoleForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values()

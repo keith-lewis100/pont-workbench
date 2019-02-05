@@ -15,10 +15,8 @@ TRANSFER_PENDING = 1
 TRANSFER_COMPLETE = 0
 #states.State('Transferred') # 0
 state_field = views.StateField('Transferred', 'Pending')
+
 ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.FUND_ADMIN, TRANSFER_PENDING)
-
-
-transferStates = [TRANSFER_COMPLETE, TRANSFER_PENDING]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -47,14 +45,20 @@ transfer_model = InternalTransferModel()
 
 class InternalTransferListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, transfer_model, InternalTransferForm)
+        views.ListView.__init__(self, transfer_model)
+
+    def create_form(self, request_input, entity):
+        return InternalTransferForm(request_input, obj=entity)
 
     def get_fields(self, form):
         return (form._fields['dest_fund'], form._fields['amount'],state_field)
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, transfer_model, InternalTransferForm, )
+        views.EntityView.__init__(self, transfer_model)
+
+    def create_form(self, request_input, entity):
+        return InternalTransferForm(request_input, obj=entity)
         
     def get_fields(self, form):
         creator = views.ReadOnlyKeyField('creator', 'Creator')

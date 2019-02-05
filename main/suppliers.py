@@ -31,14 +31,20 @@ supplier_model = SupplierModel()
         
 class SupplierListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, supplier_model, SupplierForm)
+        views.ListView.__init__(self, supplier_model)
  
+    def create_form(self, request_input, entity):
+        return SupplierForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return (form._fields['name'], )
 
 class SupplierView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, supplier_model, SupplierForm)
+        views.EntityView.__init__(self, supplier_model)
+ 
+    def create_form(self, request_input, entity):
+        return SupplierForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values()

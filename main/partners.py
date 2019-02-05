@@ -30,14 +30,20 @@ partner_model = PartnerModel()
 
 class PartnerListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, partner_model, PartnerForm)
+        views.ListView.__init__(self, partner_model)
  
+    def create_form(self, request_input, entity):
+        return PartnerForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return (form._fields['name'], )
 
 class PartnerView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, partner_model, PartnerForm)
+        views.EntityView.__init__(self, partner_model)
+ 
+    def create_form(self, request_input, entity):
+        return PartnerForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values()

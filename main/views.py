@@ -73,9 +73,8 @@ def create_breadcrumbs_list(entity):
 class ListView(View):
     methods = ['GET', 'POST']
     
-    def __init__(self, entity_model, form_class):
+    def __init__(self, entity_model):
         self.entity_model = entity_model
-        self.form_class = form_class
 
     def render_entities(self, parent, form):
         entity_list = self.entity_model.load_entities(parent)
@@ -92,7 +91,7 @@ class ListView(View):
         entity_model = self.entity_model
         parent = model.lookup_entity(db_id)
         entity = entity_model.create_entity(parent)
-        form = self.form_class(request.form, obj=entity)
+        form = self.create_form(request.form, entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
             entity_model.perform_create(entity, user)
@@ -105,9 +104,9 @@ class ListView(View):
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
         breadcrumbHtml = renderers.render_div(*breadcrumbs);
-        return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
-                user=render_user(), entity_table=entity_table, new_button=open_modal, new_dialog=dialog)
-
+        main = renderers.render_div(open_modal, dialog, entity_table)
+        return render_template('entity.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+ 
 class ListViewNoCreate(View):
     methods = ['GET']
     
@@ -131,8 +130,7 @@ class ListViewNoCreate(View):
         entity_table = self.render_entities(parent)
         breadcrumbs = create_breadcrumbs(parent)
         breadcrumbHtml = renderers.render_div(*breadcrumbs);
-        return render_template('entity_list.html',  title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml,
-                user=render_user(), entity_table=entity_table)
+        return render_template('entity.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=entity_table)
 
 def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
@@ -145,9 +143,8 @@ def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fiel
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
-    def __init__(self, entity_model, form_class, *actions):
+    def __init__(self, entity_model, *actions):
         self.entity_model = entity_model
-        self.form_class = form_class
         self.actions = actions
 
     def get_links(self, entity):
@@ -182,7 +179,7 @@ class EntityView(View):
         email = users.get_current_user().email()
         user = model.lookup_user_by_email(email)
         entity = model.lookup_entity(db_id)
-        form = self.form_class(request.form, obj=entity)
+        form = self.create_form(request.form, entity)
         buttons = []
         dialogs = []
         if self.process_edit_button(form, entity, user, buttons, dialogs):

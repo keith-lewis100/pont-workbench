@@ -49,14 +49,20 @@ project_model = ProjectModel()
         
 class ProjectListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, project_model, ProjectForm)
+        views.ListView.__init__(self, project_model)
         
+    def create_form(self, request_input, entity):
+        return ProjectForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return (form._fields['name'], state_field)
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, project_model, ProjectForm, ACTION_APPROVE)
+        views.EntityView.__init__(self, project_model, ACTION_APPROVE)
+        
+    def create_form(self, request_input, entity):
+        return ProjectForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values() + [state_field]

@@ -31,14 +31,20 @@ user_model = UserModel()
 
 class UserListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, user_model, UserForm)
+        views.ListView.__init__(self, user_model)
         
+    def create_form(self, request_input, entity):
+        return UserForm(request_input, obj=entity)
+
     def get_fields(self, form):
         return form._fields.values()
 
 class UserView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, user_model, UserForm)
+        views.EntityView.__init__(self, user_model)
+        
+    def create_form(self, request_input, entity):
+        return UserForm(request_input, obj=entity)
         
     def get_fields(self, form):
         return form._fields.values()
