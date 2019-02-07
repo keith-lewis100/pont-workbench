@@ -105,7 +105,7 @@ class ListView(View):
         breadcrumbs = create_breadcrumbs(parent)
         breadcrumbHtml = renderers.render_div(*breadcrumbs);
         main = renderers.render_div(open_modal, dialog, entity_table)
-        return render_template('entity.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+        return render_template('layout.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
  
 class ListViewNoCreate(View):
     methods = ['GET']
@@ -130,7 +130,7 @@ class ListViewNoCreate(View):
         entity_table = self.render_entities(parent)
         breadcrumbs = create_breadcrumbs(parent)
         breadcrumbHtml = renderers.render_div(*breadcrumbs);
-        return render_template('entity.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=entity_table)
+        return render_template('layout.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=entity_table)
 
 def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
@@ -138,7 +138,7 @@ def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fiel
     menu = renderers.render_menu('.', *buttons)
     grid = renderers.render_entity(entity, *fields)
     main = renderers.render_div(nav, menu, dialogs, grid)
-    return render_template('entity.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+    return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
     
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']

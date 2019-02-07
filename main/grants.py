@@ -27,8 +27,8 @@ GRANT_CLOSED = 0
 state_field = views.StateField('Closed', 'Waiting', 'Ready', 'Exchanging Currency', 'Transferred')
 
 ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-ACTION_EXCHANGE = model.Action('exchange', 'Exchange Requested', RoleType.PAYMENT_ADMIN, GRANT_CURRENCY_REQUESTED, [GRANT_READY])
-ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_CURRENCY_REQUESTED])
+# ACTION_EXCHANGE = model.Action('exchange', 'Exchange Requested', RoleType.PAYMENT_ADMIN, GRANT_CURRENCY_REQUESTED, [GRANT_READY])
+ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_READY])
 ACTION_ACKNOWLEDGED = model.Action('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
@@ -98,7 +98,7 @@ class GrantListView(views.ListView):
 
 class GrantView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, grant_model, ACTION_CHECKED, ACTION_EXCHANGE, 
+        views.EntityView.__init__(self, grant_model, ACTION_CHECKED,
                 ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED, ACTION_CANCEL)
 
     def create_form(self, request_input, entity):

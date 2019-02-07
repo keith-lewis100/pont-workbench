@@ -7,6 +7,7 @@ class SafeString(unicode):
     def __html__(self):
         return self
 
+# check recommended elements in skeleton css framework
 def radio_field_widget(field, **kwargs):
     kwargs.setdefault('id', field.id)
     children = []
@@ -46,6 +47,9 @@ def get_display_value(field, entity):
         return field.get_display_value(entity)
     return unicode(getattr(entity, field.name))
 
+# Rename to render_grid(fields, **kwargs)
+# deal with TextAreaField separately
+# call render_grid_cell on each field passing kwargs
 def render_entity(entity, *fields):
     rows = []
     numFields = len(fields)
@@ -69,6 +73,9 @@ def render_property(entity, field, class_="four columns"):
     label = html.legend(field.label.text)
     return html.div(label, value, class_=class_)
 
+# TODO: combine the following 3 methods into a single
+# render_table method
+# make field class implement render_header and render_table_cell methods
 def render_entity_list(rows, *fields):
     head = render_header(fields)
     body = html.tbody(*rows)
