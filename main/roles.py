@@ -11,8 +11,8 @@ import logging
 import role_types
 
 class RoleForm(wtforms.Form):
-    type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
-    committee = custom_fields.SelectField(choices=[("", "")] + model.committee_labels)
+    type_index = wtforms.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
+    committee = wtforms.SelectField(choices=[("", "")] + model.committee_labels)
     
 class RoleModel(model.EntityModel):
     def __init__(self):
@@ -37,7 +37,7 @@ class RoleListView(views.ListView):
         return RoleForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return form._fields.values()
+        return map(views.create_form_field, form._fields.keys(), form._fields.values())
 
 class RoleView(views.EntityView):
     def __init__(self):
@@ -47,7 +47,7 @@ class RoleView(views.EntityView):
         return RoleForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return form._fields.values()
+        return map(views.create_form_field, form._fields.keys(), form._fields.values())
     
     def get_links(self, entity):
          return []

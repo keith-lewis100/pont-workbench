@@ -47,7 +47,7 @@ class SupplierView(views.EntityView):
         return SupplierForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return form._fields.values()
+        return map(views.create_form_field, form._fields.keys(), form._fields.values())
                 
     def get_links(self, entity):
         db_id = entity.key.urlsafe()

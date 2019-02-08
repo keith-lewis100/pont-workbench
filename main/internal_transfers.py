@@ -23,10 +23,15 @@ class MoneyForm(wtforms.Form):
 
 class InternalTransferForm(wtforms.Form):
     description = wtforms.TextAreaField()
-    amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
-    dest_fund = custom_fields.KeyPropertyField('Destination Fund',
-                    validators=[wtforms.validators.InputRequired()],
-                    query=db.Fund.query())
+    amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
+    dest_fund = wtforms.SelectField('Destination Fund', coerce=model.create_key, 
+                    validators=[wtforms.validators.InputRequired()])
+
+def create_transfer_form(request_fields, entity):
+    form = InternalTransferForm(request_fields, obj=entity)
+    fund_list = db.Fund.query().fetch()
+    custom_fields.set_field_choices(form._fields['dest_fund'], fund_list)
+    return form
 
 class InternalTransferModel(model.EntityModel):
     def __init__(self):
@@ -48,7 +53,7 @@ class InternalTransferListView(views.ListView):
         views.ListView.__init__(self, transfer_model)
 
     def create_form(self, request_input, entity):
-        return InternalTransferForm(request_input, obj=entity)
+        return create_transfer_form(request_input, entity)
 
     def get_fields(self, form):
         return (form._fields['dest_fund'], form._fields['amount'],state_field)
@@ -62,7 +67,7 @@ class InternalTransferView(views.EntityView):
         
     def get_fields(self, form):
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return form._fields.values() + [state_field, creator]
+        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [state_field, creator]
         
     def get_links(self, entity):
         return []

@@ -12,7 +12,7 @@ from role_types import RoleType
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = custom_fields.SelectField(choices=model.committee_labels)
+    committee = wtforms.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
@@ -39,8 +39,9 @@ class FundListView(views.ListView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (form._fields['name'], form._fields['code'], form._fields['committee'])
-        
+        return (views.ReadOnlyField('name'), views.ReadOnlyField('code'), 
+                 views.ReadOnlySelectField('committee', 'Committee', model.committee_labels))
+
 class FundView(views.EntityView):
     def __init__(self):
         views.EntityView.__init__(self, fund_model)
@@ -49,8 +50,8 @@ class FundView(views.EntityView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return form._fields.values()
-        
+        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+
     def get_links(self, entity):
         purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
         showPurchases = renderers.render_link('Show Purchase Requests', purchases_url, class_="button")

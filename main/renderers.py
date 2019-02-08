@@ -7,45 +7,8 @@ class SafeString(unicode):
     def __html__(self):
         return self
 
-# check recommended elements in skeleton css framework
-def radio_field_widget(field, **kwargs):
-    kwargs.setdefault('id', field.id)
-    children = []
-    for val, label, selected in field.iter_choices():
-        children.append(label);
-        children.append(render_radio_input(field.name, val, selected))
-    return html.div(*children, **kwargs)
-
-def render_radio_input(name, val, selected):
-    return html.input(type="radio", name=name, value=val, checked=selected)
-
-def render_field(field):
-    elements = []
-    elements.append(field.label())
-    elements.append(field(class_="u-full-width"))
-    if field.errors and not field is wtforms.FormField:
-        elements.append(html.span(' '.join(field.errors), class_="error"))
-    return elements
-
-def render_form(form, **kwargs):
-    form_fields = render_fields(form)
-    submit = html.input(type="submit", value="Submit", class_="button-primary")
-    return html.form(form_fields, submit, method="post", **kwargs)
-
-def render_fields(form):
-    elements = []
-    for field in form._fields.values():
-        elements += render_field(field)
-    return elements
-
-def form_field_widget(form_field, **kwargs):
-    children = render_fields(form_field)
-    return html.div(*children, **kwargs)
-
 def get_display_value(field, entity):
-    if hasattr(field, 'get_display_value'):
-        return field.get_display_value(entity)
-    return unicode(getattr(entity, field.name))
+    return field.render_value(entity)
 
 # Rename to render_grid(fields, **kwargs)
 # deal with TextAreaField separately
@@ -54,8 +17,8 @@ def render_entity(entity, *fields):
     rows = []
     numFields = len(fields)
     start = 0
-    if fields[0].type == 'TextAreaField':
-        first = render_property(entity, fields[0], class_="u-full-width")
+    if False:
+        first = render_field(fields[0], entity, class_="u-full-width")
         rows.append(html.div(first, class_="row"))
         start = 1
     for x in range(start, numFields, 3):
@@ -64,14 +27,16 @@ def render_entity(entity, *fields):
             if x + y >= numFields:
                 break
             field = fields[x + y]
-            cols.append(render_property(entity, field))
+            cols.append(render_field(field, entity))
         rows.append(html.div(*cols, class_="row"))    
     return rows
  
-def render_property(entity, field, class_="four columns"):
-    value = get_display_value(field, entity)
-    label = html.legend(field.label.text)
-    return html.div(label, value, class_=class_)
+def render_field(field, entity, class_="four columns"):
+    content = field.render(entity)
+    return html.div(content, class_=class_)
+
+def legend(label):
+    return html.legend(label)
 
 # TODO: combine the following 3 methods into a single
 # render_table method
@@ -84,7 +49,7 @@ def render_entity_list(rows, *fields):
 def render_header(fields):
     children = []
     for field in fields:
-        children.append(html.th(field.label.text))
+        children.append(html.th(field.label))
     row = html.tr(*children)
     return html.thead(row)
     
@@ -108,8 +73,8 @@ def render_menu(url, *content):
 def render_nav(*content):
     return html.nav(*content)
 
-def render_div(*content):
-    return html.div(*content)
+def render_div(*content, **kwargs):
+    return html.div(*content, **kwargs)
 
 def render_logout(user, url):
     return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))

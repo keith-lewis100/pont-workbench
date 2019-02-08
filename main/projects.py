@@ -26,11 +26,9 @@ ACTION_APPROVE = model.Action("approve", "Approve", RoleType.PROJECT_APPROVER, P
 class ProjectForm(wtforms.Form):
     description = wtforms.TextAreaField()
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
+    committee = wtforms.SelectField(label='Primary Committee', choices=model.committee_labels)
     multi_committee = wtforms.BooleanField()
-    partner = custom_fields.KeyPropertyField('Partner',
-                    validators=[wtforms.validators.Optional()],
-                    query=db.Partner.query())
+    partner = wtforms.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
     
 class ProjectModel(model.EntityModel):
     def __init__(self):
@@ -45,6 +43,12 @@ class ProjectModel(model.EntityModel):
     def title(self, entity):
         return 'Project ' + entity.name
 
+def create_project_form(request_input, entity):
+    form = ProjectForm(request_input, obj=entity)
+    partner_list = db.Partner.query().fetch()
+    custom_fields.set_field_choices(form._fields['partner'], partner_list)
+    return form
+
 project_model = ProjectModel()
         
 class ProjectListView(views.ListView):
@@ -52,20 +56,20 @@ class ProjectListView(views.ListView):
         views.ListView.__init__(self, project_model)
         
     def create_form(self, request_input, entity):
-        return ProjectForm(request_input, obj=entity)
+        return create_project_form(request_input, entity)
 
     def get_fields(self, form):
-        return (form._fields['name'], state_field)
+        return (views.ReadOnlyField('name', 'Name'), state_field)
 
 class ProjectView(views.EntityView):
     def __init__(self):
         views.EntityView.__init__(self, project_model, ACTION_APPROVE)
         
     def create_form(self, request_input, entity):
-        return ProjectForm(request_input, obj=entity)
+        return create_project_form(request_input, entity)
         
     def get_fields(self, form):
-        return form._fields.values() + [state_field]
+        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [state_field]
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))

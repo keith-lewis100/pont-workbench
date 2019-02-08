@@ -4,7 +4,7 @@ from google.appengine.ext import ndb
 import json
 #import role_types
 
-def createKey(db_id):
+def create_key(db_id):
     if db_id is None:
         return None
     return ndb.Key(urlsafe=db_id)

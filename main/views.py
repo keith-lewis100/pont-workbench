@@ -7,35 +7,69 @@ from google.appengine.api import users
 import db
 import renderers
 import model
+import custom_fields
 
-class Label:
-    def __init__(self, text):
-        self.text = text
-
-class ReadOnlyField:
-    def __init__(self, name, label):
+class ReadOnlyField(object):
+    def __init__(self, name, label=None):
         self.name = name
-        self.label = Label(label)
+        self.label = label if label != None else name.capitalize()
+        
+    def render_value(self, entity):
+        return unicode(getattr(entity, self.name))
 
+    def render(self, entity):
+        value = self.render_value(entity)
+        legend = renderers.legend(self.label)
+        return (legend, value)
+
+class ReadOnlySelectField(ReadOnlyField):
+    def __init__(self, name, label, choices, coerce=unicode):
+        super(ReadOnlySelectField, self).__init__(name, label)
+        self.choices = choices
+        self.coerce = coerce
+
+    def render_value(self, entity):
+        property = getattr(entity, self.name)
+        for value, label in self.choices:
+            if self.coerce(value) == property:
+                return label
+        return ""
+        
 class ReadOnlyKeyField:
     def __init__(self, name, label, title_of=lambda e : e.name):
         self.name = name
-        self.label = Label(label)
+        self.label = label if label != None else name.capitalize()
         self.title_of = title_of
-
-    def get_display_value(self, entity):
+        
+    def render_value(self, entity):
         key = getattr(entity, self.name)
         if not key:
             return ""
         target = key.get()
-        return renderers.render_link(self.title_of(target), url_for_entity(target))
-
-class StateField:
-    def __init__(self, *state_names):
-        self.label = Label('State')
-        self.state_names = state_names
+        return self.title_of(target)
         
-    def get_display_value(self, entity):
+    def render(self, entity):
+        key = getattr(entity, self.name)
+        if not key:
+            return ""
+        target = key.get()
+        legend = renderers.legend(self.label)
+        link = renderers.render_link(self.title_of(target), url_for_entity(target))
+        return (legend, link)
+
+def create_form_field(name, field):
+    if hasattr(field, 'coerce') and field.coerce == model.create_key:
+        return ReadOnlyKeyField(name, field.label)
+    if hasattr(field, 'choices'):
+        return ReadOnlySelectField(name, field.label, field.choices, field.coerce)
+    return ReadOnlyField(name, field.label)
+
+class StateField(ReadOnlyField):
+    def __init__(self, *state_names):
+        super(StateField, self).__init__('state_index', 'State')
+        self.state_names = state_names
+
+    def render_value(self, entity):
         state = entity.state_index
         if state == None:
             return "None"
@@ -97,7 +131,7 @@ class ListView(View):
             entity_model.perform_create(entity, user)
             return redirect(request.base_url)
             
-        rendered_form = renderers.render_form(form)
+        rendered_form = custom_fields.render_form(form)
         enabled = entity_model.is_create_allowed(parent, user)
         open_modal = renderers.render_modal_open('New', 'm1', enabled)
         dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
@@ -157,7 +191,7 @@ class EntityView(View):
             return True
         enabled = self.entity_model.is_update_allowed(entity, user)
         button = renderers.render_modal_open('Edit', 'd-edit', enabled)
-        rendered_form = renderers.render_form(form)
+        rendered_form = custom_fields.render_form(form)
         dialog = renderers.render_modal_dialog(rendered_form, 'd-edit', form.errors)
         buttons.append(button)
         dialogs.append(dialog)

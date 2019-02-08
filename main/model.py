@@ -38,8 +38,11 @@ def get_next_ref():
 def lookup_entity(db_id):
     if db_id is None:
         return None
-    key = db.createKey(db_id)
+    key = db.create_key(db_id)
     return key.get()
+    
+def create_key(db_id):
+    db.create_key(db_id)
 
 def get_parent(entity):
     parentKey = entity.key.parent()

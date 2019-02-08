@@ -9,5 +9,5 @@ handlers:
 - url: /.*
   script: main.app
   login: required
+  secure: always
 # [END handlers]
-

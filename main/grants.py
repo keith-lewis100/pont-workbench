@@ -33,16 +33,16 @@ ACTION_ACKNOWLEDGED = model.Action('ack', 'Received', RoleType.COMMITTEE_ADMIN, 
 ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
 class MoneyForm(wtforms.Form):
-    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                    widget=renderers.radio_field_widget)
+    currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+                    widget=custom_fields.radio_field_widget)
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
 
 class ExchangeCurrencyField:
     def __init__(self, label, to_currency):
-        self.label = views.Label(label)
+        self.label = label
         self.to_currency = to_currency
 
-    def get_display_value(self, entity):
+    def render_value(self, entity):
         if (entity.exchange_rate == None):
             return ""
         from_amount = entity.amount
@@ -54,16 +54,25 @@ class ExchangeCurrencyField:
         if self.to_currency == 'sterling':
             value = int(from_amount.value / entity.exchange_rate)
             return unicode(db.Money('sterling', value))
+
+    def render(self, entity):
+        value = self.render_value(entity)
+        legend = renderers.legend(self.label)
+        return (legend, value)
         
 class GrantForm(wtforms.Form):
     description = wtforms.TextAreaField()
-    amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=renderers.form_field_widget)
-    project = custom_fields.KeyPropertyField('Project',
-                    validators=[wtforms.validators.InputRequired()],
-                    query=db.Project.query(db.Project.state_index == 2))
-    target_date = wtforms.DateField(widget=widgets.MonthInput(),
-                                format='%Y-%m',
+    amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
+    project = wtforms.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
+    target_date = wtforms.DateField(widget=widgets.MonthInput(), format='%Y-%m',
                                 validators=[wtforms.validators.Optional()])
+
+def create_grant_form(request_input, entity):
+    form = GrantForm(request_input, obj=entity)
+    fund = entity.key.parent().get()
+    project_list = db.Project.query(db.Project.committee == fund.committee).fetch()
+    custom_fields.set_field_choices(form._fields['project'], project_list)
+    return form
 
 class ExchangeRateForm(wtforms.Form):
     action = wtforms.HiddenField(default='transferred')
@@ -91,10 +100,10 @@ class GrantListView(views.ListView):
         views.ListView.__init__(self, grant_model)
 
     def create_form(self, request_input, entity):
-        return GrantForm(request_input, obj=entity)
+        return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        return (form._fields['project'], form._fields['amount'], state_field)
+        return (views.ReadOnlyKeyField('project', 'Project'), form._fields['amount'], state_field)
 
 class GrantView(views.EntityView):
     def __init__(self):
@@ -102,14 +111,15 @@ class GrantView(views.EntityView):
                 ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED, ACTION_CANCEL)
 
     def create_form(self, request_input, entity):
-        return GrantForm(request_input, obj=entity)
+        return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
         creator = views.ReadOnlyKeyField('creator', 'Creator')
         rate = views.ReadOnlyField('exchange_rate', 'Exchange Rate')
         transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
         transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
-        return form._fields.values() + [state_field, rate, transferred_sterling, transferred_ugx, creator]
+        return (map(views.create_form_field, form._fields.keys(), form._fields.values()) + 
+                   [state_field, rate, transferred_sterling, transferred_ugx, creator])
 
     def process_action_button(self, action, entity, user, buttons, dialogs):
         if action.name != 'transferred':
@@ -121,7 +131,7 @@ class GrantView(views.EntityView):
             entity.state_index = GRANT_TRANSFERED
             entity.put()
             return True
-        rendered_form = renderers.render_form(form)
+        rendered_form = custom_fields.render_form(form)
         dialog = renderers.render_modal_dialog(rendered_form, 'd-transferred', form.errors)
         dialogs.append(dialog)
         enabled = action.is_allowed(entity, user)

@@ -28,7 +28,7 @@ class MoneyForm(wtforms.Form):
 
 class PledgeForm(wtforms.Form):
     description = wtforms.TextAreaField()
-    amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
+    amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
     
 class PledgeModel(model.EntityModel):
     def __init__(self):
@@ -71,7 +71,7 @@ class PledgeView(views.EntityView):
     def get_fields(self, form):
         ref_id = views.ReadOnlyField('ref_id', 'Reference')
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return form._fields.values() + [ref_id, state_field, creator]
+        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [ref_id, state_field, creator]
 
     def get_links(self, entity):
         return []

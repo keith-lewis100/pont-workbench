@@ -46,7 +46,7 @@ class PartnerView(views.EntityView):
         return PartnerForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return form._fields.values()
+        return map(views.create_form_field, form._fields.keys(), form._fields.values())
 
 def add_rules(app):
     app.add_url_rule('/partner_list/<db_id>', view_func=PartnerListView.as_view('view_partner_list'))

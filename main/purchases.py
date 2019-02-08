@@ -31,13 +31,13 @@ ACTION_PAID = model.Action('paid', 'Paid', RoleType.COMMITTEE_ADMIN, PURCHASE_CL
 ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_CHECKING])
 
 class MoneyForm(wtforms.Form):
-    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                    widget=renderers.radio_field_widget)
+    currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+                    widget=custom_fields.radio_field_widget)
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=50)])
 
 class PurchaseForm(wtforms.Form):
     description = wtforms.TextAreaField()
-    amount = wtforms.FormField(MoneyForm, widget=renderers.form_field_widget)
+    amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
 
 class PurchaseModel(model.EntityModel):
     def __init__(self):
@@ -83,7 +83,7 @@ class PurchaseView(views.EntityView):
     def get_fields(self, form):
         po_number = views.ReadOnlyField('po_number', 'PO number')
         creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return form._fields.values() + [po_number, state_field, creator]
+        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [po_number, state_field, creator]
 
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
