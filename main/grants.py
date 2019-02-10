@@ -10,8 +10,8 @@ import model
 import renderers
 import views
 import custom_fields
+import readonly_fields
 from role_types import RoleType
-from projects import project_model
 
 GRANT_WAITING = 1
 #states.State('Waiting', True, {'checked': RoleType.FUND_ADMIN, 'cancel': RoleType.COMMITTEE_ADMIN})
@@ -24,7 +24,7 @@ GRANT_TRANSFERED = 4
 GRANT_CLOSED = 0
 #states.State('Closed') # 0
 
-state_field = views.StateField('Closed', 'Waiting', 'Ready', 'Exchanging Currency', 'Transferred')
+state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Exchanging Currency', 'Transferred')
 
 ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
 # ACTION_EXCHANGE = model.Action('exchange', 'Exchange Requested', RoleType.PAYMENT_ADMIN, GRANT_CURRENCY_REQUESTED, [GRANT_READY])
@@ -33,13 +33,13 @@ ACTION_ACKNOWLEDGED = model.Action('ack', 'Received', RoleType.COMMITTEE_ADMIN, 
 ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
 class MoneyForm(wtforms.Form):
-    currency = wtforms.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=custom_fields.radio_field_widget)
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
 
-class ExchangeCurrencyField:
+class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
     def __init__(self, label, to_currency):
-        self.label = label
+        super(ExchangeCurrencyField, self).__init__("", label)
         self.to_currency = to_currency
 
     def render_value(self, entity):
@@ -54,18 +54,13 @@ class ExchangeCurrencyField:
         if self.to_currency == 'sterling':
             value = int(from_amount.value / entity.exchange_rate)
             return unicode(db.Money('sterling', value))
-
-    def render(self, entity):
-        value = self.render_value(entity)
-        legend = renderers.legend(self.label)
-        return (legend, value)
         
 class GrantForm(wtforms.Form):
     description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
-    project = wtforms.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
+    project = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
     target_date = wtforms.DateField(widget=widgets.MonthInput(), format='%Y-%m',
-                                validators=[wtforms.validators.Optional()])
+                                validators=[wtforms.validators.InputRequired()])
 
 def create_grant_form(request_input, entity):
     form = GrantForm(request_input, obj=entity)
@@ -91,7 +86,7 @@ class GrantModel(model.EntityModel):
         return db.Grant.query(ancestor=parent.key).fetch()
         
     def title(self, entity):
-        return 'Grant to ' + entity.project.get().name + ' on ' + str(entity.target_date)
+        return 'Grant on ' + str(entity.target_date)
 
 grant_model = GrantModel()
 
@@ -103,7 +98,8 @@ class GrantListView(views.ListView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        return (views.ReadOnlyKeyField('project', 'Project'), form._fields['amount'], state_field)
+        return (readonly_fields.ReadOnlyKeyField('project'),
+                readonly_fields.ReadOnlyField('amount'), state_field)
 
 class GrantView(views.EntityView):
     def __init__(self):
@@ -114,11 +110,11 @@ class GrantView(views.EntityView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        creator = views.ReadOnlyKeyField('creator', 'Creator')
-        rate = views.ReadOnlyField('exchange_rate', 'Exchange Rate')
+        creator = readonly_fields.ReadOnlyKeyField('creator')
+        rate = readonly_fields.ReadOnlyField('exchange_rate', 'Exchange Rate')
         transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
         transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
-        return (map(views.create_form_field, form._fields.keys(), form._fields.values()) + 
+        return (map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) +
                    [state_field, rate, transferred_sterling, transferred_ugx, creator])
 
     def process_action_button(self, action, entity, user, buttons, dialogs):

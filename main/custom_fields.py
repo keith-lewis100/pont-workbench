@@ -1,7 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from wtforms import fields, widgets, validators
-import model
+import wtforms
 from html_builder import html
 
 # check recommended elements in skeleton css framework
@@ -17,7 +16,7 @@ def render_field(field):
     elements = []
     elements.append(field.label())
     elements.append(field(class_="u-full-width"))
-    if field.errors and not field is fields.FormField:
+    if field.errors and not field is wtforms.FormField:
         elements.append(html.span(' '.join(field.errors), class_="error"))
     return elements
 
@@ -41,3 +40,35 @@ def set_field_choices(field, entity_list):
     if field.flags.optional:
         choices = [(None, "")] + choices
     field.choices=choices
+
+class SelectField(wtforms.SelectFieldBase):
+    widget = wtforms.widgets.Select()
+
+    def __init__(self, label=None, validators=None, coerce=unicode, choices=None, **kwargs):
+        super(SelectField, self).__init__(label, validators, **kwargs)
+        self.coerce = coerce
+        self.choices = choices
+
+    def iter_choices(self):
+        for value, label in self.choices:
+            yield (value, label, self.coerce(value) == self.data)
+
+    def process_data(self, data):
+        try:
+            self.data = data
+        except (ValueError, TypeError):
+            self.data = None
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            try:
+                self.data = self.coerce(valuelist[0])
+            except ValueError:
+                raise ValueError(self.gettext('Invalid Choice: could not coerce'))
+
+    def pre_validate(self, form):
+        for v, _ in self.choices:
+            if self.data == self.coerce(v):
+                break
+        else:
+            raise ValueError(self.gettext('Not a valid choice'))

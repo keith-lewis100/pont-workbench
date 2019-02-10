@@ -4,77 +4,10 @@ from flask import render_template, redirect, request, url_for
 from flask.views import View
 from google.appengine.api import users
 
-import db
 import renderers
 import model
 import custom_fields
 
-class ReadOnlyField(object):
-    def __init__(self, name, label=None):
-        self.name = name
-        self.label = label if label != None else name.capitalize()
-        
-    def render_value(self, entity):
-        return unicode(getattr(entity, self.name))
-
-    def render(self, entity):
-        value = self.render_value(entity)
-        legend = renderers.legend(self.label)
-        return (legend, value)
-
-class ReadOnlySelectField(ReadOnlyField):
-    def __init__(self, name, label, choices, coerce=unicode):
-        super(ReadOnlySelectField, self).__init__(name, label)
-        self.choices = choices
-        self.coerce = coerce
-
-    def render_value(self, entity):
-        property = getattr(entity, self.name)
-        for value, label in self.choices:
-            if self.coerce(value) == property:
-                return label
-        return ""
-        
-class ReadOnlyKeyField:
-    def __init__(self, name, label, title_of=lambda e : e.name):
-        self.name = name
-        self.label = label if label != None else name.capitalize()
-        self.title_of = title_of
-        
-    def render_value(self, entity):
-        key = getattr(entity, self.name)
-        if not key:
-            return ""
-        target = key.get()
-        return self.title_of(target)
-        
-    def render(self, entity):
-        key = getattr(entity, self.name)
-        if not key:
-            return ""
-        target = key.get()
-        legend = renderers.legend(self.label)
-        link = renderers.render_link(self.title_of(target), url_for_entity(target))
-        return (legend, link)
-
-def create_form_field(name, field):
-    if hasattr(field, 'coerce') and field.coerce == model.create_key:
-        return ReadOnlyKeyField(name, field.label)
-    if hasattr(field, 'choices'):
-        return ReadOnlySelectField(name, field.label, field.choices, field.coerce)
-    return ReadOnlyField(name, field.label)
-
-class StateField(ReadOnlyField):
-    def __init__(self, *state_names):
-        super(StateField, self).__init__('state_index', 'State')
-        self.state_names = state_names
-
-    def render_value(self, entity):
-        state = entity.state_index
-        if state == None:
-            return "None"
-        return self.state_names[state]
-            
 def url_for_entity(entity):
     key = entity.key
     return url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
@@ -113,11 +46,7 @@ class ListView(View):
     def render_entities(self, parent, form):
         entity_list = self.entity_model.load_entities(parent)
         fields = self.get_fields(form)
-        rows = []
-        for e in entity_list:
-            url = url_for_entity(e)
-            rows.append(renderers.render_row(e, url, *fields))
-        return renderers.render_entity_list(rows, *fields)
+        return renderers.render_table(entity_list, url_for_entity, *fields)
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()
@@ -150,11 +79,7 @@ class ListViewNoCreate(View):
     def render_entities(self, parent):
         entity_list = self.entity_model.load_entities(parent)
         fields = self.get_fields()
-        rows = []
-        for e in entity_list:
-            url = url_for_entity(e)
-            rows.append(renderers.render_row(e, url, *fields))
-        return renderers.render_entity_list(rows, *fields)
+        return renderers.render_table(entity_list, url_for_entity, *fields)
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()
@@ -170,7 +95,8 @@ def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fiel
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
     nav = renderers.render_nav(*links)
     menu = renderers.render_menu('.', *buttons)
-    grid = renderers.render_entity(entity, *fields)
+    # TODO: add special treatment for TextArea
+    grid = renderers.render_grid(entity, fields)
     main = renderers.render_div(nav, menu, dialogs, grid)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
     

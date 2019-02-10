@@ -8,18 +8,19 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 import grants
 import datetime
 
 payments_field_list = [
     grants.state_field,
-    views.ReadOnlyField('requestor', 'Requestor'),
-    views.ReadOnlyField('amount', 'Amount'),
-    views.ReadOnlyField('project_name', 'Project Name'),
-    views.ReadOnlyField('partner', 'Implementing Partner'),
-    views.ReadOnlyField('source_fund', 'Source Fund'),
-    views.ReadOnlyField('dest_fund', 'Destination Fund')
+    readonly_fields.ReadOnlyField('requestor', 'Requestor'),
+    readonly_fields.ReadOnlyField('amount', 'Amount'),
+    readonly_fields.ReadOnlyField('project_name', 'Project Name'),
+    readonly_fields.ReadOnlyField('partner', 'Implementing Partner'),
+    readonly_fields.ReadOnlyField('source_fund', 'Source Fund'),
+    readonly_fields.ReadOnlyField('dest_fund', 'Destination Fund')
 ]
 
 class Payment:

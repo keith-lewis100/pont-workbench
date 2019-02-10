@@ -7,6 +7,7 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 from role_types import RoleType
 
@@ -37,7 +38,7 @@ class SupplierFundListView(views.ListView):
         return SupplierFundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return [form._fields['name']]
+        return [readonly_fields.ReadOnlyField('name')]
 
 class SupplierFundView(views.EntityView):
     def __init__(self):
@@ -47,7 +48,7 @@ class SupplierFundView(views.EntityView):
         return SupplierFundForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
 
     def get_links(self, entity):
         projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())

@@ -8,6 +8,7 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 import logging
 from role_types import RoleType
@@ -19,16 +20,16 @@ PROJECT_APPROVED = 2
 PROJECT_CLOSED = 0
 #states.State('Closed') # 0
 
-state_field = views.StateField('Closed', 'Approval Pending', 'Approved')
+state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
 
 ACTION_APPROVE = model.Action("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
 
 class ProjectForm(wtforms.Form):
     description = wtforms.TextAreaField()
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = wtforms.SelectField(label='Primary Committee', choices=model.committee_labels)
+    committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
     multi_committee = wtforms.BooleanField()
-    partner = wtforms.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
+    partner = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
     
 class ProjectModel(model.EntityModel):
     def __init__(self):
@@ -59,7 +60,7 @@ class ProjectListView(views.ListView):
         return create_project_form(request_input, entity)
 
     def get_fields(self, form):
-        return (views.ReadOnlyField('name', 'Name'), state_field)
+        return (readonly_fields.ReadOnlyField('name', 'Name'), state_field)
 
 class ProjectView(views.EntityView):
     def __init__(self):
@@ -69,7 +70,7 @@ class ProjectView(views.EntityView):
         return create_project_form(request_input, entity)
         
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [state_field]
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) + [state_field]
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))

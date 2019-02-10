@@ -42,7 +42,7 @@ def lookup_entity(db_id):
     return key.get()
     
 def create_key(db_id):
-    db.create_key(db_id)
+    return db.create_key(db_id)
 
 def get_parent(entity):
     parentKey = entity.key.parent()

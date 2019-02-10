@@ -7,56 +7,42 @@ class SafeString(unicode):
     def __html__(self):
         return self
 
-def get_display_value(field, entity):
-    return field.render_value(entity)
-
-# Rename to render_grid(fields, **kwargs)
-# deal with TextAreaField separately
-# call render_grid_cell on each field passing kwargs
-def render_entity(entity, *fields):
+def render_grid(obj, items):
     rows = []
-    numFields = len(fields)
-    start = 0
-    if False:
-        first = render_field(fields[0], entity, class_="u-full-width")
-        rows.append(html.div(first, class_="row"))
-        start = 1
-    for x in range(start, numFields, 3):
+    numItems = len(items)
+    for x in range(0, numItems, 3):
         cols = []
         for y in range(3):
-            if x + y >= numFields:
+            if x + y >= numItems:
                 break
-            field = fields[x + y]
-            cols.append(render_field(field, entity))
+            item = items[x + y]
+            col = html.div(item.render(obj), class_="four columns")
+            cols.append(col)
         rows.append(html.div(*cols, class_="row"))    
     return rows
- 
-def render_field(field, entity, class_="four columns"):
-    content = field.render(entity)
-    return html.div(content, class_=class_)
 
 def legend(label):
     return html.legend(label)
 
-# TODO: combine the following 3 methods into a single
-# render_table method
-# make field class implement render_header and render_table_cell methods
-def render_entity_list(rows, *fields):
-    head = render_header(fields)
+def render_table(object_list, url_for_object, *columns):
+    head = render_header(*columns)
+    rows = []
+    for obj in object_list:
+        url = url_for_object(obj)
+        rows.append(render_row(obj, url, *columns))
     body = html.tbody(*rows)
     return html.table(head, body, class_="u-full-width")
     
-def render_header(fields):
+def render_header(*columns):
     children = []
-    for field in fields:
-        children.append(html.th(field.label))
-    row = html.tr(*children)
-    return html.thead(row)
+    for column in columns:
+        children.append(html.th(column.label))
+    return html.thead(html.tr(*children))
     
-def render_row(entity, url, *fields):
+def render_row(obj, url, *columns):
     children = []
-    for field in fields:
-        value = get_display_value(field, entity)
+    for column in columns:
+        value = column.render_value(obj)
         children.append(html.td(value))
     return html.tr(*children, class_="selectable", 
                    onclick="window.location='%s'" % url)
@@ -89,6 +75,3 @@ def render_modal_dialog(element, id, open=False):
     if open:
         class_val = "modal modal-open"
     return html.div(content, id=id, class_="%s" % class_val)
-
-def month_widget(field, **kwargs):
-    return html.input(type='month', **kwargs)

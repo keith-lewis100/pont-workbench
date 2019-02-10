@@ -7,6 +7,7 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 from role_types import RoleType
 from projects import project_model
@@ -21,7 +22,7 @@ PLEDGE_CLOSED = 3
 ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED)
 ACTION_BOOKED = model.Action('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED)
 
-state_field = views.StateField('Closed', 'Pending', 'Fulfilled')
+state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -32,7 +33,7 @@ class PledgeForm(wtforms.Form):
     
 class PledgeModel(model.EntityModel):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, [PLEDGE_PENDING])
+        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, PLEDGE_PENDING)
 
     def create_entity(self, parent):
         return db.Pledge(parent=parent.key)
@@ -58,8 +59,8 @@ class PledgeListView(views.ListView):
         return PledgeForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        ref_id = views.ReadOnlyField('ref_id', 'Reference')
-        return (ref_id, form._fields['amount'], state_field)
+        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
+        return (ref_id, readonly_fields.ReadOnlyField('amount'), state_field)
 
 class PledgeView(views.EntityView):
     def __init__(self):
@@ -69,9 +70,9 @@ class PledgeView(views.EntityView):
         return PledgeForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        ref_id = views.ReadOnlyField('ref_id', 'Reference')
-        creator = views.ReadOnlyKeyField('creator', 'Creator')
-        return map(views.create_form_field, form._fields.keys(), form._fields.values()) + [ref_id, state_field, creator]
+        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
+        creator = readonly_fields.ReadOnlyKeyField('creator')
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) + [ref_id, state_field, creator]
 
     def get_links(self, entity):
         return []

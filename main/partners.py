@@ -7,6 +7,7 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 from role_types import RoleType
 
@@ -36,7 +37,7 @@ class PartnerListView(views.ListView):
         return PartnerForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (form._fields['name'], )
+        return (readonly_fields.ReadOnlyField('name'), )
 
 class PartnerView(views.EntityView):
     def __init__(self):
@@ -46,7 +47,7 @@ class PartnerView(views.EntityView):
         return PartnerForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
 
 def add_rules(app):
     app.add_url_rule('/partner_list/<db_id>', view_func=PartnerListView.as_view('view_partner_list'))

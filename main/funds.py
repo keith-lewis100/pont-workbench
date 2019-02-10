@@ -7,12 +7,13 @@ import db
 import model
 import renderers
 import custom_fields
+import readonly_fields
 import views
 from role_types import RoleType
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = wtforms.SelectField(choices=model.committee_labels)
+    committee = custom_fields.SelectField(choices=model.committee_labels)
     description = wtforms.TextAreaField()
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
@@ -39,8 +40,8 @@ class FundListView(views.ListView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (views.ReadOnlyField('name'), views.ReadOnlyField('code'), 
-                 views.ReadOnlySelectField('committee', 'Committee', model.committee_labels))
+        return (readonly_fields.ReadOnlyField('name'), readonly_fields.ReadOnlyField('code'),
+                 readonly_fields.ReadOnlySelectField('committee', choices=model.committee_labels))
 
 class FundView(views.EntityView):
     def __init__(self):
@@ -50,7 +51,7 @@ class FundView(views.EntityView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
 
     def get_links(self, entity):
         purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())

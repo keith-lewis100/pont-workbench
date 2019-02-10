@@ -8,6 +8,7 @@ import model
 import views
 import renderers
 import custom_fields
+import readonly_fields
 from role_types import RoleType
 
 class UserForm(wtforms.Form):
@@ -37,7 +38,7 @@ class UserListView(views.ListView):
         return UserForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
 
 class UserView(views.EntityView):
     def __init__(self):
@@ -47,7 +48,7 @@ class UserView(views.EntityView):
         return UserForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(views.create_form_field, form._fields.keys(), form._fields.values())
+        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
         
     def get_links(self, entity):
         roles_url = url_for('view_role_list', db_id=entity.key.urlsafe())
