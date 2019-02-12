@@ -9,7 +9,7 @@ def radio_field_widget(field, **kwargs):
     children = []
     for val, label, selected in field.iter_choices():
         children.append(label);
-        children.append(html.input(type="radio", name=label, value=val, checked=selected))
+        children.append(html.input(type="radio", name=field.name, value=val, checked=selected))
     return html.div(*children, **kwargs)
 
 def render_field(field):

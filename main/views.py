@@ -18,12 +18,15 @@ def url_for_list(kind, parent):
         db_id = parent.key.urlsafe()
     return url_for('view_%s_list' % kind.lower(), db_id=db_id)
 
+def current_user():
+    email = users.get_current_user().email()
+    return model.lookup_user_by_email(email)
+
 def render_user():
     email = users.get_current_user().email()
     user = model.lookup_user_by_email(email)
-    name = user.name if user else email
     logout_url = users.create_logout_url('/')
-    return renderers.render_logout(name, logout_url)
+    return renderers.render_logout(user.name, logout_url)
 
 def create_breadcrumbs(entity):
     if entity is None:
@@ -69,37 +72,28 @@ class ListView(View):
         breadcrumbHtml = renderers.render_div(*breadcrumbs);
         main = renderers.render_div(open_modal, dialog, entity_table)
         return render_template('layout.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
- 
-class ListViewNoCreate(View):
-    methods = ['GET']
-    
-    def __init__(self, entity_model):
-        self.entity_model = entity_model
 
-    def render_entities(self, parent):
-        entity_list = self.entity_model.load_entities(parent)
-        fields = self.get_fields()
-        return renderers.render_table(entity_list, url_for_entity, *fields)
-
-    def dispatch_request(self, db_id=None):
-        email = users.get_current_user().email()
-        user = model.lookup_user_by_email(email)
-        entity_model = self.entity_model
-        parent = model.lookup_entity(db_id)
-        entity_table = self.render_entities(parent)
-        breadcrumbs = create_breadcrumbs(parent)
-        breadcrumbHtml = renderers.render_div(*breadcrumbs);
-        return render_template('layout.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=entity_table)
-
-def render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields):
+def render_view(title, breadcrumbs, content, links=[], buttons=[], dialogs=[]):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
     nav = renderers.render_nav(*links)
-    menu = renderers.render_menu('.', *buttons)
-    # TODO: add special treatment for TextArea
-    grid = renderers.render_grid(entity, fields)
-    main = renderers.render_div(nav, menu, dialogs, grid)
+    menu = renderers.render_menu(*buttons)
+    main = renderers.render_div(nav, menu, dialogs, content)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
-    
+
+def process_action_button(action, entity, user, buttons, dialogs=[]):
+    enabled = action.is_allowed(entity, user)
+    if (request.method == 'POST' and request.form.has_key('action')
+             and request.form['action'] == action.name):
+        if not enabled:
+            raise Exception("Illegal action %s performed" % action.name)
+        action.apply_to(entity, user)
+        return True
+
+    button = renderers.render_submit_button(action.label, name='action', value=action.name,
+            disabled=not enabled)
+    buttons.append(button)
+    return False
+   
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
@@ -122,18 +116,6 @@ class EntityView(View):
         buttons.append(button)
         dialogs.append(dialog)
         return False
-    
-    def process_action_button(self, action, entity, user, buttons, dialogs):
-        if (request.method == 'POST' and request.form.has_key('action') and
-                request.form['action'] == action.name):
-            self.entity_model.perform_state_change(entity, action)
-            return True
-
-        enabled = action.is_allowed(entity, user)
-        button = renderers.render_submit_button(action.label, name='action', value=action.name,
-                disabled=not enabled)
-        buttons.append(button)
-        return False
 
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
@@ -145,10 +127,16 @@ class EntityView(View):
         if self.process_edit_button(form, entity, user, buttons, dialogs):
             return redirect(request.base_url)    
         for action in self.actions:
-          if self.process_action_button(action, entity, user, buttons, dialogs):
+          if process_action_button(action, entity, user, buttons, dialogs):
             return redirect(request.base_url)
         title = self.entity_model.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)
-        return render_entity_view(title, breadcrumbs, links, buttons, dialogs, entity, fields)
+        wide_items = []
+        if fields[-1].wide:
+            last = fields[-1].render(entity)
+            wide_items = [renderers.render_div(last, class_="u-full-width")]
+            fields = fields[:-1]
+        grid = renderers.render_grid(entity, fields) + wide_items
+        return render_view(title, breadcrumbs, grid, links, buttons, dialogs)

@@ -1,10 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import Flask, url_for, render_template
-from flask.views import View
-#_*_ coding: UTF-8 _*_
-
-import wtforms
+from flask import url_for, render_template
+from application import app
 
 import renderers
 import views
@@ -19,10 +16,9 @@ import internal_transfers
 import purchases
 import users
 import roles
-import paymentsdue
 import partners
-
-app = Flask(__name__)
+import foreign_transfer
+import paymentsdue
 
 @app.route('/')
 def home():
@@ -45,5 +41,4 @@ internal_transfers.add_rules(app)
 purchases.add_rules(app)
 users.add_rules(app)
 roles.add_rules(app)
-paymentsdue.add_rules(app)
 partners.add_rules(app)

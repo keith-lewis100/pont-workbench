@@ -53,8 +53,8 @@ def render_link(label, url, **kwargs):
 def render_submit_button(label, **kwargs):
     return html.button(label, type="submit", **kwargs)
 
-def render_menu(url, *content):
-    return html.nav(html.form(*content, method="post", action=url))
+def render_menu(*content, **kwargs):
+    return html.nav(html.form(*content, method="post", **kwargs))
 
 def render_nav(*content):
     return html.nav(*content)

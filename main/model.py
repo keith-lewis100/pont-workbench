@@ -58,7 +58,7 @@ def get_owning_committee(entity):
     return None
 
 def get_role_types(user, entity):
-    if user is None:
+    if user.key is None:
        logger.debug("no user")
        return set()
     roles = db.Role.query(ancestor=user.key).fetch()
@@ -73,9 +73,13 @@ def lookup_user_with_role(type):
     return None
 
 def lookup_user_by_email(email):
-    return db.User.query().filter(db.User.email == email).get()
+    user = db.User.query(db.User.email == email).get()
+    if user is None:
+        user = db.User()
+        user.name = email
+    return user
     
-class Action:
+class Action(object):
     def __init__(self, name, label, required_role, next_state=None, allowed_states=[]):
         self.name = name
         self.label = label
@@ -91,6 +95,10 @@ class Action:
             return True
         state = entity.state_index
         return state in self.allowed_states
+        
+    def apply_to(self, entity, user=None):
+        entity.state_index = self.next_state
+        entity.put()    
 
 class EntityModel:
     def __init__(self, name, create_role, *update_states):

@@ -13,11 +13,8 @@ from role_types import RoleType
 from projects import project_model
 
 PLEDGE_PENDING = 1
-#states.State('Pending', True, {'fulfilled': RoleType.INCOME_ADMIN}) # 1
 PLEDGE_FULFILLED = 2
-#states.State('Fulfilled', False, {'booked': RoleType.FUND_ADMIN}) # 2
 PLEDGE_CLOSED = 3
-#states.State('Closed') # 0
 
 ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED)
 ACTION_BOOKED = model.Action('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED)
@@ -28,8 +25,8 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
 class PledgeForm(wtforms.Form):
-    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
+    description = wtforms.TextAreaField()
     
 class PledgeModel(model.EntityModel):
     def __init__(self):
@@ -72,7 +69,8 @@ class PledgeView(views.EntityView):
     def get_fields(self, form):
         ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
         creator = readonly_fields.ReadOnlyKeyField('creator')
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) + [ref_id, state_field, creator]
+        return [ref_id, state_field, creator] + map(readonly_fields.create_readonly_field, 
+                    form._fields.keys(), form._fields.values())
 
     def get_links(self, entity):
         return []

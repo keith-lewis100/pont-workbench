@@ -14,20 +14,14 @@ import readonly_fields
 from role_types import RoleType
 
 GRANT_WAITING = 1
-#states.State('Waiting', True, {'checked': RoleType.FUND_ADMIN, 'cancel': RoleType.COMMITTEE_ADMIN})
 GRANT_READY = 2
-#states.State('Ready', False, {'exchange': RoleType.PAYMENT_ADMIN}) # 2
-GRANT_CURRENCY_REQUESTED = 3
-#states.State('Exchanging Currency', False, {'transferred': RoleType.PAYMENT_ADMIN}) # 3
-GRANT_TRANSFERED = 4
-#states.State('Transferred', False, {'ack': RoleType.COMMITTEE_ADMIN}) # 4
+GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 #states.State('Closed') # 0
 
-state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Exchanging Currency', 'Transferred')
+state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
 
 ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-# ACTION_EXCHANGE = model.Action('exchange', 'Exchange Requested', RoleType.PAYMENT_ADMIN, GRANT_CURRENCY_REQUESTED, [GRANT_READY])
 ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_READY])
 ACTION_ACKNOWLEDGED = model.Action('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
@@ -56,11 +50,11 @@ class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
             return unicode(db.Money('sterling', value))
         
 class GrantForm(wtforms.Form):
-    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
     project = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
     target_date = wtforms.DateField(widget=widgets.MonthInput(), format='%Y-%m',
                                 validators=[wtforms.validators.InputRequired()])
+    description = wtforms.TextAreaField()
 
 def create_grant_form(request_input, entity):
     form = GrantForm(request_input, obj=entity)
@@ -68,10 +62,6 @@ def create_grant_form(request_input, entity):
     project_list = db.Project.query(db.Project.committee == fund.committee).fetch()
     custom_fields.set_field_choices(form._fields['project'], project_list)
     return form
-
-class ExchangeRateForm(wtforms.Form):
-    action = wtforms.HiddenField(default='transferred')
-    exchange_rate = wtforms.IntegerField('Exchange Rate', validators=[wtforms.validators.InputRequired()])
 
 class GrantModel(model.EntityModel):
     def __init__(self):
@@ -111,30 +101,11 @@ class GrantView(views.EntityView):
 
     def get_fields(self, form):
         creator = readonly_fields.ReadOnlyKeyField('creator')
-        rate = readonly_fields.ReadOnlyField('exchange_rate', 'Exchange Rate')
-        transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
-        transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
-        return (map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) +
-                   [state_field, rate, transferred_sterling, transferred_ugx, creator])
+#        transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
+#        transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
+        return [state_field, creator] + map(readonly_fields.create_readonly_field, 
+                    form._fields.keys(), form._fields.values())
 
-    def process_action_button(self, action, entity, user, buttons, dialogs):
-        if action.name != 'transferred':
-            return views.EntityView.process_action_button(self, action, entity, user, buttons, dialogs)
-        form = ExchangeRateForm(request.form)
-        if (request.method == 'POST' and request.form.get('action') == 'transferred' 
-                  and form.validate()):
-            form.populate_obj(entity)
-            entity.state_index = GRANT_TRANSFERED
-            entity.put()
-            return True
-        rendered_form = custom_fields.render_form(form)
-        dialog = renderers.render_modal_dialog(rendered_form, 'd-transferred', form.errors)
-        dialogs.append(dialog)
-        enabled = action.is_allowed(entity, user)
-        button = renderers.render_modal_open(action.label, 'd-transferred', enabled)
-        buttons.append(button)
-        return False
-    
 def add_rules(app):
     app.add_url_rule('/grant_list/<db_id>', view_func=GrantListView.as_view('view_grant_list'))
     app.add_url_rule('/grant/<db_id>/', view_func=GrantView.as_view('view_grant'))

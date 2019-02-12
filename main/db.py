@@ -39,6 +39,16 @@ class MoneyProperty(ndb.StringProperty):
 # Top level
 class WorkBench(ndb.Model):
     last_ref_id = ndb.IntegerProperty(default=0)
+    
+# Top level
+class User(ndb.Model):
+    name = ndb.StringProperty()
+    email = ndb.StringProperty()
+
+# ancestor = User
+class Role(ndb.Model):
+    type_index = ndb.IntegerProperty()
+    committee = ndb.StringProperty()
 
 # Top level
 class Supplier(ndb.Model):
@@ -52,17 +62,14 @@ class SupplierFund(ndb.Model):
 # ancestor = Supplier
 class Partner(ndb.Model):
     name = ndb.StringProperty()
+
+# ancestor = Supplier
+class ForeignTransfer(ndb.Model):
+    ref_id = ndb.StringProperty()
+    state_index = ndb.IntegerProperty(default=1)
+    creator = ndb.KeyProperty(kind=User)
+    exchange_rate = ndb.IntegerProperty()
     
-# Top level
-class User(ndb.Model):
-    name = ndb.StringProperty()
-    email = ndb.StringProperty()
-
-# ancestor = User
-class Role(ndb.Model):
-    type_index = ndb.IntegerProperty()
-    committee = ndb.StringProperty()
-
 # Top level
 class Fund(ndb.Model):
     name = ndb.StringProperty()
@@ -96,7 +103,7 @@ class Grant(ndb.Model):
     project = ndb.KeyProperty(kind=Project)
     creator = ndb.KeyProperty(kind=User)
     target_date = ndb.DateProperty()
-    exchange_rate = ndb.IntegerProperty()
+    transfer = ndb.KeyProperty(kind=ForeignTransfer)
 
 def find_pending_payments(cutoff_date):
     return Grant.query(Grant.target_date <= cutoff_date).filter(
@@ -118,3 +125,4 @@ class Purchase(ndb.Model):
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
+    

@@ -14,8 +14,8 @@ from role_types import RoleType
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(choices=model.committee_labels)
-    description = wtforms.TextAreaField()
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    description = wtforms.TextAreaField()
 
 class FundModel(model.EntityModel):
     def __init__(self):

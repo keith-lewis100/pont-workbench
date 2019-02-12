@@ -14,22 +14,19 @@ import logging
 from role_types import RoleType
 
 PROJECT_APPROVAL_PENDING = 1
-#states.State('Approval Pending', True, {'approve': RoleType.PROJECT_APPROVER}) # 1
 PROJECT_APPROVED = 2
-#states.State('Approved', True) # 2
 PROJECT_CLOSED = 0
-#states.State('Closed') # 0
 
 state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
 
 ACTION_APPROVE = model.Action("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
 
 class ProjectForm(wtforms.Form):
-    description = wtforms.TextAreaField()
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
     multi_committee = wtforms.BooleanField()
     partner = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
+    description = wtforms.TextAreaField()
     
 class ProjectModel(model.EntityModel):
     def __init__(self):
@@ -70,7 +67,8 @@ class ProjectView(views.EntityView):
         return create_project_form(request_input, entity)
         
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) + [state_field]
+        return [state_field] + map(readonly_fields.create_readonly_field, 
+                   form._fields.keys(), form._fields.values())
 
 def add_rules(app):
     app.add_url_rule('/project_list/<db_id>', view_func=ProjectListView.as_view('view_project_list'))

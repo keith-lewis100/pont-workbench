@@ -12,9 +12,7 @@ import views
 from role_types import RoleType
 
 TRANSFER_PENDING = 1
-#states.State('Pending', True, {'transfered': RoleType.FUND_ADMIN}) # 1
 TRANSFER_COMPLETE = 0
-#states.State('Transferred') # 0
 state_field = readonly_fields.StateField('Transferred', 'Pending')
 
 ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.FUND_ADMIN, TRANSFER_PENDING)
@@ -23,10 +21,10 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
 class InternalTransferForm(wtforms.Form):
-    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
     dest_fund = custom_fields.SelectField('Destination Fund', coerce=model.create_key, 
                     validators=[wtforms.validators.InputRequired()])
+    description = wtforms.TextAreaField()
 
 def create_transfer_form(request_fields, entity):
     form = InternalTransferForm(request_fields, obj=entity)
@@ -67,12 +65,12 @@ class InternalTransferView(views.EntityView):
 
     def create_form(self, request_input, entity):
         return create_transfer_form(request_input, entity)
-        
+
     def get_fields(self, form):
         creator = readonly_fields.ReadOnlyKeyField('creator', 'Creator')
-        return map(readonly_fields.create_readonly_field, form._fields.keys(),
-                      form._fields.values()) + [state_field, creator]
-        
+        return [state_field, creator] + map(readonly_fields.create_readonly_field, 
+                       form._fields.keys(), form._fields.values())
+
     def get_links(self, entity):
         return []
 

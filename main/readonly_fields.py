@@ -10,12 +10,13 @@ def create_readonly_field(name, form_field):
     if hasattr(form_field, 'choices'):
         return ReadOnlySelectField(name, form_field.label, coerce=form_field.coerce, 
                         choices=form_field.choices)
-    return ReadOnlyField(name, form_field.label)
+    return ReadOnlyField(name, form_field.label, form_field.type == 'TextAreaField')
 
 class ReadOnlyField(object):
-    def __init__(self, name, label=None):
+    def __init__(self, name, label=None, wide=False):
         self.name = name
         self.label = label if label != None else name.capitalize()
+        self.wide = wide
         
     def render_value(self, entity):
         return unicode(getattr(entity, self.name))
@@ -43,6 +44,7 @@ class ReadOnlyKeyField:
         self.name = name
         self.label = label if label != None else name.capitalize()
         self.title_of = title_of
+        self.wide = False
         
     def render_value(self, entity):
         key = getattr(entity, self.name)

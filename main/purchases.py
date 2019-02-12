@@ -13,19 +13,21 @@ from role_types import RoleType
 from projects import project_model
 
 PURCHASE_CHECKING = 1
-#states.State('Checking funds') # 1
 PURCHASE_READY = 2
-#states.State('Ready') # 2
 PURCHASE_ORDERED = 3
-#states.State('Ordered') # 3
 PURCHASE_FULFILLED = 4
-#states.State('Fulfilled') # 4
 PURCHASE_CLOSED = 5
-#states.State('Closed') # 0
 
 state_field = readonly_fields.StateField('Closed', 'Ready', 'Ordered', 'Fulfilled', 'Closed')
 
-ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, PURCHASE_READY, [PURCHASE_CHECKING])
+class CheckedAction(model.Action):
+    def apply_to(self, entity, user=None):
+        entity.state_index = PURCHASE_READY
+        ref = model.get_next_ref()    
+        entity.po_number = 'MB%04d' % ref
+        entity.put()
+
+ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, None, [PURCHASE_CHECKING])
 ACTION_ORDERED = model.Action('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN, PURCHASE_ORDERED, [PURCHASE_READY])
 ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.COMMITTEE_ADMIN, PURCHASE_FULFILLED, [ACTION_ORDERED])
 ACTION_PAID = model.Action('paid', 'Paid', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_FULFILLED])
@@ -37,8 +39,8 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=50)])
 
 class PurchaseForm(wtforms.Form):
-    description = wtforms.TextAreaField()
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
+    description = wtforms.TextAreaField()
 
 class PurchaseModel(model.EntityModel):
     def __init__(self):
@@ -84,7 +86,8 @@ class PurchaseView(views.EntityView):
     def get_fields(self, form):
         po_number = readonly_fields.ReadOnlyField('po_number', 'PO number')
         creator = readonly_fields.ReadOnlyKeyField('creator')
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values()) + [po_number, state_field, creator]
+        return [po_number, state_field, creator] + map(readonly_fields.create_readonly_field, 
+                    form._fields.keys(), form._fields.values())
 
 def add_rules(app):
     app.add_url_rule('/purchase_list/<db_id>', view_func=PurchaseListView.as_view('view_purchase_list'))
