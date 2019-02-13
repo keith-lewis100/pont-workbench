@@ -93,7 +93,20 @@ def process_action_button(action, entity, user, buttons, dialogs=[]):
             disabled=not enabled)
     buttons.append(button)
     return False
-   
+ 
+def process_edit_button(action, form, entity, user, buttons, dialogs):
+    if request.method == 'POST' and not request.form.has_key('action') and form.validate():
+        form.populate_obj(entity)
+        action.apply_to(entity)
+        return True
+    enabled = action.is_allowed(entity, user)
+    button = renderers.render_modal_open(action.label, 'd-edit', enabled)
+    rendered_form = custom_fields.render_form(form)
+    dialog = renderers.render_modal_dialog(rendered_form, 'd-edit', form.errors)
+    buttons.append(button)
+    dialogs.append(dialog)
+    return False
+ 
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
@@ -104,19 +117,6 @@ class EntityView(View):
     def get_links(self, entity):
         return []
         
-    def process_edit_button(self, form, entity, user, buttons, dialogs):
-        if request.method == 'POST' and not request.form.has_key('action') and form.validate():
-            form.populate_obj(entity)
-            entity.put()
-            return True
-        enabled = self.entity_model.is_update_allowed(entity, user)
-        button = renderers.render_modal_open('Edit', 'd-edit', enabled)
-        rendered_form = custom_fields.render_form(form)
-        dialog = renderers.render_modal_dialog(rendered_form, 'd-edit', form.errors)
-        buttons.append(button)
-        dialogs.append(dialog)
-        return False
-
     def dispatch_request(self, db_id):
         email = users.get_current_user().email()
         user = model.lookup_user_by_email(email)
@@ -124,7 +124,8 @@ class EntityView(View):
         form = self.create_form(request.form, entity)
         buttons = []
         dialogs = []
-        if self.process_edit_button(form, entity, user, buttons, dialogs):
+        if process_edit_button(self.entity_model.get_update_action(), form, entity, user, 
+                      buttons, dialogs):
             return redirect(request.base_url)    
         for action in self.actions:
           if process_action_button(action, entity, user, buttons, dialogs):

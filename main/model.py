@@ -97,7 +97,8 @@ class Action(object):
         return state in self.allowed_states
         
     def apply_to(self, entity, user=None):
-        entity.state_index = self.next_state
+        if self.next_state:
+            entity.state_index = self.next_state
         entity.put()    
 
 class EntityModel:
@@ -110,8 +111,8 @@ class EntityModel:
         types = get_role_types(user, parent)
         return self.create_role in types
 
-    def is_update_allowed(self, entity, user):
-        return self.update_action.is_allowed(entity, user)
+    def get_update_action(self):
+        return self.update_action
 
     def perform_create(self, entity, user):
         if hasattr(entity, 'creator'):

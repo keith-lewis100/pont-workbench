@@ -64,6 +64,5 @@ def view_foreigntransfer(db_id):
     grid = renderers.render_grid(transfer, transfer_fields)
     breadcrumbs = views.create_breadcrumbs_list(transfer)
     grant_list = db.Grant.query(db.Grant.state_index == 2).fetch()
-    payments_list = paymentsdue.load_payments(grant_list)
-    entity_table = renderers.render_table(payments_list, views.url_for_entity, *paymentsdue.payments_field_list)
+    entity_table = paymentsdue.render_payments(grant_list)
     return views.render_view('Foreign Transfer', breadcrumbs, (grid, entity_table))

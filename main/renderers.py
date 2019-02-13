@@ -75,3 +75,6 @@ def render_modal_dialog(element, id, open=False):
     if open:
         class_val = "modal modal-open"
     return html.div(content, id=id, class_="%s" % class_val)
+
+def sub_heading(heading):
+    return html.h2(unicode(heading))
