@@ -15,7 +15,7 @@ def create_readonly_field(name, form_field):
 class ReadOnlyField(object):
     def __init__(self, name, label=None, wide=False):
         self.name = name
-        self.label = label if label != None else name.capitalize()
+        self.label = label if label != None else name.replace("_", " ").title()
         self.wide = wide
         
     def render_value(self, entity):
@@ -42,7 +42,7 @@ class ReadOnlySelectField(ReadOnlyField):
 class ReadOnlyKeyField:
     def __init__(self, name, label=None, title_of=lambda e : e.name):
         self.name = name
-        self.label = label if label != None else name.capitalize()
+        self.label = label if label != None else name.replace("_", " ").title()
         self.title_of = title_of
         self.wide = False
         

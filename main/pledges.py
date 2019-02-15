@@ -16,8 +16,8 @@ PLEDGE_PENDING = 1
 PLEDGE_FULFILLED = 2
 PLEDGE_CLOSED = 3
 
-ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED)
-ACTION_BOOKED = model.Action('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED)
+ACTION_FULFILLED = model.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
+ACTION_BOOKED = model.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
 
 state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')
 

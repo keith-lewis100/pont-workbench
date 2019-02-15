@@ -19,7 +19,7 @@ PROJECT_CLOSED = 0
 
 state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
 
-ACTION_APPROVE = model.Action("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
+ACTION_APPROVE = model.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])

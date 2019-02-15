@@ -80,32 +80,44 @@ def lookup_user_by_email(email):
     return user
     
 class Action(object):
-    def __init__(self, name, label, required_role, next_state=None, allowed_states=[]):
+    def __init__(self, name, label, required_role):
         self.name = name
         self.label = label
         self.required_role = required_role
-        self.next_state = next_state
-        self.allowed_states = allowed_states
 
     def is_allowed(self, entity, user):
         types = get_role_types(user, entity)
         if not self.required_role in types:
             return False
-        if not hasattr(entity, 'state_index'):
-            return True
+        return True
+        
+    def apply_to(self, entity):
+        entity.put()    
+
+class StateAction(Action):
+    def __init__(self, name, label, required_role, next_state, allowed_states):
+        super(StateAction, self).__init__(name, label, required_role)
+        self.next_state = next_state
+        self.allowed_states = allowed_states
+        
+    def is_allowed(self, entity, user):
+        if not super(StateAction, self).is_allowed(entity, user):
+            return False
         state = entity.state_index
         return state in self.allowed_states
         
-    def apply_to(self, entity, user=None):
-        if self.next_state:
-            entity.state_index = self.next_state
+    def apply_to(self, entity):
+        entity.state_index = self.next_state
         entity.put()    
 
 class EntityModel:
     def __init__(self, name, create_role, *update_states):
         self.name = name
         self.create_role = create_role
-        self.update_action = Action('edit', 'Edit', create_role, None, update_states)
+        if len(update_states) == 0:
+            self.update_action = Action('edit', 'Edit', create_role)
+        else:
+            self.update_action = StateAction('edit', 'Edit', create_role, None, update_states)
 
     def is_create_allowed(self, parent, user):
         types = get_role_types(user, parent)
@@ -117,10 +129,4 @@ class EntityModel:
     def perform_create(self, entity, user):
         if hasattr(entity, 'creator'):
             entity.creator = user.key
-        entity.put()
-
-    def perform_state_change(self, entity, action):
-        if action.next_state == None:
-            raise Exception('No new state for action' + action.name)
-        entity.state_index = action.next_state
         entity.put()

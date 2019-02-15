@@ -77,4 +77,4 @@ def render_modal_dialog(element, id, open=False):
     return html.div(content, id=id, class_="%s" % class_val)
 
 def sub_heading(heading):
-    return html.h2(unicode(heading))
+    return (html.hr(), html.h2(heading))

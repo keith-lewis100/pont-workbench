@@ -63,12 +63,14 @@ def create_transfer(supplier, user):
     return transfer
 
 def process_transfer_request(supplier, user):
+    grant_list = db.Grant.query(db.Grant.state_index == grants.GRANT_READY).fetch()
+    if len(grant_list) == 0:
+        return None
     transfer = create_transfer(supplier, user)
-    grant_list = db.Grant.query(db.Grant.state_index == grants.GRANT_READY
-                      ).filter(db.Grant.transfer == None).fetch()
     for grant in grant_list:
-        grant.transfer = transfer.key
-        grant.put()
+        if getattr(grant, 'transfer', None) is None:
+            grant.transfer = transfer.key
+            grant.put()
     return transfer
 
 def render_paymentsdue_list():
@@ -84,11 +86,13 @@ def view_supplier(db_id):
     buttons = []
     dialogs = []
     if views.process_edit_button(update_action, form, supplier, user, buttons, dialogs):
+        supplier.put()
         return redirect(request.base_url)    
     if views.process_action_button(start_transfer, supplier, user, buttons):
         transfer = process_transfer_request(supplier, user)
-        transfer_url = views.url_for_entity(transfer)
-        return redirect(transfer_url)
+        if transfer is not None:
+            transfer_url = views.url_for_entity(transfer)
+            return redirect(transfer_url)
     breadcrumbs = views.create_breadcrumbs_list(supplier)
     links = get_links(supplier)
     fields = (readonly_fields.ReadOnlyField('name'), )

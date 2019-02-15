@@ -20,7 +20,7 @@ PURCHASE_CLOSED = 5
 
 state_field = readonly_fields.StateField('Closed', 'Ready', 'Ordered', 'Fulfilled', 'Closed')
 
-class CheckedAction(model.Action):
+class CheckedAction(model.StateAction):
     def apply_to(self, entity, user=None):
         entity.state_index = PURCHASE_READY
         ref = model.get_next_ref()    
@@ -28,10 +28,10 @@ class CheckedAction(model.Action):
         entity.put()
 
 ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, None, [PURCHASE_CHECKING])
-ACTION_ORDERED = model.Action('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN, PURCHASE_ORDERED, [PURCHASE_READY])
-ACTION_FULFILLED = model.Action('fulfilled', 'Fulfilled', RoleType.COMMITTEE_ADMIN, PURCHASE_FULFILLED, [ACTION_ORDERED])
-ACTION_PAID = model.Action('paid', 'Paid', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_FULFILLED])
-ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_CHECKING])
+ACTION_ORDERED = model.StateAction('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN, PURCHASE_ORDERED, [PURCHASE_READY])
+ACTION_FULFILLED = model.StateAction('fulfilled', 'Fulfilled', RoleType.COMMITTEE_ADMIN, PURCHASE_FULFILLED, [PURCHASE_ORDERED])
+ACTION_PAID = model.StateAction('paid', 'Paid', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_FULFILLED])
+ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_CHECKING])
 
 class MoneyForm(wtforms.Form):
     currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
@@ -54,13 +54,6 @@ class PurchaseModel(model.EntityModel):
                         
     def title(self, entity):
         return 'Purchase '
-
-    def perform_state_change(self, entity, action):
-        entity.state_index = action.next_state
-        if action.next_state == PURCHASE_APPROVED.index:
-            ref = model.get_next_ref()    
-            entity.po_number = 'MB%04d' % ref
-        entity.put()
 
 purchase_model = PurchaseModel()
 

@@ -9,6 +9,7 @@ payments_field_list = [
     grants.state_field,
     readonly_fields.ReadOnlyField('requestor', 'Requestor'),
     readonly_fields.ReadOnlyField('amount', 'Amount'),
+    grants.ExchangeCurrencyField('transferred_amount'),
     readonly_fields.ReadOnlyField('project_name', 'Project Name'),
     readonly_fields.ReadOnlyField('partner', 'Implementing Partner'),
     readonly_fields.ReadOnlyField('source_fund', 'Source Fund'),
@@ -25,11 +26,12 @@ def render_payments(grant_list):
         p.key = grant.key
         p.state_index = grant.state_index
         p.requestor = grant.creator.get().name
+        p.transfer = grant.transfer
         p.amount = grant.amount
         project = grant.project.get()
         p.project_name = project.name
         p.partner = None
-        if (project.partner != None):
+        if project.partner != None:
           p.partner = project.partner.get().name
         p.source_fund = grant.key.parent().get().code
         p.dest_fund = grant.project.parent().get().name

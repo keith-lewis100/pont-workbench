@@ -82,22 +82,20 @@ def render_view(title, breadcrumbs, content, links=[], buttons=[], dialogs=[]):
 
 def process_action_button(action, entity, user, buttons, dialogs=[]):
     enabled = action.is_allowed(entity, user)
-    if (request.method == 'POST' and request.form.has_key('action')
-             and request.form['action'] == action.name):
-        if not enabled:
-            raise Exception("Illegal action %s performed" % action.name)
-        action.apply_to(entity, user)
-        return True
-
     button = renderers.render_submit_button(action.label, name='action', value=action.name,
             disabled=not enabled)
     buttons.append(button)
+    if (request.method == 'POST' and request.form.has_key('action')
+             and request.form['action'] == action.name):
+        if not enabled:
+            raise Exception("Illegal action %s was performed" % action.name)
+        return True
+
     return False
  
 def process_edit_button(action, form, entity, user, buttons, dialogs):
     if request.method == 'POST' and not request.form.has_key('action') and form.validate():
         form.populate_obj(entity)
-        action.apply_to(entity)
         return True
     enabled = action.is_allowed(entity, user)
     button = renderers.render_modal_open(action.label, 'd-edit', enabled)
@@ -126,9 +124,11 @@ class EntityView(View):
         dialogs = []
         if process_edit_button(self.entity_model.get_update_action(), form, entity, user, 
                       buttons, dialogs):
+            action.apply_to(entity)
             return redirect(request.base_url)    
         for action in self.actions:
           if process_action_button(action, entity, user, buttons, dialogs):
+            action.apply_to(entity)
             return redirect(request.base_url)
         title = self.entity_model.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)

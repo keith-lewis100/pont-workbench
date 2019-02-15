@@ -21,10 +21,10 @@ GRANT_CLOSED = 0
 
 state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
 
-ACTION_CHECKED = model.Action('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_READY])
-ACTION_ACKNOWLEDGED = model.Action('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
-ACTION_CANCEL = model.Action('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
+ACTION_CHECKED = model.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
+#ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_READY])
+ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
+ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
 class MoneyForm(wtforms.Form):
     currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
@@ -32,23 +32,24 @@ class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
 
 class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
-    def __init__(self, label, to_currency):
-        super(ExchangeCurrencyField, self).__init__("", label)
-        self.to_currency = to_currency
+    def __init__(self, name):
+        super(ExchangeCurrencyField, self).__init__(name)
 
-    def render_value(self, entity):
-        if (entity.exchange_rate == None):
+    def render_value(self, grant):
+        if getattr(grant, 'transfer', None) is None:
             return ""
-        from_amount = entity.amount
-        if from_amount.currency == self.to_currency:
-            return unicode(from_amount)
-        if self.to_currency == 'ugx':
-            value = int(from_amount.value * entity.exchange_rate)
-            return unicode(db.Money('ugx', value))
-        if self.to_currency == 'sterling':
-            value = int(from_amount.value / entity.exchange_rate)
-            return unicode(db.Money('sterling', value))
-        
+        transfer = grant.transfer.get()
+        if transfer.exchange_rate is None:
+            return ""
+        requested_amount = grant.amount.value
+        if grant.amount.currency == 'sterling':
+            sterling = requested_amount
+            shillings = int(requested_amount * transfer.exchange_rate)
+        if grant.amount.currency == 'ugx':
+            sterling = int(requested_amount / transfer.exchange_rate)
+            shillings = requested_amount
+        return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
+
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
     project = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
@@ -94,16 +95,15 @@ class GrantListView(views.ListView):
 class GrantView(views.EntityView):
     def __init__(self):
         views.EntityView.__init__(self, grant_model, ACTION_CHECKED,
-                ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED, ACTION_CANCEL)
+                ACTION_ACKNOWLEDGED, ACTION_CANCEL)
 
     def create_form(self, request_input, entity):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
         creator = readonly_fields.ReadOnlyKeyField('creator')
-#        transferred_sterling = ExchangeCurrencyField(u'Transferred Amount £', 'sterling')
-#        transferred_ugx = ExchangeCurrencyField('Transferred Amount Ush', 'ugx')
-        return [state_field, creator] + map(readonly_fields.create_readonly_field, 
+        transferred = ExchangeCurrencyField('transferred_amount')
+        return [state_field, creator, transferred] + map(readonly_fields.create_readonly_field, 
                     form._fields.keys(), form._fields.values())
 
 def add_rules(app):

@@ -15,7 +15,8 @@ TRANSFER_PENDING = 1
 TRANSFER_COMPLETE = 0
 state_field = readonly_fields.StateField('Transferred', 'Pending')
 
-ACTION_TRANSFERRED = model.Action('transferred', 'Transferred', RoleType.FUND_ADMIN, TRANSFER_PENDING)
+ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
+                            TRANSFER_COMPLETE, [TRANSFER_PENDING])
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
