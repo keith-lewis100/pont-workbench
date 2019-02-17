@@ -17,12 +17,16 @@ GRANT_WAITING = 1
 GRANT_READY = 2
 GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
-#states.State('Closed') # 0
 
 state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
 
-ACTION_CHECKED = model.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-#ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, GRANT_TRANSFERED, [GRANT_READY])
+class CheckedAction(model.StateAction):
+    def apply_to(self, entity, user=None):
+        entity.state_index = GRANT_READY
+        entity.transfer = None    
+        entity.put()
+
+ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 

@@ -19,7 +19,6 @@ import grants
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
-
 start_transfer = model.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
 create_action = model.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
 update_action = model.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
@@ -87,12 +86,14 @@ def view_supplier(db_id):
     dialogs = []
     if views.process_edit_button(update_action, form, supplier, user, buttons, dialogs):
         supplier.put()
-        return redirect(request.base_url)    
+        return redirect(request.base_url)
+    error = ""
     if views.process_action_button(start_transfer, supplier, user, buttons):
         transfer = process_transfer_request(supplier, user)
         if transfer is not None:
             transfer_url = views.url_for_entity(transfer)
             return redirect(transfer_url)
+        error = renderers.render_error("No grants are pending - nothing to transfer")
     breadcrumbs = views.create_breadcrumbs_list(supplier)
     links = get_links(supplier)
     fields = (readonly_fields.ReadOnlyField('name'), )
@@ -100,5 +101,5 @@ def view_supplier(db_id):
     title = 'Supplier ' + supplier.name
     payments = render_paymentsdue_list()
     sub_heading = renderers.sub_heading('Payments Due for ' + supplier.name)
-    content = (grid, sub_heading, payments)
+    content = (error, grid, sub_heading, payments)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons, dialogs=dialogs)

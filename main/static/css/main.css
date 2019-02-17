@@ -1,4 +1,5 @@
-span.error {
+span.error,
+div.error {
   color: red;
 }
 

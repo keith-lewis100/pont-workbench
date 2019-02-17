@@ -78,3 +78,6 @@ def render_modal_dialog(element, id, open=False):
 
 def sub_heading(heading):
     return (html.hr(), html.h2(heading))
+    
+def render_error(message):
+    return html.div(message, class_='error')
