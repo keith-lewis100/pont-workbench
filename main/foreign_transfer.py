@@ -24,10 +24,25 @@ ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.PA
                             None, [TRANSFER_REQUESTED])
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN, None, [TRANSFER_TRANSFERRED])
 
+class RequestTotalsField(readonly_fields.ReadOnlyField):
+    def __init__(self, name):
+        super(RequestTotalsField, self).__init__(name)
+
+    def render_value(self, transfer):
+        total_sterling = 0
+        total_shillings = 0
+        for grant in transfer.grant_list:
+            if grant.amount.currency == 'sterling':
+                total_sterling += grant.amount.value
+            else:
+                total_shillings += grant.amount.value
+        return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
+
 ref_field = readonly_fields.ReadOnlyField('ref_id')
 state_field = readonly_fields.StateField('Closed', 'Requested', 'Transferred')
 creator_field = readonly_fields.ReadOnlyKeyField('creator')
 rate_field = readonly_fields.ReadOnlyField('exchange_rate')
+request_totals_field = RequestTotalsField('total_payment')
 
 class ExchangeRateForm(wtforms.Form):
     action = wtforms.HiddenField(default='transferred')
@@ -83,10 +98,11 @@ def view_foreigntransfer(db_id):
     if views.process_action_button(ACTION_ACKNOWLEDGED, transfer, user, buttons, dialogs):
         do_acknowledge(transfer)
         return redirect(request.base_url)
-    transfer_fields = (ref_field, state_field, rate_field, creator_field)
-    grid = renderers.render_grid(transfer, transfer_fields)
+    transfer_fields = (ref_field, state_field, rate_field, request_totals_field, creator_field)
     breadcrumbs = views.create_breadcrumbs_list(transfer)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    transfer.grant_list = grant_list
+    grid = renderers.render_grid(transfer, transfer_fields)
     payments = paymentsdue.render_payments(grant_list)
     sub_heading = renderers.sub_heading('Grant Payments')
     content = (grid, sub_heading, payments)

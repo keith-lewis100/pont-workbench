@@ -7,12 +7,12 @@ import grants
 
 payments_field_list = [
     grants.state_field,
-    readonly_fields.ReadOnlyField('requestor', 'Requestor'),
-    readonly_fields.ReadOnlyField('amount', 'Amount'),
+    readonly_fields.ReadOnlyField('requestor'),
+    readonly_fields.ReadOnlyField('amount'),
     grants.ExchangeCurrencyField('transferred_amount'),
-    readonly_fields.ReadOnlyField('project_name', 'Project Name'),
+    readonly_fields.ReadOnlyField('project_name'),
     readonly_fields.ReadOnlyField('partner', 'Implementing Partner'),
-    readonly_fields.ReadOnlyField('source_fund', 'Source Fund'),
+    readonly_fields.ReadOnlyField('source_fund'),
     readonly_fields.ReadOnlyField('dest_fund', 'Destination Fund')
 ]
 
