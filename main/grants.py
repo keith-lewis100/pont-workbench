@@ -30,11 +30,6 @@ ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, 
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
-class MoneyForm(wtforms.Form):
-    currency = custom_fields.SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                    widget=custom_fields.radio_field_widget)
-    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=100)])
-
 class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
     def __init__(self, name):
         super(ExchangeCurrencyField, self).__init__(name)
@@ -55,7 +50,7 @@ class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
         return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
 
 class GrantForm(wtforms.Form):
-    amount = wtforms.FormField(MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
+    amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
     project = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
     target_date = wtforms.DateField(widget=widgets.MonthInput(), format='%Y-%m',
                                 validators=[wtforms.validators.InputRequired()])

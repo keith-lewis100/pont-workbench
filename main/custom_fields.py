@@ -2,6 +2,7 @@
 
 import wtforms
 from html_builder import html
+import renderers
 
 # check recommended elements in skeleton css framework
 def radio_field_widget(field, **kwargs):
@@ -20,16 +21,14 @@ def render_field(field):
         elements.append(html.span(' '.join(field.errors), class_="error"))
     return elements
 
-def render_form(form, **kwargs):
-    form_fields = render_fields(form)
-    submit = html.input(type="submit", value="Submit", class_="button-primary")
-    return html.form(form_fields, submit, method="post", **kwargs)
-
 def render_fields(form):
-    elements = []
-    for field in form._fields.values():
-        elements += render_field(field)
-    return elements
+    return map(render_field, form._fields.values())
+
+def render_dialog_button(label, id, form, enabled=True):
+    form_fields = render_fields(form)
+    dialog = renderers.render_modal_dialog(form_fields, id, form.errors)
+    button = renderers.render_modal_open(label, id, disabled=not enabled)
+    return ('\n', dialog, button)
 
 def form_field_widget(form_field, **kwargs):
     children = render_fields(form_field)
@@ -72,3 +71,9 @@ class SelectField(wtforms.SelectFieldBase):
                 break
         else:
             raise ValueError(self.gettext('Not a valid choice'))
+
+class MoneyForm(wtforms.Form):
+    currency = SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
+                    widget=radio_field_widget)
+    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=10)])
+

@@ -4,6 +4,7 @@ from flask import url_for, request, redirect
 from application import app
 from flask.views import View
 import wtforms
+from datetime import date
 
 import db
 import model
@@ -41,6 +42,7 @@ class RequestTotalsField(readonly_fields.ReadOnlyField):
 ref_field = readonly_fields.ReadOnlyField('ref_id')
 state_field = readonly_fields.StateField('Closed', 'Requested', 'Transferred')
 creator_field = readonly_fields.ReadOnlyKeyField('creator')
+creation_date_field = readonly_fields.ReadOnlyField('creation_date')
 rate_field = readonly_fields.ReadOnlyField('exchange_rate')
 request_totals_field = RequestTotalsField('total_payment')
 
@@ -53,11 +55,11 @@ def view_foreigntransfer_list(db_id):
     supplier = model.lookup_entity(db_id)
     breadcrumbs = views.create_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
-    transfer_fields = [ref_field, state_field, rate_field]
+    transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
     entity_table = renderers.render_table(transfer_list, views.url_for_entity, *transfer_fields)
     return views.render_view('Foreign Transfer List', breadcrumbs, entity_table)
 
-def process_transferred_button(transfer, user, buttons, dialogs):
+def process_transferred_button(transfer, user, buttons):
     form = ExchangeRateForm(request.form)
     if (request.method == 'POST' and request.form.get('action') == 'transferred' 
               and form.validate()):
@@ -69,11 +71,8 @@ def process_transferred_button(transfer, user, buttons, dialogs):
             grant.state_index = grants.GRANT_TRANSFERED
             grant.put()
         return True
-    rendered_form = custom_fields.render_form(form)
-    dialog = renderers.render_modal_dialog(rendered_form, 'd-transferred', form.errors)
-    dialogs.append(dialog)
     enabled = ACTION_TRANSFERRED.is_allowed(transfer, user)
-    button = renderers.render_modal_open(ACTION_TRANSFERRED.label, 'd-transferred', enabled)
+    button = custom_fields.render_dialog_button(ACTION_TRANSFERRED.label, 'd-transferred', form, enabled)
     buttons.append(button)
     return False
 
@@ -90,15 +89,17 @@ def do_acknowledge(transfer):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = model.lookup_entity(db_id)
+    if transfer.creation_date is None:
+        transfer.creation_date = date(2019, 2, 8)
+        transfer.put()
     user = views.current_user()
     buttons = []
-    dialogs = []
-    if process_transferred_button(transfer, user, buttons, dialogs):
+    if process_transferred_button(transfer, user, buttons):
         return redirect(request.base_url)
-    if views.process_action_button(ACTION_ACKNOWLEDGED, transfer, user, buttons, dialogs):
+    if views.process_action_button(ACTION_ACKNOWLEDGED, transfer, user, buttons):
         do_acknowledge(transfer)
         return redirect(request.base_url)
-    transfer_fields = (ref_field, state_field, rate_field, request_totals_field, creator_field)
+    transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
     breadcrumbs = views.create_breadcrumbs_list(transfer)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
@@ -106,4 +107,4 @@ def view_foreigntransfer(db_id):
     payments = paymentsdue.render_payments(grant_list)
     sub_heading = renderers.sub_heading('Grant Payments')
     content = (grid, sub_heading, payments)
-    return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons, dialogs=dialogs)
+    return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons)

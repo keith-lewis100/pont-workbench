@@ -108,7 +108,7 @@ class StateAction(Action):
         
     def apply_to(self, entity):
         entity.state_index = self.next_state
-        entity.put()    
+        entity.put()
 
 class EntityModel:
     def __init__(self, name, create_role, *update_states):

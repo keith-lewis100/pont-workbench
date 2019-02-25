@@ -63,24 +63,20 @@ class ListView(View):
             entity_model.perform_create(entity, user)
             return redirect(request.base_url)
             
-        rendered_form = custom_fields.render_form(form)
         enabled = entity_model.is_create_allowed(parent, user)
-        open_modal = renderers.render_modal_open('New', 'm1', enabled)
-        dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
+        new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
-        breadcrumbHtml = renderers.render_div(*breadcrumbs);
-        main = renderers.render_div(open_modal, dialog, entity_table)
-        return render_template('layout.html', title=entity_model.name + ' List', breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+        return render_view(entity_model.name + ' List', breadcrumbs, entity_table, buttons=[new_button])
 
-def render_view(title, breadcrumbs, content, links=[], buttons=[], dialogs=[]):
+def render_view(title, breadcrumbs, content, links=[], buttons=[]):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
     nav = renderers.render_nav(*links)
-    menu = renderers.render_menu(*buttons)
-    main = renderers.render_div(nav, menu, dialogs, content)
+    menu = renderers.render_nav(*buttons)
+    main = renderers.render_div(nav, menu, content)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
 
-def process_action_button(action, entity, user, buttons, dialogs=[]):
+def process_action_button(action, entity, user, buttons):
     enabled = action.is_allowed(entity, user)
     button = renderers.render_submit_button(action.label, name='action', value=action.name,
             disabled=not enabled)
@@ -93,16 +89,13 @@ def process_action_button(action, entity, user, buttons, dialogs=[]):
 
     return False
  
-def process_edit_button(action, form, entity, user, buttons, dialogs):
+def process_edit_button(action, form, entity, user, buttons):
     if request.method == 'POST' and not request.form.has_key('action') and form.validate():
         form.populate_obj(entity)
         return True
     enabled = action.is_allowed(entity, user)
-    button = renderers.render_modal_open(action.label, 'd-edit', enabled)
-    rendered_form = custom_fields.render_form(form)
-    dialog = renderers.render_modal_dialog(rendered_form, 'd-edit', form.errors)
-    buttons.append(button)
-    dialogs.append(dialog)
+    edit_button = custom_fields.render_dialog_button(action.label, 'd-edit', form, enabled)
+    buttons.append(edit_button)
     return False
  
 class EntityView(View):
@@ -121,13 +114,12 @@ class EntityView(View):
         entity = model.lookup_entity(db_id)
         form = self.create_form(request.form, entity)
         buttons = []
-        dialogs = []
-        if process_edit_button(self.entity_model.get_update_action(), form, entity, user, 
-                      buttons, dialogs):
-            action.apply_to(entity)
+        update_action = self.entity_model.get_update_action()
+        if process_edit_button(update_action, form, entity, user, buttons):
+            entity.put()
             return redirect(request.base_url)    
         for action in self.actions:
-          if process_action_button(action, entity, user, buttons, dialogs):
+          if process_action_button(action, entity, user, buttons):
             action.apply_to(entity)
             return redirect(request.base_url)
         title = self.entity_model.title(entity)
@@ -140,4 +132,4 @@ class EntityView(View):
             wide_items = [renderers.render_div(last, class_="u-full-width")]
             fields = fields[:-1]
         grid = renderers.render_grid(entity, fields) + wide_items
-        return render_view(title, breadcrumbs, grid, links, buttons, dialogs)
+        return render_view(title, breadcrumbs, grid, links, buttons)

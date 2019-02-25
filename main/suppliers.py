@@ -34,14 +34,12 @@ def view_supplier_list():
         new_supplier.put()
         return redirect(request.base_url)
         
-    rendered_form = custom_fields.render_form(form)
-    open_modal = renderers.render_modal_open('New', 'm1', enabled)
-    dialog = renderers.render_modal_dialog(rendered_form, 'm1', form.errors)
+    new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()
     entity_table = renderers.render_table(supplier_list, views.url_for_entity, *supplier_field_list)
-    return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=[open_modal], dialogs=[dialog])
+    return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=[new_button])
 
 def get_links(entity):
     db_id = entity.key.urlsafe()
@@ -83,8 +81,7 @@ def view_supplier(db_id):
     user = views.current_user()
     form = SupplierForm(request.form, obj=supplier)
     buttons = []
-    dialogs = []
-    if views.process_edit_button(update_action, form, supplier, user, buttons, dialogs):
+    if views.process_edit_button(update_action, form, supplier, user, buttons):
         supplier.put()
         return redirect(request.base_url)
     error = ""
@@ -102,4 +99,4 @@ def view_supplier(db_id):
     payments = render_paymentsdue_list()
     sub_heading = renderers.sub_heading('Payments Due for ' + supplier.name)
     content = (error, grid, sub_heading, payments)
-    return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons, dialogs=dialogs)
+    return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)

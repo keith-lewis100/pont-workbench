@@ -69,7 +69,8 @@ class ForeignTransfer(ndb.Model):
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
     exchange_rate = ndb.IntegerProperty()
-    
+    creation_date = ndb.DateProperty(auto_now_add = True)
+
 # Top level
 class Fund(ndb.Model):
     name = ndb.StringProperty()
@@ -116,13 +117,21 @@ class Pledge(ndb.Model):
     ref_id = ndb.StringProperty()
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
-    
+
 # ancestor = Fund
 class Purchase(ndb.Model):
     description = ndb.StringProperty()
-    amount = MoneyProperty(default=Money())
+    quote_amount = MoneyProperty(default=Money())
+    amount = MoneyProperty(default=Money()) # invoiced amount
     state_index = ndb.IntegerProperty(default=1)
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
-    
+    transfer = ndb.KeyProperty(kind=ForeignTransfer)
+
+# ancestor = Purchase
+class AdvancePayment(ndb.Model):
+    amount = MoneyProperty(default=Money())
+    creator = ndb.KeyProperty(kind=User)
+    transfer = ndb.KeyProperty(kind=ForeignTransfer)
+    state_index = ndb.IntegerProperty(default=1)

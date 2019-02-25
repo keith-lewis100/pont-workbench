@@ -18,7 +18,7 @@ def render_grid(obj, items):
             item = items[x + y]
             col = html.div(item.render(obj), class_="four columns")
             cols.append(col)
-        rows.append(html.div(*cols, class_="row"))    
+        rows.append(('\n', html.div(*cols, class_="row")))
     return rows
 
 def legend(label):
@@ -51,10 +51,8 @@ def render_link(label, url, **kwargs):
     return html.a(label, href=url, **kwargs)
     
 def render_submit_button(label, **kwargs):
-    return html.button(label, type="submit", **kwargs)
-
-def render_menu(*content, **kwargs):
-    return html.nav(html.form(*content, method="post", **kwargs))
+    button = html.button(label, type="submit", **kwargs)
+    return ('\n', html.form(button, method="post"))
 
 def render_nav(*content):
     return html.nav(*content)
@@ -65,12 +63,15 @@ def render_div(*content, **kwargs):
 def render_logout(user, url):
     return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))
          
-def render_modal_open(legend, id, enabled):
-    return html.button(legend, type="button", onclick="openDialog('%s');" % id, disabled=not enabled)
-    
-def render_modal_dialog(element, id, open=False):
+def render_modal_open(legend, id, **kwargs):
+    button = html.button(legend, type="button", onclick="openDialog('%s');" % id, **kwargs)
+    return html.form(button, method="post")
+
+def render_modal_dialog(form_fields, id, open=False):
+    submit = html.input(type="submit", value="Submit", class_="button-primary")
+    form = html.form(form_fields, submit, method="post")
     close = html.span(SafeString("&times;"), class_="close", onclick="closeDialog('%s');" % id)
-    content = html.div(close, element, class_="modal-content")
+    content = html.div(close, form, class_="modal-content")
     class_val = "modal"
     if open:
         class_val = "modal modal-open"

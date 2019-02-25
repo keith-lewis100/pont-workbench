@@ -3,6 +3,9 @@ div.error {
   color: red;
 }
 
+form {
+  display: inline-block;
+}
 tr.selectable:hover {
   background-color: #1EAEDB;
 }
