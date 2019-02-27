@@ -4,6 +4,25 @@ from html_builder import html
 import model
 import views
 
+def create_accessor(attr_list):
+    accessor = None
+    for attr in attr_list:
+        accessor = Accessor(accessor, attr)
+    return accessor
+
+class Accessor:
+    def __init__(self, entity_accessor, attr):
+        self.entity_accessor = entity_accessor
+        self.attr = attr
+
+    def __call__(self, entity):
+        if self.entity_accessor:
+            key = self.entity_accessor(entity)
+            entity = key.get()
+        if self.attr == '^':
+            return entity.key.parent()
+        return getattr(entity, self.attr)
+
 def create_readonly_field(name, form_field):
     if hasattr(form_field, 'coerce') and form_field.coerce == model.create_key:
         return ReadOnlyKeyField(name, form_field.label)
@@ -13,13 +32,13 @@ def create_readonly_field(name, form_field):
     return ReadOnlyField(name, form_field.label, form_field.type == 'TextAreaField')
 
 class ReadOnlyField(object):
-    def __init__(self, name, label=None, wide=False):
-        self.name = name
-        self.label = label if label != None else name.replace("_", " ").title()
+    def __init__(self, path, label=None, wide=False):
+        self.accessor = create_accessor(path.split('.'))
+        self.label = label if label != None else path.replace("_", " ").title()
         self.wide = wide
         
     def render_value(self, entity):
-        return unicode(getattr(entity, self.name))
+        return unicode(self.accessor(entity))
 
     def render(self, entity):
         value = self.render_value(entity)
@@ -33,7 +52,7 @@ class ReadOnlySelectField(ReadOnlyField):
         self.coerce = coerce
 
     def render_value(self, entity):
-        property = getattr(entity, self.name)
+        property = self.accessor(entity)
         for value, label in self.choices:
             if self.coerce(value) == property:
                 return label
