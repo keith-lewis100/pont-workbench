@@ -9,15 +9,25 @@ def get_next_id():
 datastore = {}
 
 class Key:
-  def __init__(self, id, parent_key):
-    self.id = id
+  def __init__(self, kind, id, parent_key):
+    self._kind = kind
+    self._id = id
     self.parent_key = parent_key
 
+  def kind(self):
+    return self._kind
+
+  def id(self):
+    return self._id
+
   def get(self):
-    return datastore.get(self.id)
+    return datastore.get(self._id)
 
   def parent(self):
     return self.parent_key
+
+  def urlsafe(self):
+      return self._kind + '-' + str(self._id)
 
 class StringProperty:
     def __init__(self, default=None):
@@ -49,12 +59,12 @@ class Model:
         return None
 
     @staticmethod
-    def query():
+    def query(*args):
         return Query()
 
     def __init__(self, parent=None):
         id = get_next_id()
-        self.key = Key(id, parent)
+        self.key = Key('kind', id, parent)
 
     def put(self):
-        datastore[self.key.id] = self
+        datastore[self.key.id()] = self

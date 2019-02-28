@@ -2,11 +2,11 @@
 
 from html_builder import html
 import model
-import views
+import flask
 
-def create_accessor(attr_list):
+def create_accessor(path):
     accessor = None
-    for attr in attr_list:
+    for attr in path.split('.'):
         accessor = Accessor(accessor, attr)
     return accessor
 
@@ -33,7 +33,7 @@ def create_readonly_field(name, form_field):
 
 class ReadOnlyField(object):
     def __init__(self, path, label=None, wide=False):
-        self.accessor = create_accessor(path.split('.'))
+        self.accessor = create_accessor(path)
         self.label = label if label != None else path.replace("_", " ").title()
         self.wide = wide
         
@@ -57,7 +57,10 @@ class ReadOnlySelectField(ReadOnlyField):
             if self.coerce(value) == property:
                 return label
         return ""
-        
+
+def url_for_key(key):
+    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
+
 class ReadOnlyKeyField:
     def __init__(self, name, label=None, title_of=lambda e : e.name):
         self.name = name
@@ -78,7 +81,7 @@ class ReadOnlyKeyField:
             return ""
         target = key.get()
         legend = html.legend(self.label)
-        link = html.a(self.title_of(target), href=views.url_for_entity(target))
+        link = html.a(self.title_of(target), href=url_for_key(key))
         return (legend, link)
 
 class StateField(ReadOnlyField):
