@@ -19,6 +19,9 @@ GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 
 state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
+creator_field = readonly_fields.ReadOnlyKeyField('creator')
+project_field = readonly_fields.ReadOnlyKeyField('project')
+amount_field = readonly_fields.ReadOnlyField('amount')
 
 class CheckedAction(model.StateAction):
     def apply_to(self, entity, user=None):
@@ -48,6 +51,8 @@ class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
             sterling = int(requested_amount / transfer.exchange_rate)
             shillings = requested_amount
         return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
+
+transferred_amount_field = ExchangeCurrencyField('transferred_amount')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
@@ -88,8 +93,7 @@ class GrantListView(views.ListView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyKeyField('project'),
-                readonly_fields.ReadOnlyField('amount'), state_field)
+        return (project_field, amount_field, state_field)
 
 class GrantView(views.EntityView):
     def __init__(self):
@@ -100,9 +104,7 @@ class GrantView(views.EntityView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        creator = readonly_fields.ReadOnlyKeyField('creator')
-        transferred = ExchangeCurrencyField('transferred_amount')
-        return [state_field, creator, transferred] + map(readonly_fields.create_readonly_field, 
+        return [state_field, creator_field, transferred_amount_field] + map(readonly_fields.create_readonly_field, 
                     form._fields.keys(), form._fields.values())
 
 def add_rules(app):

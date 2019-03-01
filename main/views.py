@@ -7,6 +7,7 @@ from google.appengine.api import users
 import renderers
 import model
 import custom_fields
+import readonly_fields
 
 def url_for_entity(entity):
     key = entity.key
@@ -49,7 +50,7 @@ class ListView(View):
     def render_entities(self, parent, form):
         entity_list = self.entity_model.load_entities(parent)
         fields = self.get_fields(form)
-        return renderers.render_table(entity_list, url_for_entity, *fields)
+        return readonly_fields.render_table(entity_list, fields)
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()

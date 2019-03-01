@@ -56,7 +56,7 @@ def view_foreigntransfer_list(db_id):
     breadcrumbs = views.create_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
-    entity_table = renderers.render_table(transfer_list, views.url_for_entity, *transfer_fields)
+    entity_table = readonly_fields.render_table(transfer_list, transfer_fields)
     return views.render_view('Foreign Transfer List', breadcrumbs, entity_table)
 
 def process_transferred_button(transfer, user, buttons):
@@ -89,9 +89,6 @@ def do_acknowledge(transfer):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = model.lookup_entity(db_id)
-    if transfer.creation_date is None:
-        transfer.creation_date = date(2019, 2, 8)
-        transfer.put()
     user = views.current_user()
     buttons = []
     if process_transferred_button(transfer, user, buttons):

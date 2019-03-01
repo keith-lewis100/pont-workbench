@@ -36,4 +36,4 @@ def render_payments(grant_list):
         p.source_fund = grant.key.parent().get().code
         p.dest_fund = grant.project.parent().get().name
         payments_list.append(p)
-    return renderers.render_table(payments_list, views.url_for_entity, *payments_field_list)
+    return readonly_fields.render_table(payments_list, payments_field_list)

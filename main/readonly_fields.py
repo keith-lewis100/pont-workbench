@@ -3,6 +3,24 @@
 from html_builder import html
 import model
 import flask
+import renderers
+
+def render_table(object_list, columns):
+    column_headers, grid, url_list = generate_table_data(object_list, columns)
+    return renderers.render_table(column_headers, grid, url_list)
+
+def generate_table_data(object_list, columns):
+    column_headers = map(lambda c: c.label, columns)
+    grid = map(lambda obj: generate_row(obj, columns), object_list)
+    url_list = map(url_for_entity, object_list)
+    return (column_headers, grid, url_list)
+
+def generate_row(obj, columns):
+    return map(lambda col: col.render_value(obj), columns)
+
+def url_for_entity(entity):
+    key = entity.key
+    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
 
 def create_accessor(path):
     accessor = None
@@ -17,8 +35,9 @@ class Accessor:
 
     def __call__(self, entity):
         if self.entity_accessor:
-            key = self.entity_accessor(entity)
-            entity = key.get()
+            entity = self.entity_accessor(entity)
+        if entity is None:
+            return None
         if self.attr == '^':
             return entity.key.parent()
         return getattr(entity, self.attr)
@@ -34,7 +53,7 @@ def create_readonly_field(name, form_field):
 class ReadOnlyField(object):
     def __init__(self, path, label=None, wide=False):
         self.accessor = create_accessor(path)
-        self.label = label if label != None else path.replace("_", " ").title()
+        self.label = label if label != None else path.split('.')[-1].replace("_", " ").title()
         self.wide = wide
         
     def render_value(self, entity):
@@ -46,8 +65,8 @@ class ReadOnlyField(object):
         return (legend, value)
 
 class ReadOnlySelectField(ReadOnlyField):
-    def __init__(self, name, label=None, coerce=unicode, choices=[]):
-        super(ReadOnlySelectField, self).__init__(name, label)
+    def __init__(self, path, label=None, coerce=unicode, choices=[]):
+        super(ReadOnlySelectField, self).__init__(path, label)
         self.choices = choices
         self.coerce = coerce
 
@@ -58,30 +77,26 @@ class ReadOnlySelectField(ReadOnlyField):
                 return label
         return ""
 
-def url_for_key(key):
-    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
-
-class ReadOnlyKeyField:
-    def __init__(self, name, label=None, title_of=lambda e : e.name):
-        self.name = name
-        self.label = label if label != None else name.replace("_", " ").title()
+class ReadOnlyKeyField(ReadOnlyField):
+    def __init__(self, path, label=None, title_of=lambda e : e.name):
+        super(ReadOnlyKeyField, self).__init__(path, label)
         self.title_of = title_of
         self.wide = False
         
     def render_value(self, entity):
-        key = getattr(entity, self.name)
+        key = self.accessor(entity)
         if not key:
             return ""
         target = key.get()
         return self.title_of(target)
         
     def render(self, entity):
-        key = getattr(entity, self.name)
+        key = self.accessor(entity)
         if not key:
             return ""
         target = key.get()
         legend = html.legend(self.label)
-        link = html.a(self.title_of(target), href=url_for_key(key))
+        link = html.a(self.title_of(target), href=url_for_entity(target))
         return (legend, link)
 
 class StateField(ReadOnlyField):
@@ -95,3 +110,10 @@ class StateField(ReadOnlyField):
             return "None"
         return self.state_names[state]
             
+class LiteralField:
+    def __init__(self, value, label):
+        self.value = value
+        self.label = label
+
+    def render_value(self, entity):
+        return self.value

@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-import wtforms
+from wtforms import widgets, Form, FormField, IntegerField, SelectFieldBase, validators
 from html_builder import html
 import renderers
 
@@ -15,9 +15,10 @@ def radio_field_widget(field, **kwargs):
 
 def render_field(field):
     elements = []
-    elements.append(field.label())
+    if not isinstance(field.widget, widgets.HiddenInput):
+        elements.append(field.label())
     elements.append(field(class_="u-full-width"))
-    if field.errors and not field is wtforms.FormField:
+    if field.errors and not field is FormField:
         elements.append(html.span(' '.join(field.errors), class_="error"))
     return elements
 
@@ -40,8 +41,8 @@ def set_field_choices(field, entity_list):
         choices = [(None, "")] + choices
     field.choices=choices
 
-class SelectField(wtforms.SelectFieldBase):
-    widget = wtforms.widgets.Select()
+class SelectField(SelectFieldBase):
+    widget = widgets.Select()
 
     def __init__(self, label=None, validators=None, coerce=unicode, choices=None, **kwargs):
         super(SelectField, self).__init__(label, validators, **kwargs)
@@ -72,8 +73,8 @@ class SelectField(wtforms.SelectFieldBase):
         else:
             raise ValueError(self.gettext('Not a valid choice'))
 
-class MoneyForm(wtforms.Form):
+class MoneyForm(Form):
     currency = SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
-                    widget=radio_field_widget)
-    value = wtforms.IntegerField(validators=[wtforms.validators.NumberRange(min=10)])
+                    widget=radio_field_widget, default='sterling')
+    value = IntegerField(validators=[validators.NumberRange(min=10)])
 

@@ -13,8 +13,8 @@ import custom_fields
 import readonly_fields
 import views
 from role_types import RoleType
-import paymentsdue
 import grants
+import purchases
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -38,7 +38,7 @@ def view_supplier_list():
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()
-    entity_table = renderers.render_table(supplier_list, views.url_for_entity, *supplier_field_list)
+    entity_table = readonly_fields.render_table(supplier_list, supplier_field_list)
     return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=[new_button])
 
 def get_links(entity):
@@ -70,10 +70,30 @@ def process_transfer_request(supplier, user):
             grant.put()
     return transfer
 
-def render_paymentsdue_list():
+def render_grants_due_list(supplier):
     cutoff_date = datetime.date.today() + datetime.timedelta(21)
-    grant_list = db.find_pending_payments(cutoff_date)
-    return paymentsdue.render_payments(grant_list)
+    grant_list = db.find_pending_payments(cutoff_date) # TODO: should filter on supplier
+    field_list = (grants.state_field, grants.creator_field, grants.amount_field, grants.project_field)
+    sub_heading = renderers.sub_heading('Grant Payments Due')
+    table = readonly_fields.render_table(grant_list, field_list)
+    return (sub_heading, table)
+
+advance_type_field = readonly_fields.LiteralField("Advance", "Type")
+invoice_type_field = readonly_fields.LiteralField("Invoice", "Type")
+
+def render_purchase_payments_list(supplier):
+    advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
+                         db.Purchase.advance.paid == False).fetch()
+    advance_field_list = (advance_type_field, purchases.po_number_field, purchases.creator_field, purchases.advance_amount_field)
+    column_headers, advance_grid, advance_url_list = readonly_fields.generate_table_data(advance_list, advance_field_list)
+    purchase_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
+                         db.Purchase.invoice.paid == False).fetch()
+    purchase_field_list = (invoice_type_field, purchases.po_number_field, purchases.creator_field, purchases.invoiced_amount_field)
+    unused_headers, purchase_grid, purchase_url_list = readonly_fields.generate_table_data(purchase_list, purchase_field_list)
+    sub_heading = renderers.sub_heading('Purchase Payments Due')
+    table = renderers.render_table(column_headers, advance_grid + purchase_grid,
+                            advance_url_list + purchase_url_list)
+    return (sub_heading, table)
 
 @app.route('/supplier/<db_id>', methods=['GET', 'POST'])
 def view_supplier(db_id):
@@ -96,7 +116,7 @@ def view_supplier(db_id):
     fields = (readonly_fields.ReadOnlyField('name'), )
     grid = renderers.render_grid(supplier, fields)
     title = 'Supplier ' + supplier.name
-    payments = render_paymentsdue_list()
-    sub_heading = renderers.sub_heading('Payments Due for ' + supplier.name)
-    content = (error, grid, sub_heading, payments)
+    grant_payments = render_grants_due_list(supplier)
+    purchase_payments = render_purchase_payments_list(supplier)
+    content = (error, grid, purchase_payments, grant_payments)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)

@@ -24,28 +24,18 @@ def render_grid(obj, items):
 def legend(label):
     return html.legend(label)
 
-def render_table(object_list, url_for_object, *columns):
-    head = render_header(*columns)
-    rows = []
-    for obj in object_list:
-        url = url_for_object(obj)
-        rows.append(render_row(obj, url, *columns))
-    body = html.tbody(*rows)
-    return html.table(head, body, class_="u-full-width")
-    
-def render_header(*columns):
-    children = []
-    for column in columns:
-        children.append(html.th(column.label))
-    return html.thead(html.tr(*children))
-    
-def render_row(obj, url, *columns):
-    children = []
-    for column in columns:
-        value = column.render_value(obj)
-        children.append(html.td(value))
-    return html.tr(*children, class_="selectable", 
-                   onclick="window.location='%s'" % url)
+def render_table(column_headers, grid, url_list):
+    header = render_header(column_headers)
+    rows = map(render_row, grid, url_list)
+    return html.table(html.thead(header), html.tbody(*rows), class_="u-full-width")
+
+def render_header(column_headers):
+    children = map(html.th, column_headers)
+    return html.tr(*children)
+
+def render_row(row, url):
+    children = map(html.td, row)
+    return html.tr(*children, class_="selectable", onclick="window.location='%s'" % url)
 
 def render_link(label, url, **kwargs):
     return html.a(label, href=url, **kwargs)
@@ -78,7 +68,7 @@ def render_modal_dialog(form_fields, id, open=False):
     return html.div(content, id=id, class_="%s" % class_val)
 
 def sub_heading(heading):
-    return (html.hr(), html.h2(heading))
-    
+    return (html.br(), html.h2(heading))
+
 def render_error(message):
     return html.div(message, class_='error')
