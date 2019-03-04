@@ -53,7 +53,9 @@ class Role(ndb.Model):
 # Top level
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
-    
+    receives_grants = ndb.BooleanProperty(default=False)
+    paid_in_sterling = ndb.BooleanProperty(default=True)
+
 # ancestor = Supplier
 class SupplierFund(ndb.Model):
     name = ndb.StringProperty()
@@ -105,10 +107,11 @@ class Grant(ndb.Model):
     creator = ndb.KeyProperty(kind=User)
     target_date = ndb.DateProperty()
     transfer = ndb.KeyProperty(kind=ForeignTransfer)
+    supplier = ndb.KeyProperty(kind=Supplier)
 
-def find_pending_payments(cutoff_date):
-    return Grant.query(Grant.target_date <= cutoff_date).filter(
-                ndb.OR(Grant.state_index == 1, Grant.state_index == 2)).fetch()
+def find_pending_payments(supplier, cutoff_date):
+    return Grant.query(ndb.AND(Grant.target_date <= cutoff_date, Grant.supplier == supplier.key,
+                       Grant.state_index.IN([1, 2]))).fetch()
 
 # ancestor = Fund
 class Pledge(ndb.Model):

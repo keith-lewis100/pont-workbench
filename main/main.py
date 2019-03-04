@@ -18,7 +18,6 @@ import users
 import roles
 import partners
 import foreign_transfer
-import paymentsdue
 
 @app.route('/')
 def home():

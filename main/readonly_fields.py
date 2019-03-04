@@ -38,6 +38,10 @@ class Accessor:
             entity = self.entity_accessor(entity)
         if entity is None:
             return None
+        if hasattr(entity, 'get'):
+            entity = entity.get() # handle Key
+        if self.attr == '#':
+            return entity
         if self.attr == '^':
             return entity.key.parent()
         return getattr(entity, self.attr)
@@ -117,3 +121,23 @@ class LiteralField:
 
     def render_value(self, entity):
         return self.value
+        
+class ExchangeCurrencyField(ReadOnlyField):
+    def __init__(self, path, label=None):
+        super(ExchangeCurrencyField, self).__init__(path, label)
+
+    def render_value(self, entity):
+        payment = self.accessor(entity)
+        if payment is None or payment.transfer is None:
+            return ""
+        transfer = payment.transfer.get()
+        if transfer.exchange_rate is None:
+            return ""
+        requested_amount = payment.amount.value
+        if payment.amount.currency == 'sterling':
+            sterling = requested_amount
+            shillings = int(requested_amount * transfer.exchange_rate)
+        if payment.amount.currency == 'ugx':
+            sterling = int(requested_amount / transfer.exchange_rate)
+            shillings = requested_amount
+        return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'

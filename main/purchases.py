@@ -26,9 +26,13 @@ po_number_field = readonly_fields.ReadOnlyField('po_number', 'PO number')
 creator_field = readonly_fields.ReadOnlyKeyField('creator')
 invoiced_amount_field = readonly_fields.ReadOnlyField('invoice.amount', 'Invoiced Amount')
 invoiced_paid_field = readonly_fields.ReadOnlyField('invoice.paid')
+invoice_type_field = readonly_fields.LiteralField("Invoice", "Type")
+invoice_transferred_field = readonly_fields.ExchangeCurrencyField('invoice', 'Transferred Amount')
 
 advance_amount_field = readonly_fields.ReadOnlyField('advance.amount')
 advance_paid_field = readonly_fields.ReadOnlyField('advance.paid')
+advance_type_field = readonly_fields.LiteralField("Advance", "Type")
+advance_transferred_field = readonly_fields.ExchangeCurrencyField('advance', 'Transferred Amount')
 
 class CheckedAction(model.StateAction):
     def apply_to(self, entity, user=None):
@@ -90,7 +94,7 @@ def view_purchase_list(db_id):
     return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=[new_button])
                 
 def get_fields(form):
-    return [po_number_field, state_field, invoiced_amount_field, creator_field] + map(readonly_fields.create_readonly_field,
+    return [po_number_field, state_field, invoiced_amount_field, invoice_transferred_field, creator_field] + map(readonly_fields.create_readonly_field,
                 form._fields.keys(), form._fields.values())
 
 def process_invoiced_button(purchase, user, buttons):
@@ -153,7 +157,7 @@ def view_purchase(db_id):
         if views.process_action_button(ACTION_ADVANCE_PAID, purchase, user, advance_buttons):
           purchase.advance.paid = True
           return redirect(request.base_url)        
-        advance_fields = (advance_amount_field, advance_paid_field, advance_creator_field)
+        advance_fields = (advance_amount_field, advance_paid_field, advance_transferred_field)
         advance_grid = renderers.render_grid(purchase, advance_fields)
         content = (content, sub_heading, advance_buttons, advance_grid)
     title = 'Purchase ' + purchase.po_number if purchase.po_number is not None else ""

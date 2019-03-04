@@ -15,7 +15,7 @@ import views
 from role_types import RoleType
 
 import grants
-import paymentsdue
+import purchases
 
 TRANSFER_CLOSED = 0
 TRANSFER_REQUESTED = 1
@@ -45,6 +45,19 @@ creator_field = readonly_fields.ReadOnlyKeyField('creator')
 creation_date_field = readonly_fields.ReadOnlyField('creation_date')
 rate_field = readonly_fields.ReadOnlyField('exchange_rate')
 request_totals_field = RequestTotalsField('total_payment')
+
+grant_field_list = [
+    grants.state_field, grants.creator_field, grants.project_field, grants.amount_field,
+    grants.transferred_amount_field,
+    readonly_fields.ReadOnlyField('project.partner.name', 'Implementing Partner'),
+    grants.source_field,
+    readonly_fields.ReadOnlyField('project.^.name', 'Destination Fund')
+]
+
+advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 
+                      purchases.advance_amount_field)
+invoice_field_list = (purchases.invoice_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field,
+                           purchases.invoiced_amount_field)
 
 class ExchangeRateForm(wtforms.Form):
     action = wtforms.HiddenField(default='transferred')
@@ -85,7 +98,23 @@ def do_acknowledge(transfer):
         if project.partner is None:
             grant.state_index = grants.GRANT_CLOSED
             grant.put()
-    
+
+def render_grants_due_list(transfer):
+    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    sub_heading = renderers.sub_heading('Grant Payments')
+    table = readonly_fields.render_table(grant_list, grant_field_list)
+    return (sub_heading, table)
+
+def render_purchase_payments_list(transfer):
+    advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
+    column_headers, advance_grid, advance_url_list = readonly_fields.generate_table_data(advance_list, advance_field_list)
+    purchase_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
+    unused_headers, purchase_grid, purchase_url_list = readonly_fields.generate_table_data(purchase_list, invoice_field_list)
+    sub_heading = renderers.sub_heading('Purchase Payments')
+    table = renderers.render_table(column_headers, advance_grid + purchase_grid,
+                            advance_url_list + purchase_url_list)
+    return (sub_heading, table)
+
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = model.lookup_entity(db_id)
@@ -101,7 +130,7 @@ def view_foreigntransfer(db_id):
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
     grid = renderers.render_grid(transfer, transfer_fields)
-    payments = paymentsdue.render_payments(grant_list)
-    sub_heading = renderers.sub_heading('Grant Payments')
-    content = (grid, sub_heading, payments)
+    grant_payments = render_grants_due_list(transfer)
+#    purchase_payments = render_purchase_payments_list(transfer)
+    content = (grid, grant_payments)
     return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons)

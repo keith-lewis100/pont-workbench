@@ -18,10 +18,13 @@ GRANT_READY = 2
 GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 
-state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
-creator_field = readonly_fields.ReadOnlyKeyField('creator')
-project_field = readonly_fields.ReadOnlyKeyField('project')
-amount_field = readonly_fields.ReadOnlyField('amount')
+all_grants = db.Grant.query()
+for grant in all_grants:
+    if grant.supplier is None: # fixup grants with no supplier property
+        project = grant.project
+        fund = project.parent()
+        grant.supplier = fund.parent()
+        grant.put()
 
 class CheckedAction(model.StateAction):
     def apply_to(self, entity, user=None):
@@ -33,26 +36,12 @@ ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, 
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 
-class ExchangeCurrencyField(readonly_fields.ReadOnlyField):
-    def __init__(self, name):
-        super(ExchangeCurrencyField, self).__init__(name)
-
-    def render_value(self, grant):
-        if getattr(grant, 'transfer', None) is None:
-            return ""
-        transfer = grant.transfer.get()
-        if transfer.exchange_rate is None:
-            return ""
-        requested_amount = grant.amount.value
-        if grant.amount.currency == 'sterling':
-            sterling = requested_amount
-            shillings = int(requested_amount * transfer.exchange_rate)
-        if grant.amount.currency == 'ugx':
-            sterling = int(requested_amount / transfer.exchange_rate)
-            shillings = requested_amount
-        return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
-
-transferred_amount_field = ExchangeCurrencyField('transferred_amount')
+state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
+creator_field = readonly_fields.ReadOnlyKeyField('creator', 'Requestor')
+project_field = readonly_fields.ReadOnlyKeyField('project')
+amount_field = readonly_fields.ReadOnlyField('amount')
+transferred_amount_field = readonly_fields.ExchangeCurrencyField('#', 'Transferred Amount')
+source_field = readonly_fields.ReadOnlyField('^.code', 'Source Fund')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
@@ -82,6 +71,12 @@ class GrantModel(model.EntityModel):
         
     def title(self, entity):
         return 'Grant on ' + str(entity.target_date)
+
+    def perform_create(self, entity, user):
+        entity.creator = user.key
+        fund = entity.project.parent()
+        entity.supplier = fund.parent()
+        entity.put()
 
 grant_model = GrantModel()
 
