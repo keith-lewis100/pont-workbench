@@ -17,6 +17,8 @@ state_field = readonly_fields.StateField('Transferred', 'Pending')
 
 ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
                             TRANSFER_COMPLETE, [TRANSFER_PENDING])
+ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [TRANSFER_PENDING])
+ACTION_CREATE = model.CreateAction(RoleType.COMMITTEE_ADMIN)
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -33,25 +35,15 @@ def create_transfer_form(request_fields, entity):
     custom_fields.set_field_choices(form.dest_fund, fund_list)
     return form
 
-class InternalTransferModel(model.EntityModel):
+class InternalTransferListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'InternalTransfer', RoleType.COMMITTEE_ADMIN, TRANSFER_PENDING)
-        
-    def create_entity(self, parent):
-        return db.InternalTransfer(parent=parent.key)
+        views.ListView.__init__(self, 'Internal Transfer', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.InternalTransfer.query(ancestor=parent.key).fetch()
-                        
-    def title(self, entity):
-        dest_name = entity.dest_fund.get().name if entity.dest_fund != None else ""
-        return 'InternalTransfer to ' + dest_name
-
-transfer_model = InternalTransferModel()
-
-class InternalTransferListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, transfer_model)
+        
+    def create_entity(self, parent):
+        return db.InternalTransfer(parent=parent.key)
 
     def create_form(self, request_input, entity):
         return create_transfer_form(request_input, entity)
@@ -62,7 +54,11 @@ class InternalTransferListView(views.ListView):
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, transfer_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+                        
+    def title(self, entity):
+        dest_name = entity.dest_fund.get().name if entity.dest_fund != None else ""
+        return 'InternalTransfer to ' + dest_name
 
     def create_form(self, request_input, entity):
         return create_transfer_form(request_input, entity)

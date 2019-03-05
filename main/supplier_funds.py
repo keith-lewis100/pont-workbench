@@ -11,28 +11,22 @@ import readonly_fields
 import views
 from role_types import RoleType
 
+ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_CREATE = model.CreateAction(RoleType.SUPPLIER_ADMIN)
+
 class SupplierFundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-class SupplierFundModel(model.EntityModel):
+class SupplierFundListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'SupplierFund', RoleType.SUPPLIER_ADMIN)
-
-    def create_entity(self, parent):
-        return db.SupplierFund(parent=parent.key)
+        views.ListView.__init__(self, 'SupplierFund', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.SupplierFund.query(ancestor=parent.key).fetch()
-        
-    def title(self, entity):
-        return 'SupplierFund ' + entity.name
 
-supplier_fund_model = SupplierFundModel()
-
-class SupplierFundListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, supplier_fund_model)
+    def create_entity(self, parent):
+        return db.SupplierFund(parent=parent.key)
 
     def create_form(self, request_input, entity):
         return SupplierFundForm(request_input, obj=entity)
@@ -42,7 +36,10 @@ class SupplierFundListView(views.ListView):
 
 class SupplierFundView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, supplier_fund_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+        
+    def title(self, entity):
+        return 'SupplierFund ' + entity.name
 
     def create_form(self, request_input, entity):
         return SupplierFundForm(request_input, obj=entity)

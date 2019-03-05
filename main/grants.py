@@ -32,9 +32,18 @@ class CheckedAction(model.StateAction):
         entity.transfer = None    
         entity.put()
 
+class GrantCreate(model.CreateAction):
+    def apply_to(self, entity, user):
+        entity.creator = user.key
+        fund = entity.project.parent()
+        entity.supplier = fund.parent()
+        entity.put()
+
 ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
+ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [GRANT_WAITING])
+ACTION_CREATE = GrantCreate(RoleType.COMMITTEE_ADMIN)
 
 state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
 creator_field = readonly_fields.ReadOnlyKeyField('creator', 'Requestor')
@@ -57,32 +66,17 @@ def create_grant_form(request_input, entity):
     custom_fields.set_field_choices(form._fields['project'], project_list)
     return form
 
-class GrantModel(model.EntityModel):
+class GrantListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Grant', RoleType.COMMITTEE_ADMIN, GRANT_WAITING)
-        
+        views.ListView.__init__(self, 'Grant', ACTION_CREATE)
+
+    def load_entities(self, parent):
+        return db.Grant.query(ancestor=parent.key).fetch()
+
     def create_entity(self, parent):
         entity = db.Grant(parent=parent.key)
         entity.target_date = date.today() + timedelta(30)
         return entity
-
-    def load_entities(self, parent):
-        return db.Grant.query(ancestor=parent.key).fetch()
-        
-    def title(self, entity):
-        return 'Grant on ' + str(entity.target_date)
-
-    def perform_create(self, entity, user):
-        entity.creator = user.key
-        fund = entity.project.parent()
-        entity.supplier = fund.parent()
-        entity.put()
-
-grant_model = GrantModel()
-
-class GrantListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, grant_model)
 
     def create_form(self, request_input, entity):
         return create_grant_form(request_input, entity)
@@ -92,8 +86,11 @@ class GrantListView(views.ListView):
 
 class GrantView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, grant_model, ACTION_CHECKED,
+        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_CHECKED,
                 ACTION_ACKNOWLEDGED, ACTION_CANCEL)
+   
+    def title(self, entity):
+        return 'Grant on ' + str(entity.target_date)
 
     def create_form(self, request_input, entity):
         return create_grant_form(request_input, entity)

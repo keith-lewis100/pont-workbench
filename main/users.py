@@ -11,28 +11,22 @@ import custom_fields
 import readonly_fields
 from role_types import RoleType
 
+ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.USER_ADMIN)
+ACTION_CREATE = model.CreateAction(RoleType.USER_ADMIN)
+
 class UserForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     email =  wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     
-class UserModel(model.EntityModel):
+class UserListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'User', RoleType.USER_ADMIN)
-        
-    def create_entity(self, parent):
-        return db.User()
+        views.ListView.__init__(self, 'User', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.User.query().fetch()
         
-    def title(self, entity):
-        return 'User ' + entity.name
-
-user_model = UserModel()
-
-class UserListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, user_model)
+    def create_entity(self, parent):
+        return db.User()
         
     def create_form(self, request_input, entity):
         return UserForm(request_input, obj=entity)
@@ -42,7 +36,10 @@ class UserListView(views.ListView):
 
 class UserView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, user_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+
+    def title(self, entity):
+        return 'User ' + entity.name
         
     def create_form(self, request_input, entity):
         return UserForm(request_input, obj=entity)

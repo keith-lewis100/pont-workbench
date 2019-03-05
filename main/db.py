@@ -136,3 +136,10 @@ class Purchase(ndb.Model):
     creator = ndb.KeyProperty(kind=User)
     invoice = ndb.StructuredProperty(Payment)
     advance = ndb.StructuredProperty(Payment)
+
+class AuditRecord(ndb.Model):
+    entity = ndb.KeyProperty()
+    user = ndb.KeyProperty(kind=User)
+    action = ndb.StringProperty()
+    description = ndb.StringProperty()
+    timestamp = ndb.DateProperty(auto_now_add=True)

@@ -10,14 +10,22 @@ import custom_fields
 import readonly_fields
 import views
 from role_types import RoleType
-from projects import project_model
 
 PLEDGE_PENDING = 1
 PLEDGE_FULFILLED = 2
 PLEDGE_CLOSED = 3
+    
+class PledgeCreate(model.CreateAction):
+    def apply_to(self, entity, user):
+        ref = model.get_next_ref()
+        entity.ref_id = 'PL%04d' % ref
+        entity.creator = user.key
+        entity.put()
 
 ACTION_FULFILLED = model.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
 ACTION_BOOKED = model.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
+ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PLEDGE_PENDING])
+ACTION_CREATE = PledgeCreate(RoleType.COMMITTEE_ADMIN)
 
 state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')
 
@@ -27,30 +35,16 @@ class MoneyForm(wtforms.Form):
 class PledgeForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
     description = wtforms.TextAreaField()
-    
-class PledgeModel(model.EntityModel):
-    def __init__(self):
-        model.EntityModel.__init__(self, 'Pledge', RoleType.COMMITTEE_ADMIN, PLEDGE_PENDING)
 
-    def create_entity(self, parent):
-        return db.Pledge(parent=parent.key)
+class PledgeListView(views.ListView):
+    def __init__(self):
+        views.ListView.__init__(self, 'Pledge', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.Pledge.query(ancestor=parent.key).fetch()
-        
-    def title(self, entity):
-        return 'Pledge'
-        
-    def perform_create(self, entity, user):
-        ref = model.get_next_ref()
-        entity.ref_id = 'PL%04d' % ref
-        model.EntityModel.perform_create(self, entity, user)
 
-pledge_model = PledgeModel()
-        
-class PledgeListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, pledge_model)
+    def create_entity(self, parent):
+        return db.Pledge(parent=parent.key)
         
     def create_form(self, request_input, entity):
         return PledgeForm(request_input, obj=entity)
@@ -61,7 +55,10 @@ class PledgeListView(views.ListView):
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, pledge_model, ACTION_FULFILLED, ACTION_BOOKED)
+        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_FULFILLED, ACTION_BOOKED)
+
+    def title(self, entity):
+        return 'Pledge'
         
     def create_form(self, request_input, entity):
         return PledgeForm(request_input, obj=entity)

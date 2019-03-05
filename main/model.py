@@ -110,23 +110,11 @@ class StateAction(Action):
         entity.state_index = self.next_state
         entity.put()
 
-class EntityModel:
-    def __init__(self, name, create_role, *update_states):
-        self.name = name
-        self.create_role = create_role
-        if len(update_states) == 0:
-            self.update_action = Action('edit', 'Edit', create_role)
-        else:
-            self.update_action = StateAction('edit', 'Edit', create_role, None, update_states)
+class CreateAction(Action):
+    def __init__(self, required_role):
+        super(CreateAction, self).__init__('create', 'New', required_role)
 
-    def is_create_allowed(self, parent, user):
-        types = get_role_types(user, parent)
-        return self.create_role in types
-
-    def get_update_action(self):
-        return self.update_action
-
-    def perform_create(self, entity, user):
+    def apply_to(self, entity, user):
         if hasattr(entity, 'creator'):
             entity.creator = user.key
         entity.put()

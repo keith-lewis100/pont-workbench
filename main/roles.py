@@ -11,28 +11,22 @@ import views
 import logging
 import role_types
 
+ACTION_UPDATE = model.Action('edit', 'Edit', role_types.RoleType.USER_ADMIN)
+ACTION_CREATE = model.CreateAction(role_types.RoleType.USER_ADMIN)
+
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
     committee = custom_fields.SelectField(choices=[("", "")] + model.committee_labels)
     
-class RoleModel(model.EntityModel):
+class RoleListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Role', role_types.RoleType.USER_ADMIN)
-
-    def create_entity(self, parent):
-        return db.Role(parent=parent.key)
+        views.ListView.__init__(self, 'Role', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.Role.query(ancestor=parent.key).fetch()
 
-    def title(self, entity):
-        return 'Role'
-
-role_model = RoleModel()
-
-class RoleListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, role_model)
+    def create_entity(self, parent):
+        return db.Role(parent=parent.key)
                 
     def create_form(self, request_input, entity):
         return RoleForm(request_input, obj=entity)
@@ -42,7 +36,10 @@ class RoleListView(views.ListView):
 
 class RoleView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, role_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+
+    def title(self, entity):
+        return 'Role'
                 
     def create_form(self, request_input, entity):
         return RoleForm(request_input, obj=entity)

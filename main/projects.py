@@ -20,6 +20,8 @@ PROJECT_CLOSED = 0
 state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
 
 ACTION_APPROVE = model.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
+ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.PROJECT_CREATOR, None, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
+ACTION_CREATE = model.CreateAction(RoleType.PROJECT_CREATOR)
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -28,30 +30,21 @@ class ProjectForm(wtforms.Form):
     partner = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
     description = wtforms.TextAreaField()
     
-class ProjectModel(model.EntityModel):
-    def __init__(self):
-        model.EntityModel.__init__(self, 'Project', RoleType.PROJECT_CREATOR, PROJECT_APPROVAL_PENDING, PROJECT_APPROVED)
-
-    def create_entity(self, parent):
-        return db.Project(parent=parent.key)
-
-    def load_entities(self, parent):
-        return db.Project.query(ancestor=parent.key).fetch()
-        
-    def title(self, entity):
-        return 'Project ' + entity.name
-
 def create_project_form(request_input, entity):
     form = ProjectForm(request_input, obj=entity)
     partner_list = db.Partner.query().fetch()
     custom_fields.set_field_choices(form._fields['partner'], partner_list)
     return form
-
-project_model = ProjectModel()
         
 class ProjectListView(views.ListView):
     def __init__(self):
-        views.ListView.__init__(self, project_model)
+        views.ListView.__init__(self, 'Project', ACTION_CREATE)
+
+    def load_entities(self, parent):
+        return db.Project.query(ancestor=parent.key).fetch()
+
+    def create_entity(self, parent):
+        return db.Project(parent=parent.key)
         
     def create_form(self, request_input, entity):
         return create_project_form(request_input, entity)
@@ -61,7 +54,10 @@ class ProjectListView(views.ListView):
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, project_model, ACTION_APPROVE)
+        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_APPROVE)
+        
+    def title(self, entity):
+        return 'Project ' + entity.name
         
     def create_form(self, request_input, entity):
         return create_project_form(request_input, entity)

@@ -11,27 +11,21 @@ import readonly_fields
 import views
 from role_types import RoleType
 
+ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_CREATE = model.CreateAction(RoleType.SUPPLIER_ADMIN)
+
 class PartnerForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
-class PartnerModel(model.EntityModel):
+class PartnerListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Partner', RoleType.SUPPLIER_ADMIN)
-
-    def create_entity(self, parent):
-        return db.Partner(parent=parent.key)
+        views.ListView.__init__(self, 'Partner', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.Partner.query(ancestor=parent.key).fetch()
-        
-    def title(self, entity):
-        return 'Partner ' + entity.name
 
-partner_model = PartnerModel()
-
-class PartnerListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, partner_model)
+    def create_entity(self, parent):
+        return db.Partner(parent=parent.key)
  
     def create_form(self, request_input, entity):
         return PartnerForm(request_input, obj=entity)
@@ -41,7 +35,10 @@ class PartnerListView(views.ListView):
 
 class PartnerView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, partner_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+        
+    def title(self, entity):
+        return 'Partner ' + entity.name
  
     def create_form(self, request_input, entity):
         return PartnerForm(request_input, obj=entity)

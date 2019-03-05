@@ -44,31 +44,31 @@ def create_breadcrumbs_list(entity):
 class ListView(View):
     methods = ['GET', 'POST']
     
-    def __init__(self, entity_model):
-        self.entity_model = entity_model
+    def __init__(self, name, create_action):
+        self.name = name
+        self.create_action = create_action
 
     def render_entities(self, parent, form):
-        entity_list = self.entity_model.load_entities(parent)
+        entity_list = self.load_entities(parent)
         fields = self.get_fields(form)
         return readonly_fields.render_table(entity_list, fields)
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()
         user = model.lookup_user_by_email(email)
-        entity_model = self.entity_model
         parent = model.lookup_entity(db_id)
-        entity = entity_model.create_entity(parent)
+        entity = self.create_entity(parent)
         form = self.create_form(request.form, entity)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            entity_model.perform_create(entity, user)
+            self.create_action.apply_to(entity, user)
             return redirect(request.base_url)
-            
-        enabled = entity_model.is_create_allowed(parent, user)
+        
+        enabled = self.create_action.is_allowed(parent, user)
         new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
-        return render_view(entity_model.name + ' List', breadcrumbs, entity_table, buttons=[new_button])
+        return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=[new_button])
 
 def render_view(title, breadcrumbs, content, links=[], buttons=[]):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
@@ -102,8 +102,8 @@ def process_edit_button(action, form, entity, user, buttons):
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
-    def __init__(self, entity_model, *actions):
-        self.entity_model = entity_model
+    def __init__(self, update_action, *actions):
+        self.update_action = update_action
         self.actions = actions
 
     def get_links(self, entity):
@@ -115,15 +115,14 @@ class EntityView(View):
         entity = model.lookup_entity(db_id)
         form = self.create_form(request.form, entity)
         buttons = []
-        update_action = self.entity_model.get_update_action()
-        if process_edit_button(update_action, form, entity, user, buttons):
+        if process_edit_button(self.update_action, form, entity, user, buttons):
             entity.put()
             return redirect(request.base_url)    
         for action in self.actions:
           if process_action_button(action, entity, user, buttons):
             action.apply_to(entity)
             return redirect(request.base_url)
-        title = self.entity_model.title(entity)
+        title = self.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)

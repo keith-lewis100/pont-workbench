@@ -11,30 +11,24 @@ import readonly_fields
 import views
 from role_types import RoleType
 
+ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.FUND_ADMIN)
+ACTION_CREATE = model.CreateAction(RoleType.FUND_ADMIN)
+
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(choices=model.committee_labels)
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-class FundModel(model.EntityModel):
+class FundListView(views.ListView):
     def __init__(self):
-        model.EntityModel.__init__(self, 'Fund', RoleType.FUND_ADMIN)
-
-    def create_entity(self, parent):
-        return db.Fund()
+        views.ListView.__init__(self, 'Fund', ACTION_CREATE)
 
     def load_entities(self, parent):
         return db.Fund.query().fetch()
-        
-    def title(self, entity):
-        return 'Fund ' + entity.name
 
-fund_model = FundModel()
-
-class FundListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, fund_model)
+    def create_entity(self, parent):
+        return db.Fund()
         
     def create_form(self, request_input, entity):
         return FundForm(request_input, obj=entity)
@@ -45,7 +39,10 @@ class FundListView(views.ListView):
 
 class FundView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, fund_model)
+        views.EntityView.__init__(self, ACTION_UPDATE)
+        
+    def title(self, entity):
+        return 'Fund ' + entity.name
         
     def create_form(self, request_input, entity):
         return FundForm(request_input, obj=entity)
