@@ -33,8 +33,10 @@ def render_header(column_headers):
     children = map(html.th, column_headers)
     return html.tr(*children)
 
-def render_row(row, url):
+def render_row(row, url=None):
     children = map(html.td, row)
+    if not url:
+        return html.tr(*children)
     return html.tr(*children, class_="selectable", onclick="window.location='%s'" % url)
 
 def render_link(label, url, **kwargs):

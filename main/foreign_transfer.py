@@ -83,6 +83,7 @@ def process_transferred_button(transfer, user, buttons):
         for grant in grant_list:
             grant.state_index = grants.GRANT_TRANSFERED
             grant.put()
+        ACTION_TRANSFERRED.audit(transfer, user)
         return True
     enabled = ACTION_TRANSFERRED.is_allowed(transfer, user)
     button = custom_fields.render_dialog_button(ACTION_TRANSFERRED.label, 'd-transferred', form, enabled)
@@ -98,6 +99,7 @@ def do_acknowledge(transfer):
         if project.partner is None:
             grant.state_index = grants.GRANT_CLOSED
             grant.put()
+    ACTION_ACKNOWLEDGED.audit(transfer, user)
 
 def render_grants_due_list(transfer):
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()

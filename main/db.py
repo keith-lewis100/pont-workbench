@@ -141,5 +141,5 @@ class AuditRecord(ndb.Model):
     entity = ndb.KeyProperty()
     user = ndb.KeyProperty(kind=User)
     action = ndb.StringProperty()
-    description = ndb.StringProperty()
-    timestamp = ndb.DateProperty(auto_now_add=True)
+    message = ndb.StringProperty()
+    timestamp = ndb.DateTimeProperty(auto_now_add=True)

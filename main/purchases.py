@@ -48,8 +48,8 @@ ACTION_ADVANCE = model.Action('advance', 'Advance Payment', RoleType.COMMITTEE_A
 ACTION_PAID = model.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN, PURCHASE_CLOSED, [PURCHASE_PAYMENT_DUE])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, PURCHASE_CLOSED, [PURCHASE_CHECKING])
 
-create_action = model.Action('create', 'New', RoleType.COMMITTEE_ADMIN)
-update_action = model.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PURCHASE_CHECKING])
+ACTION_CREATE = model.Action('create', 'New', RoleType.COMMITTEE_ADMIN)
+ACTION_UPDATE = model.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PURCHASE_CHECKING])
 
 ACTION_ADVANCE_PAID = model.Action('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN)
 
@@ -78,11 +78,11 @@ def view_purchase_list(db_id):
     user = views.current_user()
     new_purchase = db.Purchase(parent=fund.key)
     form = create_purchase_form(request.form, new_purchase)
-    enabled = create_action.is_allowed(fund, user)
+    enabled = ACTION_CREATE.is_allowed(fund, user)
     if request.method == 'POST' and form.validate():
         form.populate_obj(new_purchase)
-        new_purchase.creator = user.key
-        new_purchase.put()
+        ACTION_CREATE.apply_to(new_purchase, user)
+        ACTION_CREATE.audit(new_purchase, user)
         return redirect(request.base_url)
     
     new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
@@ -105,6 +105,7 @@ def process_invoiced_button(purchase, user, buttons):
         form.populate_obj(purchase.invoice)
         purchase.state_index = PURCHASE_PAYMENT_DUE
         purchase.put()
+        ACTION_INVOICED.audit(purchase, user)
         return True
     enabled = (ACTION_INVOICED.is_allowed(purchase, user) and purchase.state_index == PURCHASE_ORDERED 
                   and (purchase.advance is None or purchase.advance.paid))
@@ -119,6 +120,7 @@ def process_advance_button(purchase, user, buttons):
         purchase.advance = db.Payment()
         form.populate_obj(purchase.advance)
         purchase.put()
+        ACTION_ADVANCE.audit(purchase, user)
         return True
     enabled = (ACTION_ADVANCE.is_allowed(purchase, user) and purchase.state_index == PURCHASE_ORDERED
                     and purchase.advance is None)
@@ -132,12 +134,14 @@ def view_purchase(db_id):
     user = views.current_user()
     form = create_purchase_form(request.form, purchase)
     buttons = []
-    if views.process_edit_button(update_action, form, purchase, user, buttons):
-        purchase.put()
+    if views.process_edit_button(ACTION_UPDATE, form, purchase, user, buttons):
+        ACTION_UPDATE.apply_to(purchase, user)
+        ACTION_UPDATE.audit(purchase, user)
         return redirect(request.base_url)
     for action in [ACTION_CHECKED, ACTION_ORDERED]:
       if views.process_action_button(action, purchase, user, buttons):
-        action.apply_to(purchase)
+        action.apply_to(purchase, user)
+        action.audit(purchase, user)
         return redirect(request.base_url)
     if process_invoiced_button(purchase, user, buttons):
       return redirect(request.base_url)
@@ -147,7 +151,8 @@ def view_purchase(db_id):
       if views.process_action_button(action, purchase, user, buttons):
         if action is ACTION_PAID:
             purchase.invoice.paid = True
-        action.apply_to(purchase)
+        purchase.put()
+        action.audit(purchase, user)
         return redirect(request.base_url)
     breadcrumbs = views.create_breadcrumbs_list(purchase)
     content = renderers.render_grid(purchase, get_fields(form))
@@ -156,6 +161,8 @@ def view_purchase(db_id):
         advance_buttons = []
         if views.process_action_button(ACTION_ADVANCE_PAID, purchase, user, advance_buttons):
           purchase.advance.paid = True
+          purchase.put()
+          ACTION_ADVANCE_PAID.audit(purchase, user)
           return redirect(request.base_url)        
         advance_fields = (advance_amount_field, advance_paid_field, advance_transferred_field)
         advance_grid = renderers.render_grid(purchase, advance_fields)

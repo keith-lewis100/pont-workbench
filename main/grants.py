@@ -27,7 +27,7 @@ for grant in all_grants:
         grant.put()
 
 class CheckedAction(model.StateAction):
-    def apply_to(self, entity, user=None):
+    def apply_to(self, entity, user):
         entity.state_index = GRANT_READY
         entity.transfer = None    
         entity.put()

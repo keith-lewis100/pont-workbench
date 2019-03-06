@@ -21,21 +21,22 @@ class SupplierForm(wtforms.Form):
     receives_grants = wtforms.BooleanField()
     paid_in_sterling = wtforms.BooleanField()
 
-start_transfer = model.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
-create_action = model.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
-update_action = model.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_TRANSFER_START = model.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
+ACTION_CREATE = model.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = model.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
 
 @app.route('/supplier_list', methods=['GET', 'POST'])
 def view_supplier_list():
     user = views.current_user()
     new_supplier = db.Supplier()
     form = SupplierForm(request.form, obj=new_supplier)
-    enabled = create_action.is_allowed(None, user)
+    enabled = ACTION_CREATE.is_allowed(None, user)
     if request.method == 'POST' and form.validate():
         form.populate_obj(new_supplier)
-        new_supplier.put()
+        ACTION_CREATE.apply_to(new_supplier, user)
+        ACTION_CREATE.audit(new_supplier, user)
         return redirect(request.base_url)
-        
+    
     new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
@@ -75,6 +76,7 @@ def process_transfer_request(supplier, user):
         if getattr(grant, 'transfer', None) is None:
             grant.transfer = transfer.key
             grant.put()
+    ACTION_TRANSFER_START.audit(transfer, user)
     return transfer
 
 def render_grants_due_list(supplier):
@@ -107,11 +109,12 @@ def view_supplier(db_id):
     user = views.current_user()
     form = SupplierForm(request.form, obj=supplier)
     buttons = []
-    if views.process_edit_button(update_action, form, supplier, user, buttons):
-        supplier.put()
+    if views.process_edit_button(ACTION_UPDATE, form, supplier, user, buttons):
+        ACTION_UPDATE.apply_to(supplier, user)
+        ACTION_UPDATE.audit(supplier, user)
         return redirect(request.base_url)
     error = ""
-    if not supplier.paid_in_sterling and views.process_action_button(start_transfer, supplier, user, buttons):
+    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, supplier, user, buttons):
         transfer = process_transfer_request(supplier, user)
         if transfer is not None:
             transfer_url = views.url_for_entity(transfer)

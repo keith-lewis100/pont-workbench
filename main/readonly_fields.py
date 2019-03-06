@@ -5,22 +5,23 @@ import model
 import flask
 import renderers
 
-def render_table(object_list, columns):
-    column_headers, grid, url_list = generate_table_data(object_list, columns)
+def url_for_entity(entity):
+    key = entity.key
+    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
+
+def render_table(object_list, columns, selectable=True):
+    f_url = url_for_entity if selectable else lambda e: None
+    column_headers, grid, url_list = generate_table_data(object_list, columns, f_url)
     return renderers.render_table(column_headers, grid, url_list)
 
-def generate_table_data(object_list, columns):
+def generate_table_data(object_list, columns, create_url=url_for_entity):
     column_headers = map(lambda c: c.label, columns)
     grid = map(lambda obj: generate_row(obj, columns), object_list)
-    url_list = map(url_for_entity, object_list)
+    url_list = map(create_url, object_list)
     return (column_headers, grid, url_list)
 
 def generate_row(obj, columns):
     return map(lambda col: col.render_value(obj), columns)
-
-def url_for_entity(entity):
-    key = entity.key
-    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
 
 def create_accessor(path):
     accessor = None
@@ -113,7 +114,16 @@ class StateField(ReadOnlyField):
         if state == None:
             return "None"
         return self.state_names[state]
-            
+
+class DateField(ReadOnlyField):
+    def __init__(self, path, label=None, format='%Y-%m-%d %H:%M:%S'):
+        super(DateField, self).__init__(path, label, wide=False)
+        self.format = format
+
+    def render_value(self, entity):
+        date = self.accessor(entity)
+        return date.strftime(self.format)
+
 class LiteralField:
     def __init__(self, value, label):
         self.value = value
