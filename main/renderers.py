@@ -7,18 +7,25 @@ class SafeString(unicode):
     def __html__(self):
         return self
 
-def render_grid(obj, items):
+def render_grid(values, labels, num_wide=0):
     rows = []
-    numItems = len(items)
+    index = 0
+    numItems = len(values) - num_wide
     for x in range(0, numItems, 3):
         cols = []
         for y in range(3):
-            if x + y >= numItems:
+            index = x + y
+            if index >= numItems:
                 break
-            item = items[x + y]
-            col = html.div(item.render(obj), class_="four columns")
+            value = values[index]
+            legend = html.legend(labels[index])
+            col = html.div(legend, value, class_="four columns")
             cols.append(col)
         rows.append(('\n', html.div(*cols, class_="row")))
+    for i in range(index, len(values)):
+        value = values[i]
+        legend = html.legend(labels[i])
+        rows.append(html.div(legend, value,  class_="u-full-width"))
     return rows
 
 def legend(label):
@@ -70,7 +77,7 @@ def render_modal_dialog(form_fields, id, open=False):
     return html.div(content, id=id, class_="%s" % class_val)
 
 def sub_heading(heading):
-    return (html.br(), html.h2(heading))
+    return (html.br(), html.h3(heading))
 
 def render_error(message):
     return html.div(message, class_='error')

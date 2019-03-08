@@ -55,7 +55,7 @@ class PledgeListView(views.ListView):
 
 class PledgeView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_FULFILLED, ACTION_BOOKED)
+        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_FULFILLED, ACTION_BOOKED)
 
     def title(self, entity):
         return 'Pledge'

@@ -42,6 +42,31 @@ def create_breadcrumbs_list(entity):
     breadcrumbs = create_breadcrumbs(parent)
     return breadcrumbs + [" / ", renderers.render_link(kind + " List", url_for_list(kind, parent))]
 
+def render_entity(entity, fields, num_wide=0):
+    values = readonly_fields.display_entity(entity, fields)
+    labels = readonly_fields.get_labels(fields)
+    return renderers.render_grid(values, labels, 1)
+
+def render_entity_list(entity_list, fields, selectable=True):
+    url_func = url_for_entity if selectable else lambda e: None
+    column_headers = readonly_fields.get_labels(fields)
+    grid = readonly_fields.display_entity_list(entity_list, fields, selectable)
+    url_list = map(url_func, entity_list)
+    return renderers.render_table(column_headers, grid, url_list)
+
+audit_fields = [
+    readonly_fields.DateField('timestamp'),
+    readonly_fields.ReadOnlyField('message'),
+    readonly_fields.ReadOnlyField('user.name', 'User')
+]
+
+def render_entity_history(key):
+    audit_list = db.AuditRecord.query(db.AuditRecord.entity == key).order(-db.AuditRecord.timestamp
+                      ).iter(limit = 20)
+    sub_heading = renderers.sub_heading('Activity Log')
+    table = render_entity_list(audit_list, audit_fields, selectable=False)
+    return (sub_heading, table)
+
 class ListView(View):
     methods = ['GET', 'POST']
     
@@ -52,7 +77,7 @@ class ListView(View):
     def render_entities(self, parent, form):
         entity_list = self.load_entities(parent)
         fields = self.get_fields(form)
-        return readonly_fields.render_table(entity_list, fields)
+        return render_entity_list(entity_list, fields)
 
     def dispatch_request(self, db_id=None):
         email = users.get_current_user().email()
@@ -101,24 +126,12 @@ def process_edit_button(action, form, entity, user, buttons):
     buttons.append(edit_button)
     return False
 
-audit_fields = [
-    readonly_fields.DateField('timestamp'),
-    readonly_fields.ReadOnlyField('message'),
-    readonly_fields.ReadOnlyField('user.name', 'User')
-]
-
-def render_entity_history(key):
-    audit_list = db.AuditRecord.query(db.AuditRecord.entity == key).order(-db.AuditRecord.timestamp
-                      ).iter(limit = 20)
-    sub_heading = renderers.sub_heading('Activity Log')
-    table = readonly_fields.render_table(audit_list, audit_fields, selectable=False)
-    return (sub_heading, table)
-
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
 
-    def __init__(self, update_action, *actions):
+    def __init__(self, update_action, num_wide=0, *actions):
         self.update_action = update_action
+        self.num_wide = num_wide
         self.actions = actions
 
     def get_links(self, entity):
@@ -143,11 +156,6 @@ class EntityView(View):
         breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)
-        wide_items = []
-        if fields[-1].wide:
-            last = fields[-1].render(entity)
-            wide_items = [renderers.render_div(last, class_="u-full-width")]
-            fields = fields[:-1]
-        grid = renderers.render_grid(entity, fields) + wide_items
+        grid = render_entity(entity, fields, self.num_wide)
         history = render_entity_history(entity.key)
         return render_view(title, breadcrumbs, (grid, history), links, buttons)

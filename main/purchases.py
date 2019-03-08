@@ -90,7 +90,7 @@ def view_purchase_list(db_id):
     purchase_field_list = (readonly_fields.ReadOnlyKeyField('supplier'),
               readonly_fields.ReadOnlyField('quote_amount'), po_number_field, state_field)
     purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
-    entity_table = readonly_fields.render_table(purchase_list, purchase_field_list)
+    entity_table = views.render_entity_list(purchase_list, purchase_field_list)
     return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=[new_button])
                 
 def get_fields(form):
@@ -155,7 +155,7 @@ def view_purchase(db_id):
         action.audit(purchase, user)
         return redirect(request.base_url)
     breadcrumbs = views.create_breadcrumbs_list(purchase)
-    content = renderers.render_grid(purchase, get_fields(form))
+    content = views.render_entity(purchase, get_fields(form), 1)
     if purchase.advance is not None:
         sub_heading = renderers.sub_heading('Advance Payment')
         advance_buttons = []
@@ -165,8 +165,9 @@ def view_purchase(db_id):
           ACTION_ADVANCE_PAID.audit(purchase, user)
           return redirect(request.base_url)        
         advance_fields = (advance_amount_field, advance_paid_field, advance_transferred_field)
-        advance_grid = renderers.render_grid(purchase, advance_fields)
+        advance_grid = views.render_entity(purchase, advance_fields, 1)
         content = (content, sub_heading, advance_buttons, advance_grid)
+    history = views.render_entity_history(purchase.key)
     title = 'Purchase ' + purchase.po_number if purchase.po_number is not None else ""
-    return views.render_view(title, breadcrumbs, content, buttons=buttons)
+    return views.render_view(title, breadcrumbs, (content, history), buttons=buttons)
 

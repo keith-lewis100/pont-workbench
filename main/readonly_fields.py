@@ -3,25 +3,19 @@
 from html_builder import html
 import model
 import flask
-import renderers
 
 def url_for_entity(entity):
     key = entity.key
     return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
 
-def render_table(object_list, columns, selectable=True):
-    f_url = url_for_entity if selectable else lambda e: None
-    column_headers, grid, url_list = generate_table_data(object_list, columns, f_url)
-    return renderers.render_table(column_headers, grid, url_list)
+def get_labels(fields):
+    return map(lambda f: f.label, fields)
 
-def generate_table_data(object_list, columns, create_url=url_for_entity):
-    column_headers = map(lambda c: c.label, columns)
-    grid = map(lambda obj: generate_row(obj, columns), object_list)
-    url_list = map(create_url, object_list)
-    return (column_headers, grid, url_list)
+def display_entity_list(entity_list, fields, no_links=False):
+    return map(lambda e: display_entity(e, fields, no_links), entity_list)
 
-def generate_row(obj, columns):
-    return map(lambda col: col.render_value(obj), columns)
+def display_entity(entity, fields, no_links=False):
+    return map(lambda f: f.get_value(entity, no_links), fields)
 
 def create_accessor(path):
     accessor = None
@@ -53,21 +47,15 @@ def create_readonly_field(name, form_field):
     if hasattr(form_field, 'choices'):
         return ReadOnlySelectField(name, form_field.label, coerce=form_field.coerce, 
                         choices=form_field.choices)
-    return ReadOnlyField(name, form_field.label, form_field.type == 'TextAreaField')
+    return ReadOnlyField(name, form_field.label)
 
 class ReadOnlyField(object):
-    def __init__(self, path, label=None, wide=False):
+    def __init__(self, path, label=None):
         self.accessor = create_accessor(path)
         self.label = label if label != None else path.split('.')[-1].replace("_", " ").title()
-        self.wide = wide
         
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         return unicode(self.accessor(entity))
-
-    def render(self, entity):
-        value = self.render_value(entity)
-        legend = html.legend(self.label)
-        return (legend, value)
 
 class ReadOnlySelectField(ReadOnlyField):
     def __init__(self, path, label=None, coerce=unicode, choices=[]):
@@ -75,7 +63,7 @@ class ReadOnlySelectField(ReadOnlyField):
         self.choices = choices
         self.coerce = coerce
 
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         property = self.accessor(entity)
         for value, label in self.choices:
             if self.coerce(value) == property:
@@ -88,28 +76,22 @@ class ReadOnlyKeyField(ReadOnlyField):
         self.title_of = title_of
         self.wide = False
         
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         key = self.accessor(entity)
         if not key:
             return ""
         target = key.get()
-        return self.title_of(target)
-        
-    def render(self, entity):
-        key = self.accessor(entity)
-        if not key:
-            return ""
-        target = key.get()
-        legend = html.legend(self.label)
-        link = html.a(self.title_of(target), href=url_for_entity(target))
-        return (legend, link)
+        title = self.title_of(target)
+        if no_links:
+            return title
+        return html.a(self.title_of(target), href=url_for_entity(target))
 
 class StateField(ReadOnlyField):
     def __init__(self, *state_names):
         super(StateField, self).__init__('state_index', 'State')
         self.state_names = state_names
 
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         state = entity.state_index
         if state == None:
             return "None"
@@ -117,10 +99,10 @@ class StateField(ReadOnlyField):
 
 class DateField(ReadOnlyField):
     def __init__(self, path, label=None, format='%Y-%m-%d %H:%M:%S'):
-        super(DateField, self).__init__(path, label, wide=False)
+        super(DateField, self).__init__(path, label)
         self.format = format
 
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         date = self.accessor(entity)
         return date.strftime(self.format)
 
@@ -129,14 +111,14 @@ class LiteralField:
         self.value = value
         self.label = label
 
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         return self.value
         
 class ExchangeCurrencyField(ReadOnlyField):
     def __init__(self, path, label=None):
         super(ExchangeCurrencyField, self).__init__(path, label)
 
-    def render_value(self, entity):
+    def get_value(self, entity, no_links):
         payment = self.accessor(entity)
         if payment is None or payment.transfer is None:
             return ""

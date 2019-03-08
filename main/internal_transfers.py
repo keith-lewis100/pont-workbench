@@ -54,7 +54,7 @@ class InternalTransferListView(views.ListView):
 
 class InternalTransferView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE)
+        views.EntityView.__init__(self, ACTION_UPDATE, 1)
                         
     def title(self, entity):
         dest_name = entity.dest_fund.get().name if entity.dest_fund != None else ""

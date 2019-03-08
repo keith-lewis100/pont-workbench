@@ -54,7 +54,7 @@ class ProjectListView(views.ListView):
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_APPROVE)
+        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_APPROVE)
         
     def title(self, entity):
         return 'Project ' + entity.name

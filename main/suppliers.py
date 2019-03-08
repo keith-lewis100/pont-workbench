@@ -41,7 +41,7 @@ def view_supplier_list():
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()
-    entity_table = readonly_fields.render_table(supplier_list, supplier_field_list)
+    entity_table = views.render_entity_list(supplier_list, supplier_field_list)
     return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=[new_button])
 
 def get_links(supplier):
@@ -84,23 +84,30 @@ def render_grants_due_list(supplier):
     grant_list = db.find_pending_payments(supplier, cutoff_date)
     field_list = (grants.state_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
     sub_heading = renderers.sub_heading('Grant Payments Due')
-    table = readonly_fields.render_table(grant_list, field_list)
+    table = views.render_entity_list(grant_list, field_list)
     return (sub_heading, table)
+    
+common_field_list = [purchases.advance_type_field, purchases.po_number_field, purchases.creator_field,
+       grants.source_field]
+advance_field_list = common_field_list + [purchases.advance_amount_field]
+invoice_field_list = common_field_list + [purchases.invoiced_amount_field]
 
 def render_purchase_payments_list(supplier):
+    column_headers = readonly_fields.get_labels(advance_field_list)
+    
     advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.advance.paid == False).fetch()
-    advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 
-                          purchases.advance_amount_field)
-    column_headers, advance_grid, advance_url_list = readonly_fields.generate_table_data(advance_list, advance_field_list)
-    purchase_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
+    advance_grid = readonly_fields.display_entity_list(advance_list, advance_field_list, no_links=True)
+    advance_url_list = map(readonly_fields.url_for_entity, advance_list)
+    
+    invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.invoice.paid == False).fetch()
-    purchase_field_list = (purchases.invoice_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field,
-                           purchases.invoiced_amount_field)
-    unused_headers, purchase_grid, purchase_url_list = readonly_fields.generate_table_data(purchase_list, purchase_field_list)
+    invoice_grid = readonly_fields.display_entity_list(invoice_list, invoice_field_list, no_links=True)
+    invoice_url_list = map(readonly_fields.url_for_entity, invoice_list)
+    
     sub_heading = renderers.sub_heading('Purchase Payments Due')
-    table = renderers.render_table(column_headers, advance_grid + purchase_grid,
-                            advance_url_list + purchase_url_list)
+    table = renderers.render_table(column_headers, advance_grid + invoice_grid,
+                            advance_url_list + invoice_url_list)
     return (sub_heading, table)
 
 @app.route('/supplier/<db_id>', methods=['GET', 'POST'])
@@ -123,11 +130,12 @@ def view_supplier(db_id):
     breadcrumbs = views.create_breadcrumbs_list(supplier)
     links = get_links(supplier)
     fields = (readonly_fields.ReadOnlyField('name'), )
-    grid = renderers.render_grid(supplier, fields)
+    grid = views.render_entity(supplier, fields)
     title = 'Supplier ' + supplier.name
     purchase_payments = render_purchase_payments_list(supplier)
     content = [error, grid, purchase_payments]
     if supplier.receives_grants:
         grant_payments = render_grants_due_list(supplier)
         content.append(grant_payments)
+    content.append(views.render_entity_history(supplier.key))
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)

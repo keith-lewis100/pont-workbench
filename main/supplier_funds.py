@@ -36,7 +36,7 @@ class SupplierFundListView(views.ListView):
 
 class SupplierFundView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE)
+        views.EntityView.__init__(self, ACTION_UPDATE, 1)
         
     def title(self, entity):
         return 'SupplierFund ' + entity.name

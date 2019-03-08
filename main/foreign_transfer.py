@@ -26,10 +26,7 @@ ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.PA
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN, None, [TRANSFER_TRANSFERRED])
 
 class RequestTotalsField(readonly_fields.ReadOnlyField):
-    def __init__(self, name):
-        super(RequestTotalsField, self).__init__(name)
-
-    def render_value(self, transfer):
+    def get_value(self, transfer, no_links):
         total_sterling = 0
         total_shillings = 0
         for grant in transfer.grant_list:
@@ -69,7 +66,7 @@ def view_foreigntransfer_list(db_id):
     breadcrumbs = views.create_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
-    entity_table = readonly_fields.render_table(transfer_list, transfer_fields)
+    entity_table = views.render_entity_list(transfer_list, transfer_fields)
     return views.render_view('Foreign Transfer List', breadcrumbs, entity_table)
 
 def process_transferred_button(transfer, user, buttons):
@@ -104,17 +101,23 @@ def do_acknowledge(transfer):
 def render_grants_due_list(transfer):
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     sub_heading = renderers.sub_heading('Grant Payments')
-    table = readonly_fields.render_table(grant_list, grant_field_list)
+    table = views.render_entity_list(grant_list, grant_field_list)
     return (sub_heading, table)
 
 def render_purchase_payments_list(transfer):
+    column_headers = readonly_fields.get_labels(advance_field_list)
+    
     advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
-    column_headers, advance_grid, advance_url_list = readonly_fields.generate_table_data(advance_list, advance_field_list)
-    purchase_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
-    unused_headers, purchase_grid, purchase_url_list = readonly_fields.generate_table_data(purchase_list, invoice_field_list)
+    advance_grid = readonly_fields.display_entity_list(advance_list, advance_field_list, no_links=True)
+    advance_url_list = map(readonly_fields.url_for_entity, advance_list)
+    
+    invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
+    invoice_grid = readonly_fields.display_entity_list(invoice_list, invoice_field_list, no_links=True)
+    invoice_url_list = map(readonly_fields.url_for_entity, invoice_list)
+    
     sub_heading = renderers.sub_heading('Purchase Payments')
-    table = renderers.render_table(column_headers, advance_grid + purchase_grid,
-                            advance_url_list + purchase_url_list)
+    table = renderers.render_table(column_headers, advance_grid + invoice_grid,
+                            advance_url_list + invoice_url_list)
     return (sub_heading, table)
 
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
@@ -131,8 +134,9 @@ def view_foreigntransfer(db_id):
     breadcrumbs = views.create_breadcrumbs_list(transfer)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
-    grid = renderers.render_grid(transfer, transfer_fields)
+    grid = views.render_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(transfer)
 #    purchase_payments = render_purchase_payments_list(transfer)
-    content = (grid, grant_payments)
+    history = views.render_entity_history(transfer.key)
+    content = (grid, grant_payments, history)
     return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons)

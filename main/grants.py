@@ -86,7 +86,7 @@ class GrantListView(views.ListView):
 
 class GrantView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, ACTION_CHECKED,
+        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_CHECKED,
                 ACTION_ACKNOWLEDGED, ACTION_CANCEL)
    
     def title(self, entity):
