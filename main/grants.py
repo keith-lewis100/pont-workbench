@@ -25,12 +25,9 @@ for grant in all_grants:
         fund = project.parent()
         grant.supplier = fund.parent()
         grant.put()
-
-class CheckedAction(model.StateAction):
-    def apply_to(self, entity, user):
-        entity.state_index = GRANT_READY
-        entity.transfer = None    
-        entity.put()
+    if grant.transfer is None: # fixup grants with no transfer field
+        grant.transfer = None
+        grant.put()
 
 class GrantCreate(model.CreateAction):
     def apply_to(self, entity, user):
@@ -39,7 +36,7 @@ class GrantCreate(model.CreateAction):
         entity.supplier = fund.parent()
         entity.put()
 
-ACTION_CHECKED = CheckedAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
+ACTION_CHECKED = model.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
 ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
 ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
 ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [GRANT_WAITING])
@@ -51,6 +48,7 @@ project_field = readonly_fields.ReadOnlyKeyField('project')
 amount_field = readonly_fields.ReadOnlyField('amount')
 transferred_amount_field = readonly_fields.ExchangeCurrencyField('#', 'Transferred Amount')
 source_field = readonly_fields.ReadOnlyField('^.code', 'Source Fund')
+target_date_field = readonly_fields.DateField('target_date', format='%Y-%m')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
@@ -82,7 +80,7 @@ class GrantListView(views.ListView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        return (project_field, amount_field, state_field)
+        return (target_date_field, project_field, amount_field, state_field)
 
 class GrantView(views.EntityView):
     def __init__(self):

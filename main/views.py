@@ -45,7 +45,7 @@ def create_breadcrumbs_list(entity):
 def render_entity(entity, fields, num_wide=0):
     values = readonly_fields.display_entity(entity, fields)
     labels = readonly_fields.get_labels(fields)
-    return renderers.render_grid(values, labels, 1)
+    return renderers.render_grid(values, labels, num_wide)
 
 def render_entity_list(entity_list, fields, selectable=True):
     url_func = url_for_entity if selectable else lambda e: None

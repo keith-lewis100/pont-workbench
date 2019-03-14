@@ -68,7 +68,7 @@ def create_transfer(supplier, user):
     return transfer
 
 def process_transfer_request(supplier, user):
-    grant_list = db.Grant.query(db.Grant.state_index == grants.GRANT_READY).fetch()
+    grant_list = db.find_ready_payments(supplier)
     if len(grant_list) == 0:
         return None
     transfer = create_transfer(supplier, user)
@@ -82,7 +82,7 @@ def process_transfer_request(supplier, user):
 def render_grants_due_list(supplier):
     cutoff_date = datetime.date.today() + datetime.timedelta(21)
     grant_list = db.find_pending_payments(supplier, cutoff_date)
-    field_list = (grants.state_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
+    field_list = (grants.state_field, grants.target_date_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
     sub_heading = renderers.sub_heading('Grant Payments Due')
     table = views.render_entity_list(grant_list, field_list)
     return (sub_heading, table)

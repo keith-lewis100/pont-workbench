@@ -98,7 +98,7 @@ def do_acknowledge(transfer):
             grant.put()
     ACTION_ACKNOWLEDGED.audit(transfer, user)
 
-def render_grants_due_list(transfer):
+def render_grants_due_list(grant_list):
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     sub_heading = renderers.sub_heading('Grant Payments')
     table = views.render_entity_list(grant_list, grant_field_list)
@@ -135,7 +135,7 @@ def view_foreigntransfer(db_id):
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
     grid = views.render_entity(transfer, transfer_fields)
-    grant_payments = render_grants_due_list(transfer)
+    grant_payments = render_grants_due_list(grant_list)
 #    purchase_payments = render_purchase_payments_list(transfer)
     history = views.render_entity_history(transfer.key)
     content = (grid, grant_payments, history)

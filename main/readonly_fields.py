@@ -47,6 +47,8 @@ def create_readonly_field(name, form_field):
     if hasattr(form_field, 'choices'):
         return ReadOnlySelectField(name, form_field.label, coerce=form_field.coerce, 
                         choices=form_field.choices)
+    if form_field.type == 'DateField':
+        return DateField(name, form_field.label, form_field.format)
     return ReadOnlyField(name, form_field.label)
 
 class ReadOnlyField(object):
