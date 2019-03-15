@@ -11,3 +11,7 @@ handlers:
   login: required
   secure: always
 # [END handlers]
+
+libraries:
+- name: ssl
+  version: latest
