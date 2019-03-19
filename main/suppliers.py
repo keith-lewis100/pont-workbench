@@ -2,7 +2,6 @@
 
 from flask import request, redirect, url_for
 from application import app
-from flask.views import View
 import datetime
 import wtforms
 

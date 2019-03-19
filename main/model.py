@@ -29,6 +29,30 @@ if db.User.query().count() == 0:
     role.committee = ''
     role.put()
 
+class Committee:
+    def __init__(self, id, name):
+        self.id = id
+        self.name = name
+        self.key = self
+       
+    def kind(self):
+        return 'Committee'
+        
+    def urlsafe(self):
+        return self.id
+        
+    def parent(self):
+        return None
+
+def get_committee_list():
+    return [Committee(id, name) for id, name in committee_labels]
+    
+def lookup_committee(c_id):
+    for id, name in committee_labels:
+        if id == c_id:
+            return Committee(id, name)
+    return None
+
 def get_next_ref():
     ref = workbench.last_ref_id + 1
     workbench.last_ref_id = ref
@@ -38,6 +62,8 @@ def get_next_ref():
 def lookup_entity(db_id):
     if db_id is None:
         return None
+    if len(db_id) == 3:
+        return lookup_committee(db_id)
     key = db.create_key(db_id)
     return key.get()
     
@@ -46,9 +72,11 @@ def create_key(db_id):
 
 def get_parent(entity):
     parentKey = entity.key.parent()
-    if parentKey is None:
-        return None
-    return parentKey.get()
+    if parentKey is not None:
+        return parentKey.get()
+    if entity.key.kind() == 'Fund':
+        return lookup_committee(entity.committee)
+    return None
 
 def get_owning_committee(entity):
     while entity:
