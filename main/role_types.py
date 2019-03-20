@@ -1,25 +1,19 @@
-def enum(**named_values):
-    return type('Enum', (), named_values)
+class RoleType:
+    USER_ADMIN=0
+    SUPPLIER_ADMIN=1
+    FUND_ADMIN=2
+    COMMITTEE_ADMIN=3
+    INCOME_ADMIN=4
+    PROJECT_APPROVER=5
+    PAYMENT_ADMIN=6
+    PROJECT_CREATOR=7
 
-RoleType = enum(USER_ADMIN='UserAdmin',
-    SUPPLIER_ADMIN='SupplierAdmin',
-    FUND_ADMIN='FundAdmin',
-    COMMITTEE_ADMIN='CommitteeAdmin',
-    INCOME_ADMIN='IncomeAdmin',
-    PROJECT_APPROVER='ProjectApprover',
-    PAYMENT_ADMIN='PaymentAdmin',
-    PROJECT_CREATOR='ProjectCreator')
-
-role_types = [RoleType.USER_ADMIN, RoleType.SUPPLIER_ADMIN, RoleType.FUND_ADMIN, RoleType.COMMITTEE_ADMIN,
-                RoleType.INCOME_ADMIN, RoleType.PROJECT_APPROVER, RoleType.PAYMENT_ADMIN,
-                RoleType.PROJECT_CREATOR]
+role_names = ['UserAdmin', 'SupplierAdmin', 'FundAdmin', 'CommitteeAdmin',
+                'IncomeAdmin', 'ProjectApprover', 'PaymentAdmin',
+                'ProjectCreator']
 
 def get_choices():
-    choices = []
-    for index in range(len(role_types)):
-        type = role_types[index]
-        choices.append((index, type))
-    return choices
+    return enumerate(role_names)
 
 def committee_matches(committee, role):
     if role.committee == "":
@@ -27,9 +21,5 @@ def committee_matches(committee, role):
     return role.committee == committee
 
 def get_types(roles, committee):
-    type_set = set()
-    for r in roles:
-       type = role_types[r.type_index]
-       if committee_matches(committee, r):
-          type_set.add(type)
-    return type_set
+    types = [r.type_index for r in roles if committee_matches(committee, r)]
+    return set(types)
