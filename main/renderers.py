@@ -9,7 +9,6 @@ class SafeString(unicode):
 
 def render_grid(values, labels, num_wide=0):
     rows = []
-    index = 0
     numItems = len(values) - num_wide
     for x in range(0, numItems, 3):
         cols = []
@@ -22,7 +21,7 @@ def render_grid(values, labels, num_wide=0):
             col = html.div(legend, value, class_="four columns")
             cols.append(col)
         rows.append(('\n', html.div(*cols, class_="row")))
-    for i in range(index, len(values)):
+    for i in range(numItems, len(values)):
         value = values[i]
         legend = html.legend(labels[i])
         rows.append(html.div(legend, value,  class_="u-full-width"))

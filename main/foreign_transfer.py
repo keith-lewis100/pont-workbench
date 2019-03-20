@@ -87,7 +87,7 @@ def process_transferred_button(transfer, user, buttons):
     buttons.append(button)
     return False
 
-def do_acknowledge(transfer):
+def do_acknowledge(transfer, user):
     transfer.state_index = TRANSFER_CLOSED
     transfer.put()
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
@@ -98,8 +98,7 @@ def do_acknowledge(transfer):
             grant.put()
     ACTION_ACKNOWLEDGED.audit(transfer, user)
 
-def render_grants_due_list(transfer):
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+def render_grants_due_list(grant_list):
     sub_heading = renderers.sub_heading('Grant Payments')
     table = views.render_entity_list(grant_list, grant_field_list)
     return (sub_heading, table)
@@ -128,14 +127,14 @@ def view_foreigntransfer(db_id):
     if process_transferred_button(transfer, user, buttons):
         return redirect(request.base_url)
     if views.process_action_button(ACTION_ACKNOWLEDGED, transfer, user, buttons):
-        do_acknowledge(transfer)
+        do_acknowledge(transfer, user)
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
     breadcrumbs = views.create_breadcrumbs_list(transfer)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
     grid = views.render_entity(transfer, transfer_fields)
-    grant_payments = render_grants_due_list(transfer)
+    grant_payments = render_grants_due_list(grant_list)
 #    purchase_payments = render_purchase_payments_list(transfer)
     history = views.render_entity_history(transfer.key)
     content = (grid, grant_payments, history)

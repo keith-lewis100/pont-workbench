@@ -16,7 +16,6 @@ ACTION_CREATE = model.CreateAction(RoleType.FUND_ADMIN)
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = custom_fields.SelectField(choices=model.committee_labels)
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
@@ -24,18 +23,17 @@ class FundListView(views.ListView):
     def __init__(self):
         views.ListView.__init__(self, 'Fund', ACTION_CREATE)
 
-    def load_entities(self, parent):
-        return db.Fund.query().fetch()
+    def load_entities(self, committee):
+        return db.Fund.query(db.Fund.committee == committee.id).fetch()
 
-    def create_entity(self, parent):
-        return db.Fund()
-        
+    def create_entity(self, committee):
+        return db.Fund(committee = committee.id)
+
     def create_form(self, request_input, entity):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name'), readonly_fields.ReadOnlyField('code'),
-                 readonly_fields.ReadOnlySelectField('committee', choices=model.committee_labels))
+        return (readonly_fields.ReadOnlyField('name'), readonly_fields.ReadOnlyField('code'))
 
 class FundView(views.EntityView):
     def __init__(self):
@@ -62,5 +60,5 @@ class FundView(views.EntityView):
         return [showPurchases, showGrants, showPledges, showTransfers]
 
 def add_rules(app):
-    app.add_url_rule('/fund_list', view_func=FundListView.as_view('view_fund_list'))
+    app.add_url_rule('/fund_list/<db_id>', view_func=FundListView.as_view('view_fund_list'))
     app.add_url_rule('/fund/<db_id>/', view_func=FundView.as_view('view_fund'))        
