@@ -14,10 +14,7 @@ def radio_field_widget(field, **kwargs):
     return html.div(*children, **kwargs)
 
 def render_field(field):
-    elements = []
-    if not isinstance(field.widget, widgets.HiddenInput):
-        elements.append(field.label())
-    elements.append(field(class_="u-full-width"))
+    elements = [field.label(), field(class_="u-full-width")]
     if field.errors and not field is FormField:
         elements.append(html.span(' '.join(field.errors), class_="error"))
     return elements
@@ -25,18 +22,19 @@ def render_field(field):
 def render_fields(form):
     return map(render_field, form._fields.values())
 
-def render_dialog_button(label, id, form, enabled=True):
+def render_dialog_button(label, action, form, enabled=True):
+    id = 'm-' + action
     form_fields = render_fields(form)
-    dialog = renderers.render_modal_dialog(form_fields, id, form.errors)
+    dialog = renderers.render_modal_dialog(form_fields, id, action, form.errors)
     button = renderers.render_modal_open(label, id, disabled=not enabled)
-    return ('\n', dialog, button)
+    return (dialog, button)
 
 def form_field_widget(form_field, **kwargs):
     children = render_fields(form_field)
     return html.div(*children, **kwargs)
 
 def set_field_choices(field, entity_list):
-    choices = map(lambda e: (e.key.urlsafe(), e.name), entity_list)
+    choices = [(e.key.urlsafe(), e.name) for e in entity_list]
     if field.flags.optional:
         choices = [(None, "")] + choices
     field.choices=choices

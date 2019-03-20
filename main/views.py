@@ -48,10 +48,9 @@ def render_entity(entity, fields, num_wide=0):
     return renderers.render_grid(values, labels, num_wide)
 
 def render_entity_list(entity_list, fields, selectable=True):
-    url_func = url_for_entity if selectable else lambda e: None
     column_headers = readonly_fields.get_labels(fields)
     grid = readonly_fields.display_entity_list(entity_list, fields, selectable)
-    url_list = map(url_func, entity_list)
+    url_list = map(url_for_entity, entity_list) if selectable else None
     return renderers.render_table(column_headers, grid, url_list)
 
 audit_fields = [
@@ -92,7 +91,7 @@ class ListView(View):
             return redirect(request.base_url)
         
         enabled = self.create_action.is_allowed(parent, user)
-        new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
+        new_button = custom_fields.render_dialog_button('New', 'create', form, enabled)
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
         return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=[new_button])
@@ -106,11 +105,11 @@ def render_view(title, breadcrumbs, content, links=[], buttons=[]):
 
 def process_action_button(action, entity, user, buttons):
     enabled = action.is_allowed(entity, user)
-    button = renderers.render_submit_button(action.label, name='action', value=action.name,
+    button = renderers.render_submit_button(action.label, name='_action', value=action.name,
             disabled=not enabled)
     buttons.append(button)
-    if (request.method == 'POST' and request.form.has_key('action')
-             and request.form['action'] == action.name):
+    if (request.method == 'POST' and request.form.has_key('_action')
+             and request.form['_action'] == action.name):
         if not enabled:
             raise Exception("Illegal action %s was performed" % action.name)
         return True
@@ -118,11 +117,11 @@ def process_action_button(action, entity, user, buttons):
     return False
  
 def process_edit_button(action, form, entity, user, buttons):
-    if request.method == 'POST' and not request.form.has_key('action') and form.validate():
+    if request.method == 'POST' and request.form.get('_action') == 'update' and form.validate():
         form.populate_obj(entity)
         return True
     enabled = action.is_allowed(entity, user)
-    edit_button = custom_fields.render_dialog_button(action.label, 'd-edit', form, enabled)
+    edit_button = custom_fields.render_dialog_button(action.label, 'update', form, enabled)
     buttons.append(edit_button)
     return False
 

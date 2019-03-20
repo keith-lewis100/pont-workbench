@@ -36,7 +36,7 @@ def view_supplier_list():
         ACTION_CREATE.audit(new_supplier, user)
         return redirect(request.base_url)
     
-    new_button = custom_fields.render_dialog_button('New', 'm1', form, enabled)
+    new_button = custom_fields.render_dialog_button('New', 'update', form, enabled)
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()

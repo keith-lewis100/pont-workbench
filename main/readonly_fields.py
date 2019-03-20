@@ -9,13 +9,13 @@ def url_for_entity(entity):
     return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
 
 def get_labels(fields):
-    return map(lambda f: f.label, fields)
+    return [f.label for f in fields]
 
 def display_entity_list(entity_list, fields, no_links=False):
-    return map(lambda e: display_entity(e, fields, no_links), entity_list)
+    return [display_entity(e, fields, no_links) for e in entity_list]
 
 def display_entity(entity, fields, no_links=False):
-    return map(lambda f: f.get_value(entity, no_links), fields)
+    return [f.get_value(entity, no_links) for f in fields]
 
 def create_accessor(path):
     accessor = None
@@ -76,7 +76,6 @@ class ReadOnlyKeyField(ReadOnlyField):
     def __init__(self, path, label=None, title_of=lambda e : e.name):
         super(ReadOnlyKeyField, self).__init__(path, label)
         self.title_of = title_of
-        self.wide = False
         
     def get_value(self, entity, no_links):
         key = self.accessor(entity)

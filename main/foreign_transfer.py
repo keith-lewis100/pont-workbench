@@ -57,7 +57,6 @@ invoice_field_list = (purchases.invoice_type_field, purchases.po_number_field, p
                            purchases.invoiced_amount_field)
 
 class ExchangeRateForm(wtforms.Form):
-    action = wtforms.HiddenField(default='transferred')
     exchange_rate = wtforms.IntegerField('Exchange Rate', validators=[wtforms.validators.InputRequired()])
         
 @app.route('/foreigntransfer_list/<db_id>')
@@ -71,7 +70,7 @@ def view_foreigntransfer_list(db_id):
 
 def process_transferred_button(transfer, user, buttons):
     form = ExchangeRateForm(request.form)
-    if (request.method == 'POST' and request.form.get('action') == 'transferred' 
+    if (request.method == 'POST' and request.form.get('_action') == 'transferred' 
               and form.validate()):
         form.populate_obj(transfer)
         transfer.state_index = TRANSFER_TRANSFERRED
@@ -83,7 +82,7 @@ def process_transferred_button(transfer, user, buttons):
         ACTION_TRANSFERRED.audit(transfer, user)
         return True
     enabled = ACTION_TRANSFERRED.is_allowed(transfer, user)
-    button = custom_fields.render_dialog_button(ACTION_TRANSFERRED.label, 'd-transferred', form, enabled)
+    button = custom_fields.render_dialog_button(ACTION_TRANSFERRED.label, 'transferred', form, enabled)
     buttons.append(button)
     return False
 

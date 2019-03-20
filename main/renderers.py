@@ -32,7 +32,10 @@ def legend(label):
 
 def render_table(column_headers, grid, url_list):
     header = render_header(column_headers)
-    rows = map(render_row, grid, url_list)
+    if url_list:
+        rows = map(render_row, grid, url_list)
+    else:
+        rows = map(render_row, grid)
     return html.table(html.thead(header), html.tbody(*rows), class_="u-full-width")
 
 def render_header(column_headers):
@@ -65,15 +68,16 @@ def render_modal_open(legend, id, **kwargs):
     button = html.button(legend, type="button", onclick="openDialog('%s');" % id, **kwargs)
     return html.form(button, method="post")
 
-def render_modal_dialog(form_fields, id, open=False):
+def render_modal_dialog(form_fields, id, action, open=False):
+    hidden = html.input(type="hidden", name="_action", value=action)
     submit = html.input(type="submit", value="Submit", class_="button-primary")
-    form = html.form(form_fields, submit, method="post")
+    form = html.form(form_fields, hidden, submit, method="post")
     close = html.span(SafeString("&times;"), class_="close", onclick="closeDialog('%s');" % id)
     content = html.div(close, form, class_="modal-content")
     class_val = "modal"
     if open:
         class_val = "modal modal-open"
-    return html.div(content, id=id, class_="%s" % class_val)
+    return html.div(content, id=id, class_=class_val)
 
 def sub_heading(heading):
     return (html.br(), html.h3(heading))

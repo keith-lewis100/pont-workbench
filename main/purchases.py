@@ -65,11 +65,9 @@ def create_purchase_form(request_input, entity):
     return form
 
 class InvoicedAmountForm(wtforms.Form):
-    action = wtforms.HiddenField(default='invoiced')
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Invoiced Amount', widget=custom_fields.form_field_widget)
 
 class AdvanceAmountForm(wtforms.Form):
-    action = wtforms.HiddenField(default='advance')
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Advance Amount', widget=custom_fields.form_field_widget)
 
 @app.route('/purchase_list/<db_id>', methods=['GET', 'POST'])
@@ -99,7 +97,7 @@ def get_fields(form):
 
 def process_invoiced_button(purchase, user, buttons):
     form = InvoicedAmountForm(request.form, amount=purchase.quote_amount)
-    if (request.method == 'POST' and request.form.get('action') == 'invoiced' 
+    if (request.method == 'POST' and request.form.get('_action') == 'invoiced' 
               and form.validate()):
         purchase.invoice = db.Payment()
         form.populate_obj(purchase.invoice)
@@ -109,13 +107,13 @@ def process_invoiced_button(purchase, user, buttons):
         return True
     enabled = (ACTION_INVOICED.is_allowed(purchase, user) and purchase.state_index == PURCHASE_ORDERED 
                   and (purchase.advance is None or purchase.advance.paid))
-    button = custom_fields.render_dialog_button(ACTION_INVOICED.label, 'd-invoiced', form, enabled)
+    button = custom_fields.render_dialog_button(ACTION_INVOICED.label, 'invoiced', form, enabled)
     buttons.append(button)
     return False
 
 def process_advance_button(purchase, user, buttons):
     form = AdvanceAmountForm(request.form)
-    if (request.method == 'POST' and request.form.get('action') == 'advance' 
+    if (request.method == 'POST' and request.form.get('_action') == 'advance' 
               and form.validate()):
         purchase.advance = db.Payment()
         form.populate_obj(purchase.advance)
@@ -124,7 +122,7 @@ def process_advance_button(purchase, user, buttons):
         return True
     enabled = (ACTION_ADVANCE.is_allowed(purchase, user) and purchase.state_index == PURCHASE_ORDERED
                     and purchase.advance is None)
-    button = custom_fields.render_dialog_button(ACTION_ADVANCE.label, 'd-advance', form, enabled)
+    button = custom_fields.render_dialog_button(ACTION_ADVANCE.label, 'advance', form, enabled)
     buttons.append(button)
     return False
 
