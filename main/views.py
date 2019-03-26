@@ -143,7 +143,7 @@ class EntityView(View):
         form = self.create_form(request.form, entity)
         buttons = []
         if process_edit_button(self.update_action, form, entity, user, buttons):
-            self.update_action.apply_to(entity, user)
+            entity.put()
             self.update_action.audit(entity, user)
             return redirect(request.base_url)    
         for action in self.actions:

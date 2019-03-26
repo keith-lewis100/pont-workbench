@@ -18,17 +18,6 @@ GRANT_READY = 2
 GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 
-all_grants = db.Grant.query()
-for grant in all_grants:
-    if grant.supplier is None: # fixup grants with no supplier property
-        project = grant.project
-        fund = project.parent()
-        grant.supplier = fund.parent()
-        grant.put()
-    if grant.transfer is None: # fixup grants with no transfer field
-        grant.transfer = None
-        grant.put()
-
 class GrantCreate(model.CreateAction):
     def apply_to(self, entity, user):
         entity.creator = user.key
