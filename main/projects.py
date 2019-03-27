@@ -8,7 +8,7 @@ import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 import logging
 from role_types import RoleType
@@ -17,11 +17,15 @@ PROJECT_APPROVAL_PENDING = 1
 PROJECT_APPROVED = 2
 PROJECT_CLOSED = 0
 
-state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
+state_labels = ['Closed', 'Pending', 'Approved']
+def state_of(entity):
+    return state_labels[entity.state_index]
 
-ACTION_APPROVE = data_models.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.PROJECT_CREATOR, None, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
-ACTION_CREATE = data_models.CreateAction(RoleType.PROJECT_CREATOR)
+state_field = properties.StringProperty(state_of, 'State')
+
+ACTION_APPROVE = views.StateAction('approve', 'Approve', RoleType.PROJECT_APPROVER, [PROJECT_APPROVAL_PENDING])
+ACTION_UPDATE = views.update_action(RoleType.PROJECT_CREATOR, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
+ACTION_CREATE = views.create_action(RoleType.PROJECT_CREATOR)
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -50,7 +54,7 @@ class ProjectListView(views.ListView):
         return create_project_form(request_input, entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name', 'Name'), state_field)
+        return (properties.StringProperty('name', 'Name'), state_field)
 
 class ProjectView(views.EntityView):
     def __init__(self):
@@ -63,7 +67,7 @@ class ProjectView(views.EntityView):
         return create_project_form(request_input, entity)
         
     def get_fields(self, form):
-        return [state_field] + map(readonly_fields.create_readonly_field, 
+        return [state_field] + map(properties.create_readonly_field, 
                    form._fields.keys(), form._fields.values())
 
 def add_rules(app):

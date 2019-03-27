@@ -9,7 +9,7 @@ import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 import grants
@@ -20,9 +20,9 @@ class SupplierForm(wtforms.Form):
     receives_grants = wtforms.BooleanField()
     paid_in_sterling = wtforms.BooleanField()
 
-ACTION_TRANSFER_START = data_models.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
-ACTION_CREATE = data_models.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
-ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 
 @app.route('/supplier_list', methods=['GET', 'POST'])
 def view_supplier_list():
@@ -37,7 +37,7 @@ def view_supplier_list():
         return redirect(request.base_url)
     
     breadcrumbs = views.create_breadcrumbs(None)
-    supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
+    supplier_field_list = (properties.StringProperty('name'), )
     supplier_list = db.Supplier.query().fetch()
     entity_table = views.render_entity_list(supplier_list, supplier_field_list)
     buttons = views.view_actions([ACTION_CREATE], model, None)
@@ -47,16 +47,12 @@ def get_links(supplier):
     db_id = supplier.key.urlsafe()
     links = []
     if supplier.receives_grants:
-        funds_url = url_for('view_supplierfund_list', db_id=db_id)
-        showFunds = renderers.render_link('Show Funds', funds_url, class_="button")
-        partners_url = url_for('view_partner_list', db_id=db_id)
-        showPartners = renderers.render_link('Show Partners', partners_url, class_="button")
+        showFunds = views.render_link('SupplierFund', 'Show Supplier Funds', supplier)
+        showPartners = views.render_link('Partners', 'Show Partners', supplier)
         links = [showFunds, showPartners]
     if supplier.paid_in_sterling:
         return links
-    transfers_url = url_for('view_foreigntransfer_list', db_id=db_id)
-    showForeignTransfers = renderers.render_link('Show Foreign Transfers', transfers_url, class_="button")
-    return links + [showForeignTransfers]
+    return links + [views.render_link('ForeignTransfer', 'Show Foreign Transfers', supplier)]
 
 def create_transfer(supplier, user):
     transfer = db.ForeignTransfer(parent=supplier.key)
@@ -92,17 +88,17 @@ advance_field_list = common_field_list + [purchases.advance_amount_field]
 invoice_field_list = common_field_list + [purchases.invoiced_amount_field]
 
 def render_purchase_payments_list(supplier):
-    column_headers = readonly_fields.get_labels(advance_field_list)
+    column_headers = properties.get_labels(advance_field_list)
     
     advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.advance.paid == False).fetch()
-    advance_grid = readonly_fields.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(readonly_fields.url_for_entity, advance_list)
+    advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
+    advance_url_list = map(properties.url_for_entity, advance_list)
     
     invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.invoice.paid == False).fetch()
-    invoice_grid = readonly_fields.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(readonly_fields.url_for_entity, invoice_list)
+    invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
+    invoice_url_list = map(properties.url_for_entity, invoice_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments Due')
     table = renderers.render_table(column_headers, advance_grid + invoice_grid,
@@ -113,7 +109,7 @@ def render_purchase_payments_list(supplier):
 def view_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
     form = SupplierForm(request.form, obj=supplier)
-    model = data_models.Model(None)
+    model = data_models.Model(supplier, None)
     model.add_form('update', form)
     if views.process_edit_button(ACTION_UPDATE, form, supplier):
         return redirect(request.base_url)
@@ -126,7 +122,7 @@ def view_supplier(db_id):
         error = renderers.render_error("No grants are pending - nothing to transfer")
     breadcrumbs = views.create_breadcrumbs_list(supplier)
     links = get_links(supplier)
-    fields = (readonly_fields.ReadOnlyField('name'), )
+    fields = (properties.StringProperty('name'), )
     grid = views.render_entity(supplier, fields)
     title = 'Supplier ' + supplier.name
     purchase_payments = render_purchase_payments_list(supplier)

@@ -2,15 +2,13 @@
 
 from flask import url_for, request, redirect
 from application import app
-from flask.views import View
 import wtforms
 from datetime import date
 
 import db
 import data_models
 import renderers
-import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
@@ -21,34 +19,37 @@ TRANSFER_CLOSED = 0
 TRANSFER_REQUESTED = 1
 TRANSFER_TRANSFERRED = 2
 
-ACTION_TRANSFERRED = data_models.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
-                            None, [TRANSFER_REQUESTED])
-ACTION_ACKNOWLEDGED = data_models.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN, None, [TRANSFER_TRANSFERRED])
+state_labels = ['Closed', 'Requested', 'Transferred']
+def state_of(entity):
+    return state_labels[entity.state_index]
 
-class RequestTotalsField(readonly_fields.ReadOnlyField):
-    def get_value(self, transfer, no_links):
-        total_sterling = 0
-        total_shillings = 0
-        for grant in transfer.grant_list:
-            if grant.amount.currency == 'sterling':
-                total_sterling += grant.amount.value
-            else:
-                total_shillings += grant.amount.value
-        return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
+ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
+                            [TRANSFER_REQUESTED])
+ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN, [TRANSFER_TRANSFERRED])
 
-ref_field = readonly_fields.ReadOnlyField('ref_id')
-state_field = readonly_fields.StateField('Closed', 'Requested', 'Transferred')
-creator_field = readonly_fields.ReadOnlyKeyField('creator')
-creation_date_field = readonly_fields.ReadOnlyField('creation_date')
-rate_field = readonly_fields.ReadOnlyField('exchange_rate')
-request_totals_field = RequestTotalsField('total_payment')
+def calculate_totals(transfer):
+    total_sterling = 0
+    total_shillings = 0
+    for grant in transfer.grant_list:
+        if grant.amount.currency == 'sterling':
+            total_sterling += grant.amount.value
+        else:
+            total_shillings += grant.amount.value
+    return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
+
+ref_field = properties.StringProperty('ref_id')
+state_field = properties.StringProperty(state_of, 'State')
+creator_field = properties.KeyProperty('creator')
+creation_date_field = properties.DateProperty('creation_date')
+rate_field = properties.StringProperty('exchange_rate')
+request_totals_field = properties.StringProperty(calculate_totals, 'Request Totals')
 
 grant_field_list = [
     grants.state_field, grants.creator_field, grants.project_field, grants.amount_field,
     grants.transferred_amount_field,
-    readonly_fields.ReadOnlyField('project.partner.name', 'Implementing Partner'),
+    properties.StringProperty('project.partner.name', 'Implementing Partner'),
     grants.source_field,
-    readonly_fields.ReadOnlyField('project.^.name', 'Destination Fund')
+    properties.StringProperty('project.^.name', 'Destination Fund')
 ]
 
 advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 
@@ -100,15 +101,15 @@ def render_grants_due_list(grant_list):
     return (sub_heading, table)
 
 def render_purchase_payments_list(transfer):
-    column_headers = readonly_fields.get_labels(advance_field_list)
+    column_headers = properties.get_labels(advance_field_list)
     
     advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
-    advance_grid = readonly_fields.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(readonly_fields.url_for_entity, advance_list)
+    advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
+    advance_url_list = map(properties.url_for_entity, advance_list)
     
     invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
-    invoice_grid = readonly_fields.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(readonly_fields.url_for_entity, invoice_list)
+    invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
+    invoice_url_list = map(properties.url_for_entity, invoice_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments')
     table = renderers.render_table(column_headers, advance_grid + invoice_grid,
@@ -118,9 +119,8 @@ def render_purchase_payments_list(transfer):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = data_models.lookup_entity(db_id)
-    committee = data_models.get_owning_committee(transfer)
     form = ExchangeRateForm(request.form)
-    model = data_models.Model(committee)
+    model = data_models.Model(transfer, None)
     model.add_form(ACTION_TRANSFERRED.name, form)
     if process_transferred_button(model, transfer):
         return redirect(request.base_url)

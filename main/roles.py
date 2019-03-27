@@ -6,13 +6,13 @@ import wtforms
 import db
 import data_models
 import custom_fields
-import readonly_fields
+import properties
 import views
 import logging
-import role_types
+from role_types import RoleType
 
-ACTION_UPDATE = data_models.Action('update', 'Edit', role_types.RoleType.USER_ADMIN)
-ACTION_CREATE = data_models.CreateAction(role_types.RoleType.USER_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.USER_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.USER_ADMIN)
 
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
@@ -32,7 +32,7 @@ class RoleListView(views.ListView):
         return RoleForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
+        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
 
 class RoleView(views.EntityView):
     def __init__(self):
@@ -45,10 +45,7 @@ class RoleView(views.EntityView):
         return RoleForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
-    
-    def get_links(self, entity):
-         return []
+        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
 
 def add_rules(app):
     app.add_url_rule('/role_list/<db_id>', view_func=RoleListView.as_view('view_role_list'))

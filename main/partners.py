@@ -7,12 +7,12 @@ import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
-ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
-ACTION_CREATE = data_models.CreateAction(RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 
 class PartnerForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -31,7 +31,7 @@ class PartnerListView(views.ListView):
         return PartnerForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name'), )
+        return (properties.StringProperty('name'), )
 
 class PartnerView(views.EntityView):
     def __init__(self):
@@ -44,7 +44,7 @@ class PartnerView(views.EntityView):
         return PartnerForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
+        return (properties.StringProperty('name'), )
 
 def add_rules(app):
     app.add_url_rule('/partner_list/<db_id>', view_func=PartnerListView.as_view('view_partner_list'))

@@ -1,25 +1,19 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import request, redirect, url_for
+from flask import url_for
 from application import app
-import datetime
-import wtforms
 
 import data_models
 import renderers
-import custom_fields
-import readonly_fields
+import properties
 import views
-from role_types import RoleType
-import grants
-import purchases
 
-committee_field_list = (readonly_fields.ReadOnlyField('name'), )
+committee_field_list = (properties.StringProperty('name'), )
 
 @app.route('/committee_list', methods=['GET'])
 def view_committee_list():
     breadcrumbs = views.create_breadcrumbs(None)
-    supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
+    supplier_field_list = (properties.StringProperty('name'), )
     committee_list = data_models.get_committee_list()
     entity_table = views.render_entity_list(committee_list, committee_field_list)
     return views.render_view('Committee List', breadcrumbs, entity_table)

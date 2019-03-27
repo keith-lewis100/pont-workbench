@@ -7,27 +7,31 @@ import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
 PLEDGE_PENDING = 1
 PLEDGE_FULFILLED = 2
 PLEDGE_CLOSED = 3
-    
-class PledgeCreate(data_models.CreateAction):
+
+state_labels = ['Closed', 'Pending', 'Fulfilled']
+def state_of(entity):
+    return state_labels[entity.state_index]
+
+class PledgeCreate:
     def apply_to(self, entity, user):
         ref = data_models.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
         entity.creator = user.key
         entity.put()
 
-ACTION_FULFILLED = data_models.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
-ACTION_BOOKED = data_models.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PLEDGE_PENDING])
-ACTION_CREATE = PledgeCreate(RoleType.COMMITTEE_ADMIN)
+ACTION_FULFILLED = views.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, [PLEDGE_PENDING])
+ACTION_BOOKED = views.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, [PLEDGE_FULFILLED])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [PLEDGE_PENDING], True)
+ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 
-state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')
+state_field = properties.StringProperty(state_of, 'State')
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -50,8 +54,8 @@ class PledgeListView(views.ListView):
         return PledgeForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
-        return (ref_id, readonly_fields.ReadOnlyField('amount'), state_field)
+        ref_id = properties.StringProperty('ref_id', 'Reference')
+        return (ref_id, properties.StringProperty('amount'), state_field)
 
 class PledgeView(views.EntityView):
     def __init__(self):
@@ -64,13 +68,10 @@ class PledgeView(views.EntityView):
         return PledgeForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
-        creator = readonly_fields.ReadOnlyKeyField('creator')
-        return [ref_id, state_field, creator] + map(readonly_fields.create_readonly_field, 
+        ref_id = properties.StringProperty('ref_id', 'Reference')
+        creator = properties.KeyProperty('creator')
+        return [ref_id, state_field, creator] + map(properties.create_readonly_field, 
                     form._fields.keys(), form._fields.values())
-
-    def get_links(self, entity):
-        return []
 
 def add_rules(app):
     app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))

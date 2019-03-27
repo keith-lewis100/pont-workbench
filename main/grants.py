@@ -10,7 +10,7 @@ import data_models
 import renderers
 import views
 import custom_fields
-import readonly_fields
+import properties
 from role_types import RoleType
 
 GRANT_WAITING = 1
@@ -18,26 +18,30 @@ GRANT_READY = 2
 GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 
-class GrantCreate(data_models.CreateAction):
+state_labels = ['Closed', 'Waiting', 'Ready', 'Transferred']
+def state_of(entity):
+    return state_labels[entity.state_index]
+
+class GrantCreate:
     def apply_to(self, entity, user):
         entity.creator = user.key
         fund = entity.project.parent()
         entity.supplier = fund.parent()
         entity.put()
 
-ACTION_CHECKED = data_models.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-ACTION_ACKNOWLEDGED = data_models.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
-ACTION_CANCEL = data_models.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [GRANT_WAITING])
-ACTION_CREATE = GrantCreate(RoleType.COMMITTEE_ADMIN)
+ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, [GRANT_WAITING])
+ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, [GRANT_TRANSFERED])
+ACTION_CANCEL = views.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, [GRANT_WAITING])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [GRANT_WAITING])
+ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 
-state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
-creator_field = readonly_fields.ReadOnlyKeyField('creator', 'Requestor')
-project_field = readonly_fields.ReadOnlyKeyField('project')
-amount_field = readonly_fields.ReadOnlyField('amount')
-transferred_amount_field = readonly_fields.ExchangeCurrencyField('#', 'Transferred Amount')
-source_field = readonly_fields.ReadOnlyField('^.code', 'Source Fund')
-target_date_field = readonly_fields.DateField('target_date', format='%Y-%m')
+state_field = properties.StringProperty(state_of, 'State')
+creator_field = properties.KeyProperty('creator', 'Requestor')
+project_field = properties.KeyProperty('project')
+amount_field = properties.StringProperty('amount')
+transferred_amount_field = properties.ExchangeCurrencyProperty(lambda e: e, 'Transferred Amount')
+source_field = properties.StringProperty(lambda e: e.key.parent().get().code, 'Source Fund')
+target_date_field = properties.DateProperty('target_date', format='%Y-%m')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
@@ -83,7 +87,7 @@ class GrantView(views.EntityView):
         return create_grant_form(request_input, entity)
 
     def get_fields(self, form):
-        return [state_field, creator_field, transferred_amount_field] + map(readonly_fields.create_readonly_field, 
+        return [state_field, creator_field, transferred_amount_field] + map(properties.create_readonly_field, 
                     form._fields.keys(), form._fields.values())
 
 def add_rules(app):

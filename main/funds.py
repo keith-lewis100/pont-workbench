@@ -7,12 +7,12 @@ import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
-ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.FUND_ADMIN)
-ACTION_CREATE = data_models.CreateAction(RoleType.FUND_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.FUND_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.FUND_ADMIN)
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -33,7 +33,7 @@ class FundListView(views.ListView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name'), readonly_fields.ReadOnlyField('code'))
+        return (properties.StringProperty('name'), properties.StringProperty('code'))
 
 class FundView(views.EntityView):
     def __init__(self):
@@ -46,18 +46,14 @@ class FundView(views.EntityView):
         return FundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
+        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
 
     def get_links(self, entity):
-        purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
-        showPurchases = renderers.render_link('Show Purchase Requests', purchases_url, class_="button")
-        grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
-        showGrants = renderers.render_link('Show Grants', grants_url, class_="button")
-        pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())
-        showPledges = renderers.render_link('Show Pledges', pledges_url, class_="button")
-        transfers_url = url_for('view_internaltransfer_list', db_id=entity.key.urlsafe())
-        showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
-        return [showPurchases, showGrants, showPledges, showTransfers]
+        return [views.render_link(kind, label, entity) for kind, label in [
+                    ('Purchase', 'Show Purchase Requests'),
+                    ('Grant', 'Show Grants'),
+                    ('Pledge', 'Show Pledges'),
+                    ('InternalTransfer', 'Show Transfers')]]
 
 def add_rules(app):
     app.add_url_rule('/fund_list/<db_id>', view_func=FundListView.as_view('view_fund_list'))
