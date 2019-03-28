@@ -22,7 +22,8 @@ def state_of(entity):
 state_field = properties.StringProperty(state_of, 'State')
 
 class InternalTransferModel(data_models.Model):
-    pass
+    def list_entities(self):
+        return db.InternalTransfer.query(ancestor = self.parent.key).fetch()
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
                             [TRANSFER_PENDING])
@@ -49,7 +50,7 @@ def add_transfer_form(request_data, model, action):
 def view_internaltransfer_list(db_id):
     fund = data_models.lookup_entity(db_id, 'Fund')
     new_transfer = db.InternalTransfer(parent=fund.key)
-    model = InternalTransferModel(new_transfer, db.InternalTransfer)
+    model = InternalTransferModel(None, fund)
     add_transfer_form(request.form, model, ACTION_CREATE)   
     property_list = (properties.KeyProperty('dest_fund'),
               properties.StringProperty('amount'), state_field)

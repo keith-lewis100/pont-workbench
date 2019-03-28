@@ -48,10 +48,10 @@ INDEX_READY = 2
 INDEX_ORDERED = 3
 state_list = [PurchaseState.CLOSED, PurchaseState.CHECKING, PurchaseState.READY, PurchaseState.ORDERED]
 
-def state_of(entity):
-    state = state_list[entity.state_index]
+def state_of(purchase):
+    state = state_list[purchase.state_index]
     if state == PurchaseState.ORDERED:
-        if purchase.advance != None and not purchase.adance.paid:
+        if purchase.advance != None and not purchase.advance.paid:
             return PurchaseState.ADVANCE_PENDING
         if  purchase.invoice != None and not purchase.invoice.paid:
             return PurchaseState.PAYMENT_DUE
@@ -82,13 +82,8 @@ advance_transferred_field = properties.ExchangeCurrencyProperty('advance', 'Tran
 
 
 class PurchaseModel(data_models.Model):
-    def perform_create(self):
-        pass
-
-    def perform_update(self):
-        form = self.get_form('update')
-        form.populate_obj(self.entity)
-        self.entity.put()
+    def list_entities(self):
+        return db.Purchase.query(ancestor = self.parent.key).fetch()
 
     def perform_checked(self):
         self.entity.state_index = INDEX_READY
@@ -145,7 +140,7 @@ ACTION_CANCEL = views.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN,
 ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN)
 ACTION_UPDATE = views.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, [PurchaseState.CHECKING], True)
 
-ACTION_ADVANCE_PAID = views.Action('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN, False)
+ACTION_ADVANCE_PAID = views.StateAction('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN, [PurchaseState.ADVANCE_PENDING])
 
 class PurchaseForm(wtforms.Form):
     quote_amount = wtforms.FormField(custom_fields.MoneyForm, widget=custom_fields.form_field_widget)
@@ -249,7 +244,7 @@ def view_purchase(db_id):
 =======
     fund = data_models.lookup_entity(db_id, 'Fund')
     new_purchase = db.Purchase(parent=fund.key)
-    model = PurchaseModel(new_purchase, db.Purchase)
+    model = PurchaseModel(None, fund)
     add_purchase_form(request.form, model, ACTION_CREATE)
     property_list = (properties.KeyProperty('supplier'), properties.StringProperty('quote_amount'),
                      po_number_field, state_field)

@@ -50,7 +50,7 @@ def render_entity_list(entity_list, fields, selectable=True):
     return renderers.render_table(column_headers, grid, url_list)
 
 def render_link(kind, label, parent=None):
-    url = url_for_entity_list(kind, parent)
+    url = url_for_list(kind, parent)
     return renderers.render_link(label, url, class_="button")
 
 audit_fields = [
@@ -75,9 +75,7 @@ class Action(object):
 
     def is_allowed(self, model):
         types = model.get_role_types()
-        if not self.required_role in types:
-            return False
-        return True
+        return self.required_role in types
 
     def process_input(self, model):
         enabled = self.is_allowed(model)
@@ -124,7 +122,7 @@ def view_entity_list(model, title, property_list, create_action):
         return redirect(request.base_url)
     entity_table = render_entity_list(model.list_entities(), property_list)
     new_button = create_action.render(model)
-    breadcrumbs = create_breadcrumbs(model.parent())
+    breadcrumbs = create_breadcrumbs(model.parent)
     return render_view(title, breadcrumbs, entity_table, buttons=[new_button])
 
 class ListView(View):
@@ -144,14 +142,13 @@ class ListView(View):
         entity = self.create_entity(parent)
         form = self.create_form(request.form, entity)
         committee = data_models.get_owning_committee(parent)
-        model = data_models.Model(committee)
+        model = data_models.Model(entity, committee)
         model.add_form('create', form)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
             self.create_action.apply_to(entity, model.user)
             self.create_action.audit(entity, model.user)
             return redirect(request.base_url)
-        
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
         buttons = view_actions([self.create_action], model, None)
@@ -184,14 +181,14 @@ def process_edit_button(action, form, entity):
         return True
     return False
 
-def view_std_entity(model, title, property_list, action_list):
+def view_std_entity(model, title, property_list, action_list=[], num_wide=0, links=[]):
     if request.method == 'POST'and handle_post(model, action_list):
         return redirect(request.base_url)
     buttons = [action.render(model) for action in action_list]
     breadcrumbs = create_breadcrumbs_list(model.entity)
-    content = render_entity(model.entity, property_list, 1)
+    content = render_entity(model.entity, property_list, num_wide)
     history = render_entity_history(model.entity.key)
-    return render_view(title, breadcrumbs, [content, history], buttons=buttons)
+    return render_view(title, breadcrumbs, [content, history], buttons=buttons, links=links)
 
 class EntityView(View):
     methods = ['GET', 'POST', 'DELETE']
@@ -208,7 +205,7 @@ class EntityView(View):
         entity = data_models.lookup_entity(db_id)
         form = self.create_form(request.form, entity)
         committee = data_models.get_owning_committee(entity)
-        model = data_models.Model(committee)
+        model = data_models.Model(entity, committee)
         model.add_form('update', form)
         if process_edit_button(self.update_action, form, entity):
             return redirect(request.base_url)    
@@ -218,7 +215,6 @@ class EntityView(View):
             action.audit(entity, model.user)
             return redirect(request.base_url)
         title = self.title(entity)
-        breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)
         grid = render_entity(entity, fields, self.num_wide)

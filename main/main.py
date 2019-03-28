@@ -31,12 +31,10 @@ def home():
     links = renderers.render_nav(showCommittees, showSuppliers, showUsers)
     return render_template('layout.html', title='DashBoard', user=views.render_user(), main=links)
 
-funds.add_rules(app)
 projects.add_rules(app)
 grants.add_rules(app)
 pledges.add_rules(app)
 supplier_funds.add_rules(app)
-internal_transfers.add_rules(app)
 users.add_rules(app)
 roles.add_rules(app)
 partners.add_rules(app)

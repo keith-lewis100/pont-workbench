@@ -30,12 +30,12 @@ def create_readonly_field(name, form_field):
 class Property(object):
     def __init__(self, attr, label=None):
         self.attr = attr
-        self.label = label if label != None else attr.split('.')[-1].replace("_", " ").title()
+        self.label = label if label is not None else attr.split('.')[-1].replace("_", " ").title()
 
     def value_for(self, entity):
         if callable(self.attr):
             return self.attr(entity)
-        getattr(entity, self.attr)
+        return getattr(entity, self.attr)
 
 class StringProperty(Property):
     def str_for(self, entity, no_links):

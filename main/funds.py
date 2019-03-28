@@ -1,12 +1,11 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for
+from flask import request
 import wtforms
 
+from application import app
 import db
 import data_models
-import renderers
-import custom_fields
 import properties
 import views
 from role_types import RoleType
@@ -19,42 +18,28 @@ class FundForm(wtforms.Form):
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-class FundListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Fund', ACTION_CREATE)
+@app.route('/fund_list/<db_id>', methods=['GET', 'POST'])
+def view_fund_list(db_id):
+    committee = data_models.lookup_committee(db_id)
+    new_fund = db.Fund(committee = committee.id)
+    model = FundModel(None, committee)
+    form = FundForm(request.form, new_fund)
+    model.add_form(ACTION_CREATE.name, form)   
+    property_list = (properties.StringProperty('name'), properties.StringProperty('code'))
+    return views.view_entity_list(model, 'Fund List', property_list, ACTION_CREATE)
 
-    def load_entities(self, committee):
-        return db.Fund.query(db.Fund.committee == committee.id).fetch()
+def get_links(fund):
+    return [views.render_link(kind, label, fund) for kind, label in [
+                ('Purchase', 'Show Purchase Requests'),
+                ('Grant', 'Show Grants'),
+                ('Pledge', 'Show Pledges'),
+                ('InternalTransfer', 'Show Transfers')]]
 
-    def create_entity(self, committee):
-        return db.Fund(committee = committee.id)
-
-    def create_form(self, request_input, entity):
-        return FundForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return (properties.StringProperty('name'), properties.StringProperty('code'))
-
-class FundView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, 1)
-        
-    def title(self, entity):
-        return 'Fund ' + entity.name
-        
-    def create_form(self, request_input, entity):
-        return FundForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
-
-    def get_links(self, entity):
-        return [views.render_link(kind, label, entity) for kind, label in [
-                    ('Purchase', 'Show Purchase Requests'),
-                    ('Grant', 'Show Grants'),
-                    ('Pledge', 'Show Pledges'),
-                    ('InternalTransfer', 'Show Transfers')]]
-
-def add_rules(app):
-    app.add_url_rule('/fund_list/<db_id>', view_func=FundListView.as_view('view_fund_list'))
-    app.add_url_rule('/fund/<db_id>/', view_func=FundView.as_view('view_fund'))        
+@app.route('/fund/<db_id>', methods=['GET', 'POST'])
+def view_fund(db_id):
+    fund = data_models.lookup_entity(db_id, 'Fund')
+    model = FundModel(fund)
+    form = FundForm(request.form, fund)
+    model.add_form(ACTION_UPDATE.name, form)   
+    property_list = map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
+    return views.view_std_entity(model, 'Fund ' + fund.name, property_list, [ACTION_UPDATE], 1, get_links(fund))
