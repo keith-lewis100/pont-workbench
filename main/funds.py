@@ -22,11 +22,15 @@ class FundForm(wtforms.Form):
 def view_fund_list(db_id):
     committee = data_models.lookup_committee(db_id)
     new_fund = db.Fund(committee = committee.id)
-    model = FundModel(None, committee)
+    model = data_models.Model(new_fund, committee.id)
     form = FundForm(request.form, new_fund)
     model.add_form(ACTION_CREATE.name, form)   
     property_list = (properties.StringProperty('name'), properties.StringProperty('code'))
-    return views.view_entity_list(model, 'Fund List', property_list, ACTION_CREATE)
+    fund_list = db.Fund.query(db.Fund.committee == committee.id).fetch()
+    entity_table = views.render_entity_list(fund_list, property_list)
+    new_button = ACTION_CREATE.render(model)
+    breadcrumbs = views.create_breadcrumbs(fund)
+    return views.render_view('Fund List', breadcrumbs, entity_table, buttons=[new_button])
 
 def get_links(fund):
     return [views.render_link(kind, label, fund) for kind, label in [

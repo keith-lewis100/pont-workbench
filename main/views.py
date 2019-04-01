@@ -67,11 +67,11 @@ def render_entity_history(key):
     return (sub_heading, table)
 
 class Action(object):
-    def __init__(self, name, label, required_role, has_form=True):
+    def __init__(self, name, label, required_role, perform):
         self.name = name
         self.label = label
         self.required_role = required_role
-        self.has_form = has_form
+        self.perform = perform
 
     def is_allowed(self, model):
         types = model.get_role_types()
@@ -80,24 +80,19 @@ class Action(object):
     def process_input(self, model):
         enabled = self.is_allowed(model)
         assert enabled
-        form = model.get_form(self.name)
-        if form and not form.validate():
-            return False
-        method = getattr(model, 'perform_' + self.name)
-        method()
-        return True
+        return self.perform(model, self.name)
 
     def render(self, model):
         enabled = self.is_allowed(model)
-        if self.has_form:
-            form = model.get_form(self.name)
+        form = model.get_form(self.name)
+        if form:
             return custom_fields.render_dialog_button(self.label, self.name, form, enabled)
         return renderers.render_submit_button(self.label, name='_action', value=self.name,
                 disabled=not enabled)
 
 class StateAction(Action):
-    def __init__(self, name, label, required_role, allowed_states, has_form=False):
-        super(StateAction, self).__init__(name, label, required_role, has_form)
+    def __init__(self, name, label, required_role, perform, allowed_states):
+        super(StateAction, self).__init__(name, label, required_role, perform)
         self.allowed_states = allowed_states
 
     def is_allowed(self, model):
@@ -106,9 +101,13 @@ class StateAction(Action):
         state = model.get_state()
         return state in self.allowed_states
 
-class CreateAction(Action):
-   def __init__(self, required_role):
-        super(CreateAction, self).__init__('create', 'New', required_role)
+def update_action(required_role, allowed_states=None):
+    if allowed_states is None:
+        return Action('update', 'Edit', required_role, data_models.Model.perform_update)
+    return StateAction('update', 'Edit', required_role, data_models.Model.perform_update, allowed_states)
+
+def create_action(required_role):
+    return Action('create', 'New', required_role, data_models.Model.perform_create)
 
 def handle_post(model, action_list):
     action_name = request.form['_action']
@@ -116,14 +115,6 @@ def handle_post(model, action_list):
         if action.name == action_name:
             return action.process_input(model)
     raise NotImplemented        
-
-def view_entity_list(model, title, property_list, create_action):
-    if request.method == 'POST' and create_action.process_input(model):
-        return redirect(request.base_url)
-    entity_table = render_entity_list(model.list_entities(), property_list)
-    new_button = create_action.render(model)
-    breadcrumbs = create_breadcrumbs(model.parent)
-    return render_view(title, breadcrumbs, entity_table, buttons=[new_button])
 
 class ListView(View):
     methods = ['GET', 'POST']

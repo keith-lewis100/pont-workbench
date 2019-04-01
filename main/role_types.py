@@ -18,7 +18,7 @@ def get_choices():
 def committee_matches(committee, role):
     if role.committee == "":
         return True
-    return role.committee == committee.id
+    return role.committee == committee
 
 def get_types(roles, committee):
     types = [r.type_index for r in roles if committee_matches(committee, r)]

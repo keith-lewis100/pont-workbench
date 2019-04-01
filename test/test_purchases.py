@@ -9,8 +9,6 @@ import funds
 import committees
 from role_types import RoleType
 
-funds.add_rules(app)
-
 class TestPurchases(unittest.TestCase):
     def test_purchase_list(self):
         with app.test_request_context('/', method='GET'):
@@ -66,7 +64,8 @@ class TestPurchases(unittest.TestCase):
         role.type_index = RoleType.FUND_ADMIN
         role.put()
         fund = db.Fund(id=11)
-        purchase = db.Purchase(id=12)
+        fund.put()
+        purchase = db.Purchase(id=12, parent=fund.key)
         purchase.put()
         with app.test_request_context('/p', method='POST', data={
                '_action': 'checked'

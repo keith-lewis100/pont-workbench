@@ -82,65 +82,76 @@ advance_transferred_field = properties.ExchangeCurrencyProperty('advance', 'Tran
 
 
 class PurchaseModel(data_models.Model):
-    def list_entities(self):
-        return db.Purchase.query(ancestor = self.parent.key).fetch()
-
-    def perform_checked(self):
+    def perform_checked(self, action_name):
         self.entity.state_index = INDEX_READY
         ref = data_models.get_next_ref()
         self.entity.po_number = 'MB%04d' % ref
         self.entity.put()
+        self.audit(action_name, "%s performed" % action_name)
+        return True
 
-    def perform_ordered(self):
+    def perform_ordered(self, action_name):
         self.entity.state_index = INDEX_ORDERED
         self.entity.put()
+        self.audit(action_name, "%s performed" % action_name)
+        return True
 
-    def perform_invoiced(self):
+    def perform_invoiced(self, action_name):
         form = self.get_form('invoiced')
+        if not form.validate():
+            return False
         invoice = db.Payment()
-        form.populate_obj(advance)
+        form.populate_obj(invoice)
         self.entity.invoice = invoice
         self.entity.put()
+        self.audit(action_name, "invoiced amount=%s" % invoice.amount)
+        return True
 
-    def perform_advance(self):
+    def perform_advance(self, action_name):
         form = self.get_form('advance')
+        if not form.validate():
+            return False
         advance = db.Payment()
         form.populate_obj(advance)
         self.entity.advance = advance
         self.entity.put()
+        self.audit(action_name, "advanced amount=%s" % advance.amount)
+        return True
 
-    def perform_paid(self):
+    def perform_paid(self, action_name):
         self.entity.invoice.paid = True
         self.entity.state_index = INDEX_CLOSED
         self.entity.put()
+        self.audit(action_name, "%s performed" % action_name)
+        return True
 
-    def perform_advance_paid(self):
+    def perform_advance_paid(self, action_name):
         self.entity.advance.paid = True
         self.entity.put()
-
-    def perform_cancel(self):
-        self.entity.state_index = INDEX_CLOSED
-        self.entity.put()
+        self.audit(action_name, "%s performed" % action_name)
+        return True
 
     def get_state(self):
         return state_of(self.entity)
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
-                                   [PurchaseState.CHECKING])
+                                   PurchaseModel.perform_checked, [PurchaseState.CHECKING])
 ACTION_ORDERED = views.StateAction('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN,
-                                   [PurchaseState.READY])
+                                   PurchaseModel.perform_ordered, [PurchaseState.READY])
 ACTION_INVOICED = views.StateAction('invoiced', 'Invoiced', RoleType.COMMITTEE_ADMIN,
-                               [PurchaseState.ORDERED], True)
+                                    PurchaseModel.perform_invoiced, [PurchaseState.ORDERED])
 ACTION_ADVANCE = views.StateAction('advance', 'Advance Payment', RoleType.COMMITTEE_ADMIN,
-                              [PurchaseState.ORDERED], True)
-ACTION_PAID = views.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN, [PurchaseState.PAYMENT_DUE])
+                                   PurchaseModel.perform_advance, [PurchaseState.ORDERED])
+ACTION_PAID = views.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN,
+                                PurchaseModel.perform_close, [PurchaseState.PAYMENT_DUE])
 ACTION_CANCEL = views.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN,
-                                  [PurchaseState.CHECKING])
+                                  PurchaseModel.perform_close, [PurchaseState.CHECKING])
 
-ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN)
-ACTION_UPDATE = views.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, [PurchaseState.CHECKING], True)
+ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [PurchaseState.CHECKING])
 
-ACTION_ADVANCE_PAID = views.StateAction('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN, [PurchaseState.ADVANCE_PENDING])
+ACTION_ADVANCE_PAID = views.StateAction('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN,
+                                        [PurchaseState.ADVANCE_PENDING], PurchaseModel.perform_checked)
 
 class PurchaseForm(wtforms.Form):
     quote_amount = wtforms.FormField(custom_fields.MoneyForm, widget=custom_fields.form_field_widget)
@@ -244,11 +255,17 @@ def view_purchase(db_id):
 =======
     fund = data_models.lookup_entity(db_id, 'Fund')
     new_purchase = db.Purchase(parent=fund.key)
-    model = PurchaseModel(None, fund)
+    model = PurchaseModel(new_purchase, fund.committee)
     add_purchase_form(request.form, model, ACTION_CREATE)
+    if request.method == 'POST' and ACTION_CREATE.process_input(model):
+        return redirect(request.base_url)
     property_list = (properties.KeyProperty('supplier'), properties.StringProperty('quote_amount'),
                      po_number_field, state_field)
-    return views.view_entity_list(model, 'Purchase List', property_list, ACTION_CREATE)
+    purchase_list = db.Purchase.query(ancestor = fund.key).fetch()
+    entity_table = views.render_entity_list(purchase_list, property_list)
+    new_button = ACTION_CREATE.render(model)
+    breadcrumbs = views.create_breadcrumbs(fund)
+    return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=[new_button])
 
 def get_fields(model):
     form = model.get_form(ACTION_UPDATE.name)
@@ -257,7 +274,8 @@ def get_fields(model):
 
 def load_purchase_model(db_id, request_data):
     purchase = data_models.lookup_entity(db_id, 'Purchase')
-    model = PurchaseModel(purchase)
+    fund = data_models.get_parent(purchase)
+    model = PurchaseModel(purchase, fund.committee)
     add_purchase_form(request_data, model, ACTION_UPDATE)
     invoice_form = InvoicedAmountForm(request_data)
     model.add_form(ACTION_INVOICED.name, invoice_form)

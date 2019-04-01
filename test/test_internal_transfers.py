@@ -6,8 +6,6 @@ import committees
 import funds
 import internal_transfers
 
-funds.add_rules(app)
-
 class TestPurchases(unittest.TestCase):
     def test_transfer_list(self):
         fund = db.Fund(id=11)

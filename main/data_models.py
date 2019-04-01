@@ -1,4 +1,4 @@
-#_*_ coding: UTF-8 _*_
+git#_*_ coding: UTF-8 _*_
 
 import logging
 from google.appengine.api import users
@@ -110,6 +110,8 @@ def role_matches(role, role_type, committee):
         return False
     return role.committee == "" or role.committee == committee
 
+INDEX_CLOSED = 0
+
 class Model(object):
     def __init__(self, entity, committee):
         self.entity = entity
@@ -133,15 +135,29 @@ class Model(object):
     def get_form(self, action_name):
         return self.forms.get(action_name)
 
-    def perform_create(self):
+    def perform_create(self, action_name):
         form = self.get_form('create')
+        if not form.validate():
+            return False
         form.populate_obj(self.entity)
         self.entity.put()
+        self.audit(action_name, "Create performed")
+        return True
 
-    def perform_update(self):
+    def perform_update(self, action_name):
         form = self.get_form('update')
+        if not form.validate():
+            return False
         form.populate_obj(self.entity)
         self.entity.put()
+        self.audit(action_name, "Update performed")
+        return True
+
+   def perform_close(self, action_name):
+        self.entity.state_index = INDEX_CLOSED
+        self.entity.put()
+        self.audit(action_name, "%s performed" % action_name.title())
+        return True
 
     def audit(self, action_name, message):
         audit = db.AuditRecord()

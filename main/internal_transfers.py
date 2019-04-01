@@ -22,11 +22,14 @@ def state_of(entity):
 state_field = properties.StringProperty(state_of, 'State')
 
 class InternalTransferModel(data_models.Model):
-    def list_entities(self):
-        return db.InternalTransfer.query(ancestor = self.parent.key).fetch()
+    def perform_transferred(self, action_name):
+        self.entity.state_index = TRANSFER_COMPLETE
+        self.entity.put()
+        self.audit(action_name, "Transfer performed")
+        return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
-                            [TRANSFER_PENDING])
+                            [TRANSFER_PENDING], InternalTransferModel.perform_transferred)
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 action_list = [ACTION_UPDATE, ACTION_TRANSFERRED]
@@ -50,16 +53,23 @@ def add_transfer_form(request_data, model, action):
 def view_internaltransfer_list(db_id):
     fund = data_models.lookup_entity(db_id, 'Fund')
     new_transfer = db.InternalTransfer(parent=fund.key)
-    model = InternalTransferModel(None, fund)
+    model = data_models.Model(new_transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_CREATE)   
+    if request.method == 'POST' and ACTION_CREATE.process_input(model):
+        return redirect(request.base_url)
     property_list = (properties.KeyProperty('dest_fund'),
               properties.StringProperty('amount'), state_field)
-    return views.view_entity_list(model, 'Internal Transfer List', property_list, ACTION_CREATE)
+    transfer_list = db.InternalTransfer.query(ancestor = fund.key).fetch()
+    entity_table = views.render_entity_list(transfer_list, property_list)
+    new_button = ACTION_CREATE.render(model)
+    breadcrumbs = views.create_breadcrumbs(fund)
+    return views.render_view('Internal Transfer List', breadcrumbs, entity_table, buttons=[new_button])
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):
     transfer = data_models.lookup_entity(db_id, 'InternalTransfer')
-    model = InternalTransferModel(transfer)
+    fund = data_models.get_parent(transfer)
+    model = data_models.Model(transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_UPDATE)
     title = 'InternalTransfer to ' + transfer.dest_fund.get().name if transfer.dest_fund != None else ""
     property_list = (state_field, properties.KeyProperty('creator'), properties.KeyProperty('dest_fund'),
