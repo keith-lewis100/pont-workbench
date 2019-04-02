@@ -4,15 +4,15 @@ from flask import url_for
 import wtforms
 
 import db
-import model
+import data_models
 import views
 import renderers
 import custom_fields
 import readonly_fields
 from role_types import RoleType
 
-ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.USER_ADMIN)
-ACTION_CREATE = model.CreateAction(RoleType.USER_ADMIN)
+ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.USER_ADMIN)
+ACTION_CREATE = data_models.CreateAction(RoleType.USER_ADMIN)
 
 class UserForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])

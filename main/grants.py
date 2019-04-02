@@ -6,7 +6,7 @@ import wtforms
 import wtforms.widgets.html5 as widgets
 from datetime import date, timedelta
 import db
-import model
+import data_models
 import renderers
 import views
 import custom_fields
@@ -18,17 +18,17 @@ GRANT_READY = 2
 GRANT_TRANSFERED = 3
 GRANT_CLOSED = 0
 
-class GrantCreate(model.CreateAction):
+class GrantCreate(data_models.CreateAction):
     def apply_to(self, entity, user):
         entity.creator = user.key
         fund = entity.project.parent()
         entity.supplier = fund.parent()
         entity.put()
 
-ACTION_CHECKED = model.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
-ACTION_ACKNOWLEDGED = model.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
-ACTION_CANCEL = model.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
-ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [GRANT_WAITING])
+ACTION_CHECKED = data_models.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, GRANT_READY, [GRANT_WAITING])
+ACTION_ACKNOWLEDGED = data_models.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_TRANSFERED])
+ACTION_CANCEL = data_models.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, GRANT_CLOSED, [GRANT_WAITING])
+ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [GRANT_WAITING])
 ACTION_CREATE = GrantCreate(RoleType.COMMITTEE_ADMIN)
 
 state_field = readonly_fields.StateField('Closed', 'Waiting', 'Ready', 'Transferred')
@@ -41,7 +41,7 @@ target_date_field = readonly_fields.DateField('target_date', format='%Y-%m')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
-    project = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.InputRequired()])
+    project = custom_fields.SelectField(coerce=data_models.create_key, validators=[wtforms.validators.InputRequired()])
     target_date = wtforms.DateField(widget=widgets.MonthInput(), format='%Y-%m',
                                 validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()

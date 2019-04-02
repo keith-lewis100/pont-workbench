@@ -1,10 +1,14 @@
 #_*_ coding: UTF-8 _*_
 
 import logging
+from google.appengine.api import users
+
 import db
 import role_types
+import custom_fields
+import renderers
 
-logger = logging.getLogger('model')
+logger = logging.getLogger('data_models')
 
 workbench = db.WorkBench.get_or_insert('main')
 committee_labels=[
@@ -107,6 +111,15 @@ def lookup_user_by_email(email):
         user.name = email
     return user
     
+def lookup_current_user():
+    email = users.get_current_user().email()
+    return lookup_user_by_email(email)
+
+def role_matches(role, role_type, committee):
+    if role.type_index != role_type:
+        return False
+    return role.committee == "" or role.committee == committee
+    
 class Action(object):
     def __init__(self, name, label, required_role, message=None):
         self.name = name
@@ -114,12 +127,17 @@ class Action(object):
         self.required_role = required_role
         self.message = message
 
-    def is_allowed(self, entity, user):
-        types = get_role_types(user, entity)
-        if not self.required_role in types:
-            return False
-        return True
-        
+    def is_allowed(self, model, entity):
+        return model.user_has_role(self.required_role)
+
+    def render(self, model, entity):
+        enabled = self.is_allowed(model, entity)
+        form = model.get_form(self.name)
+        if form:
+            return custom_fields.render_dialog_button(self.label, self.name, form, enabled)
+        return renderers.render_submit_button(self.label, name='_action', value=self.name,
+                disabled=not enabled)
+
     def apply_to(self, entity, user):
         entity.put()
 
@@ -140,8 +158,8 @@ class StateAction(Action):
         self.next_state = next_state
         self.allowed_states = allowed_states
         
-    def is_allowed(self, entity, user):
-        if not super(StateAction, self).is_allowed(entity, user):
+    def is_allowed(self, model, entity):
+        if not super(StateAction, self).is_allowed(model, entity):
             return False
         state = entity.state_index
         return state in self.allowed_states
@@ -158,3 +176,22 @@ class CreateAction(Action):
         if hasattr(entity, 'creator'):
             entity.creator = user.key
         entity.put()
+
+class Model:
+    def __init__(self, committee):
+        self.user = lookup_current_user()
+        self.committee = committee
+        self.forms = {}
+        
+    def user_has_role(self, role_type):
+        roles = db.Role.query(ancestor=self.user.key).fetch()
+        for r in roles:
+            if role_matches(r, role_type, self.committee):
+                return True
+        return False
+
+    def add_form(self, action_name, form):
+        self.forms[action_name] = form
+
+    def get_form(self, action_name):
+        return self.forms.get(action_name)

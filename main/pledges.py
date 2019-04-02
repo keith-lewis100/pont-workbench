@@ -4,7 +4,7 @@ from flask.views import View
 import wtforms
 
 import db
-import model
+import data_models
 import renderers
 import custom_fields
 import readonly_fields
@@ -15,16 +15,16 @@ PLEDGE_PENDING = 1
 PLEDGE_FULFILLED = 2
 PLEDGE_CLOSED = 3
     
-class PledgeCreate(model.CreateAction):
+class PledgeCreate(data_models.CreateAction):
     def apply_to(self, entity, user):
-        ref = model.get_next_ref()
+        ref = data_models.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
         entity.creator = user.key
         entity.put()
 
-ACTION_FULFILLED = model.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
-ACTION_BOOKED = model.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
-ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PLEDGE_PENDING])
+ACTION_FULFILLED = data_models.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
+ACTION_BOOKED = data_models.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
+ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PLEDGE_PENDING])
 ACTION_CREATE = PledgeCreate(RoleType.COMMITTEE_ADMIN)
 
 state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')

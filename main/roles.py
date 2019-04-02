@@ -4,19 +4,19 @@ from flask import redirect, request, url_for
 import wtforms
 
 import db
-import model
+import data_models
 import custom_fields
 import readonly_fields
 import views
 import logging
 import role_types
 
-ACTION_UPDATE = model.Action('edit', 'Edit', role_types.RoleType.USER_ADMIN)
-ACTION_CREATE = model.CreateAction(role_types.RoleType.USER_ADMIN)
+ACTION_UPDATE = data_models.Action('update', 'Edit', role_types.RoleType.USER_ADMIN)
+ACTION_CREATE = data_models.CreateAction(role_types.RoleType.USER_ADMIN)
 
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
-    committee = custom_fields.SelectField(choices=[("", "")] + model.committee_labels)
+    committee = custom_fields.SelectField(choices=[("", "")] + data_models.committee_labels)
     
 class RoleListView(views.ListView):
     def __init__(self):

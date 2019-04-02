@@ -4,7 +4,7 @@ from flask.views import View
 import wtforms
 
 import db
-import model
+import data_models
 import renderers
 import custom_fields
 import readonly_fields
@@ -15,17 +15,17 @@ TRANSFER_PENDING = 1
 TRANSFER_COMPLETE = 0
 state_field = readonly_fields.StateField('Transferred', 'Pending')
 
-ACTION_TRANSFERRED = model.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
+ACTION_TRANSFERRED = data_models.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
                             TRANSFER_COMPLETE, [TRANSFER_PENDING])
-ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.COMMITTEE_ADMIN, None, [TRANSFER_PENDING])
-ACTION_CREATE = model.CreateAction(RoleType.COMMITTEE_ADMIN)
+ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [TRANSFER_PENDING])
+ACTION_CREATE = data_models.CreateAction(RoleType.COMMITTEE_ADMIN)
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
 
 class InternalTransferForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
-    dest_fund = custom_fields.SelectField('Destination Fund', coerce=model.create_key, 
+    dest_fund = custom_fields.SelectField('Destination Fund', coerce=data_models.create_key, 
                     validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 

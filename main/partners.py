@@ -4,15 +4,15 @@ from flask import url_for
 import wtforms
 
 import db
-import model
+import data_models
 import renderers
 import custom_fields
 import readonly_fields
 import views
 from role_types import RoleType
 
-ACTION_UPDATE = model.Action('edit', 'Edit', RoleType.SUPPLIER_ADMIN)
-ACTION_CREATE = model.CreateAction(RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_CREATE = data_models.CreateAction(RoleType.SUPPLIER_ADMIN)
 
 class PartnerForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])

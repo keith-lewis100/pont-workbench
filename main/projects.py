@@ -5,7 +5,7 @@ from flask.views import View
 import wtforms
 
 import db
-import model
+import data_models
 import renderers
 import custom_fields
 import readonly_fields
@@ -19,15 +19,15 @@ PROJECT_CLOSED = 0
 
 state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
 
-ACTION_APPROVE = model.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
-ACTION_UPDATE = model.StateAction('edit', 'Edit', RoleType.PROJECT_CREATOR, None, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
-ACTION_CREATE = model.CreateAction(RoleType.PROJECT_CREATOR)
+ACTION_APPROVE = data_models.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
+ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.PROJECT_CREATOR, None, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
+ACTION_CREATE = data_models.CreateAction(RoleType.PROJECT_CREATOR)
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    committee = custom_fields.SelectField(label='Primary Committee', choices=model.committee_labels)
+    committee = custom_fields.SelectField(label='Primary Committee', choices=data_models.committee_labels)
     multi_committee = wtforms.BooleanField()
-    partner = custom_fields.SelectField(coerce=model.create_key, validators=[wtforms.validators.Optional()])
+    partner = custom_fields.SelectField(coerce=data_models.create_key, validators=[wtforms.validators.Optional()])
     description = wtforms.TextAreaField()
     
 def create_project_form(request_input, entity):

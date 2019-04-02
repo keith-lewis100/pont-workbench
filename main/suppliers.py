@@ -6,7 +6,7 @@ import datetime
 import wtforms
 
 import db
-import model
+import data_models
 import renderers
 import custom_fields
 import readonly_fields
@@ -20,28 +20,28 @@ class SupplierForm(wtforms.Form):
     receives_grants = wtforms.BooleanField()
     paid_in_sterling = wtforms.BooleanField()
 
-ACTION_TRANSFER_START = model.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
-ACTION_CREATE = model.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
-ACTION_UPDATE = model.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
+ACTION_TRANSFER_START = data_models.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
+ACTION_CREATE = data_models.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
 
 @app.route('/supplier_list', methods=['GET', 'POST'])
 def view_supplier_list():
-    user = views.current_user()
     new_supplier = db.Supplier()
     form = SupplierForm(request.form, obj=new_supplier)
-    enabled = ACTION_CREATE.is_allowed(None, user)
+    model = data_models.Model(None)
+    model.add_form('create', form)
     if request.method == 'POST' and form.validate():
         form.populate_obj(new_supplier)
-        ACTION_CREATE.apply_to(new_supplier, user)
-        ACTION_CREATE.audit(new_supplier, user)
+        ACTION_CREATE.apply_to(new_supplier, model.user)
+        ACTION_CREATE.audit(new_supplier, model.user)
         return redirect(request.base_url)
     
-    new_button = custom_fields.render_dialog_button('New', 'update', form, enabled)
     breadcrumbs = views.create_breadcrumbs(None)
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()
     entity_table = views.render_entity_list(supplier_list, supplier_field_list)
-    return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=[new_button])
+    buttons = views.view_actions([ACTION_CREATE], model, None)
+    return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=buttons)
 
 def get_links(supplier):
     db_id = supplier.key.urlsafe()
@@ -61,7 +61,7 @@ def get_links(supplier):
 def create_transfer(supplier, user):
     transfer = db.ForeignTransfer(parent=supplier.key)
     transfer.creator = user.key
-    ref = model.get_next_ref()
+    ref = data_models.get_next_ref()
     transfer.ref_id = 'FT%04d' % ref
     transfer.put()
     return transfer
@@ -111,17 +111,15 @@ def render_purchase_payments_list(supplier):
 
 @app.route('/supplier/<db_id>', methods=['GET', 'POST'])
 def view_supplier(db_id):
-    supplier = model.lookup_entity(db_id)
-    user = views.current_user()
+    supplier = data_models.lookup_entity(db_id)
     form = SupplierForm(request.form, obj=supplier)
-    buttons = []
-    if views.process_edit_button(ACTION_UPDATE, form, supplier, user, buttons):
-        ACTION_UPDATE.apply_to(supplier, user)
-        ACTION_UPDATE.audit(supplier, user)
+    model = data_models.Model(None)
+    model.add_form('update', form)
+    if views.process_edit_button(ACTION_UPDATE, form, supplier):
         return redirect(request.base_url)
     error = ""
-    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, supplier, user, buttons):
-        transfer = process_transfer_request(supplier, user)
+    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model, supplier):
+        transfer = process_transfer_request(supplier, model.user)
         if transfer is not None:
             transfer_url = views.url_for_entity(transfer)
             return redirect(transfer_url)
@@ -137,4 +135,5 @@ def view_supplier(db_id):
         grant_payments = render_grants_due_list(supplier)
         content.append(grant_payments)
     content.append(views.render_entity_history(supplier.key))
+    buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model, supplier)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)

@@ -1,7 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
 from html_builder import html
-import model
+import data_models
 import flask
 
 def url_for_entity(entity):
@@ -42,7 +42,7 @@ class Accessor:
         return getattr(entity, self.attr)
 
 def create_readonly_field(name, form_field):
-    if hasattr(form_field, 'coerce') and form_field.coerce == model.create_key:
+    if hasattr(form_field, 'coerce') and form_field.coerce == data_models.create_key:
         return ReadOnlyKeyField(name, form_field.label)
     if hasattr(form_field, 'choices'):
         return ReadOnlySelectField(name, form_field.label, coerce=form_field.coerce, 

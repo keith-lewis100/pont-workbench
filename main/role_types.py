@@ -13,7 +13,7 @@ role_names = ['UserAdmin', 'SupplierAdmin', 'FundAdmin', 'CommitteeAdmin',
                 'ProjectCreator']
 
 def get_choices():
-    return enumerate(role_names)
+    return list(enumerate(role_names))
 
 def committee_matches(committee, role):
     if role.committee == "":

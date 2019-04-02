@@ -6,7 +6,7 @@ from google.appengine.api import users
 
 import db
 import renderers
-import model
+import data_models
 import custom_fields
 import readonly_fields
 
@@ -20,13 +20,9 @@ def url_for_list(kind, parent):
         db_id = parent.key.urlsafe()
     return url_for('view_%s_list' % kind.lower(), db_id=db_id)
 
-def current_user():
-    email = users.get_current_user().email()
-    return model.lookup_user_by_email(email)
-
 def render_user():
     email = users.get_current_user().email()
-    user = model.lookup_user_by_email(email)
+    user = data_models.lookup_user_by_email(email)
     logout_url = users.create_logout_url('/')
     return renderers.render_logout(user.name, logout_url)
 
@@ -38,7 +34,7 @@ def create_breadcrumbs(entity):
 
 def create_breadcrumbs_list(entity):
     kind = entity.key.kind()
-    parent = model.get_parent(entity)
+    parent = data_models.get_parent(entity)
     breadcrumbs = create_breadcrumbs(parent)
     return breadcrumbs + [" / ", renderers.render_link(kind + " List", url_for_list(kind, parent))]
 
@@ -72,57 +68,55 @@ class ListView(View):
     def __init__(self, name, create_action):
         self.name = name
         self.create_action = create_action
-
+        
     def render_entities(self, parent, form):
         entity_list = self.load_entities(parent)
         fields = self.get_fields(form)
         return render_entity_list(entity_list, fields)
 
     def dispatch_request(self, db_id=None):
-        email = users.get_current_user().email()
-        user = model.lookup_user_by_email(email)
-        parent = model.lookup_entity(db_id)
+        parent = data_models.lookup_entity(db_id)
         entity = self.create_entity(parent)
         form = self.create_form(request.form, entity)
+        committee = data_models.get_owning_committee(parent)
+        model = data_models.Model(committee)
+        model.add_form('create', form)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
-            self.create_action.apply_to(entity, user)
-            self.create_action.audit(entity, user)
+            self.create_action.apply_to(entity, model.user)
+            self.create_action.audit(entity, model.user)
             return redirect(request.base_url)
         
-        enabled = self.create_action.is_allowed(parent, user)
-        new_button = custom_fields.render_dialog_button('New', 'create', form, enabled)
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
-        return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=[new_button])
+        buttons = view_actions([self.create_action], model, None)
+        return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=buttons)
 
-def render_view(title, breadcrumbs, content, links=[], buttons=[]):
+def render_view(title, breadcrumbs, content, links=[], buttons=""):
     breadcrumbHtml = renderers.render_div(*breadcrumbs);
     nav = renderers.render_nav(*links)
-    menu = renderers.render_nav(*buttons)
-    main = renderers.render_div(nav, menu, content)
+    main = renderers.render_div(nav, buttons, content)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
 
-def process_action_button(action, entity, user, buttons):
-    enabled = action.is_allowed(entity, user)
-    button = renderers.render_submit_button(action.label, name='_action', value=action.name,
-            disabled=not enabled)
-    buttons.append(button)
+def process_action_button(action, model, entity):
     if (request.method == 'POST' and request.form.has_key('_action')
              and request.form['_action'] == action.name):
-        if not enabled:
+        if not action.is_allowed(model, entity):
             raise Exception("Illegal action %s was performed" % action.name)
         return True
 
     return False
- 
-def process_edit_button(action, form, entity, user, buttons):
+    
+def view_actions(action_list, model, entity):
+    buttons = [action.render(model, entity) for action in action_list]
+    return renderers.render_nav(*buttons)
+
+def process_edit_button(action, form, entity):
     if request.method == 'POST' and request.form.get('_action') == 'update' and form.validate():
         form.populate_obj(entity)
+        entity.put()
+        action.audit(entity, user)
         return True
-    enabled = action.is_allowed(entity, user)
-    edit_button = custom_fields.render_dialog_button(action.label, 'update', form, enabled)
-    buttons.append(edit_button)
     return False
 
 class EntityView(View):
@@ -137,19 +131,17 @@ class EntityView(View):
         return []
         
     def dispatch_request(self, db_id):
-        email = users.get_current_user().email()
-        user = model.lookup_user_by_email(email)
-        entity = model.lookup_entity(db_id)
+        entity = data_models.lookup_entity(db_id)
         form = self.create_form(request.form, entity)
-        buttons = []
-        if process_edit_button(self.update_action, form, entity, user, buttons):
-            entity.put()
-            self.update_action.audit(entity, user)
+        committee = data_models.get_owning_committee(entity)
+        model = data_models.Model(committee)
+        model.add_form('update', form)
+        if process_edit_button(self.update_action, form, entity):
             return redirect(request.base_url)    
         for action in self.actions:
-          if process_action_button(action, entity, user, buttons):
-            action.apply_to(entity, user)
-            action.audit(entity, user)
+          if process_action_button(action, model, entity):
+            action.apply_to(entity, model.user)
+            action.audit(entity, model.user)
             return redirect(request.base_url)
         title = self.title(entity)
         breadcrumbs = create_breadcrumbs_list(entity)
@@ -157,4 +149,5 @@ class EntityView(View):
         fields = self.get_fields(form)
         grid = render_entity(entity, fields, self.num_wide)
         history = render_entity_history(entity.key)
+        buttons = view_actions([self.update_action] + list(self.actions), model, entity)
         return render_view(title, breadcrumbs, (grid, history), links, buttons)
