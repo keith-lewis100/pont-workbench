@@ -11,6 +11,7 @@ import renderers
 import properties
 import views
 from role_types import RoleType
+import urls
 
 import grants
 import purchases
@@ -105,11 +106,11 @@ def render_purchase_payments_list(transfer):
     
     advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
     advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(properties.url_for_entity, advance_list)
+    advance_url_list = map(urls.url_for_entity, advance_list)
     
     invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
     invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(properties.url_for_entity, invoice_list)
+    invoice_url_list = map(urls.url_for_entity, invoice_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments')
     table = renderers.render_table(column_headers, advance_grid + invoice_grid,

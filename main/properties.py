@@ -2,11 +2,7 @@
 
 from html_builder import html
 import data_models
-import flask
-
-def url_for_entity(entity):
-    key = entity.key
-    return flask.url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
+from urls import url_for_entity
 
 def get_labels(fields):
     return [f.label for f in fields]

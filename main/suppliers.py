@@ -12,6 +12,8 @@ import custom_fields
 import properties
 import views
 from role_types import RoleType
+import urls
+
 import grants
 import purchases
 
@@ -93,12 +95,12 @@ def render_purchase_payments_list(supplier):
     advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.advance.paid == False).fetch()
     advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(properties.url_for_entity, advance_list)
+    advance_url_list = map(urls.url_for_entity, advance_list)
     
     invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
                          db.Purchase.invoice.paid == False).fetch()
     invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(properties.url_for_entity, invoice_list)
+    invoice_url_list = map(urls.url_for_entity, invoice_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments Due')
     table = renderers.render_table(column_headers, advance_grid + invoice_grid,
@@ -117,7 +119,7 @@ def view_supplier(db_id):
     if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model, supplier):
         transfer = process_transfer_request(supplier, model.user)
         if transfer is not None:
-            transfer_url = views.url_for_entity(transfer)
+            transfer_url = urls.url_for_entity(transfer)
             return redirect(transfer_url)
         error = renderers.render_error("No grants are pending - nothing to transfer")
     breadcrumbs = views.create_breadcrumbs_list(supplier)

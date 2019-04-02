@@ -21,19 +21,6 @@ PURCHASE_PAYMENT_DUE = 4
 ADVANCE_PAID = 0
 ADVANCE_PENDING = 1
 
-state_field = readonly_fields.StateField('Closed', 'Checking', 'Ready', 'Ordered', 'Payment Due')
-po_number_field = readonly_fields.ReadOnlyField('po_number', 'PO number')
-creator_field = readonly_fields.ReadOnlyKeyField('creator')
-invoiced_amount_field = readonly_fields.ReadOnlyField('invoice.amount', 'Invoiced Amount')
-invoiced_paid_field = readonly_fields.ReadOnlyField('invoice.paid')
-invoice_type_field = readonly_fields.LiteralField("Invoice", "Type")
-invoice_transferred_field = readonly_fields.ExchangeCurrencyField('invoice', 'Transferred Amount')
-
-advance_amount_field = readonly_fields.ReadOnlyField('advance.amount')
-advance_paid_field = readonly_fields.ReadOnlyField('advance.paid')
-advance_type_field = readonly_fields.LiteralField("Advance", "Type")
-advance_transferred_field = readonly_fields.ExchangeCurrencyField('advance', 'Transferred Amount')
-
 class PurchaseState:
     CHECKING = 'Checking'
     READY = 'Ready'
@@ -67,6 +54,9 @@ def invoice_paid(entity):
         return ""
     return entity.invoice.paid
 
+supplier_field = properties.KeyProperty('supplier')
+quote_amount_field = properties.StringProperty('quote_amount')
+description_field = properties.StringProperty('description')
 state_field = properties.StringProperty(state_of, 'State')
 po_number_field = properties.StringProperty('po_number', 'PO number')
 creator_field = properties.KeyProperty('creator')
@@ -87,13 +77,13 @@ class PurchaseModel(data_models.Model):
         ref = data_models.get_next_ref()
         self.entity.po_number = 'MB%04d' % ref
         self.entity.put()
-        self.audit(action_name, "%s performed" % action_name)
+        self.audit(action_name, "Check performed")
         return True
 
     def perform_ordered(self, action_name):
         self.entity.state_index = INDEX_ORDERED
         self.entity.put()
-        self.audit(action_name, "%s performed" % action_name)
+        self.audit(action_name, "Ordered performed")
         return True
 
     def perform_invoiced(self, action_name):
@@ -104,7 +94,7 @@ class PurchaseModel(data_models.Model):
         form.populate_obj(invoice)
         self.entity.invoice = invoice
         self.entity.put()
-        self.audit(action_name, "invoiced amount=%s" % invoice.amount)
+        self.audit(action_name, "Invoiced amount=%s" % invoice.amount)
         return True
 
     def perform_advance(self, action_name):
@@ -115,20 +105,20 @@ class PurchaseModel(data_models.Model):
         form.populate_obj(advance)
         self.entity.advance = advance
         self.entity.put()
-        self.audit(action_name, "advanced amount=%s" % advance.amount)
+        self.audit(action_name, "Advanced amount=%s" % advance.amount)
         return True
 
     def perform_paid(self, action_name):
         self.entity.invoice.paid = True
         self.entity.state_index = INDEX_CLOSED
         self.entity.put()
-        self.audit(action_name, "%s performed" % action_name)
+        self.audit(action_name, "Paid performed")
         return True
 
     def perform_advance_paid(self, action_name):
         self.entity.advance.paid = True
         self.entity.put()
-        self.audit(action_name, "%s performed" % action_name)
+        self.audit(action_name, "Advance paid performed")
         return True
 
     def get_state(self):
@@ -139,9 +129,9 @@ ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADM
 ACTION_ORDERED = views.StateAction('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN,
                                    PurchaseModel.perform_ordered, [PurchaseState.READY])
 ACTION_INVOICED = views.StateAction('invoiced', 'Invoiced', RoleType.COMMITTEE_ADMIN,
-                                    PurchaseModel.perform_invoiced, [PurchaseState.ORDERED])
+                               PurchaseModel.perform_invoiced, [PurchaseState.ORDERED])
 ACTION_ADVANCE = views.StateAction('advance', 'Advance Payment', RoleType.COMMITTEE_ADMIN,
-                                   PurchaseModel.perform_advance, [PurchaseState.ORDERED])
+                              PurchaseModel.perform_advance, [PurchaseState.ORDERED])
 ACTION_PAID = views.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN,
                                 PurchaseModel.perform_close, [PurchaseState.PAYMENT_DUE])
 ACTION_CANCEL = views.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN,
@@ -151,7 +141,7 @@ ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [PurchaseState.CHECKING])
 
 ACTION_ADVANCE_PAID = views.StateAction('advance_paid', 'Paid', RoleType.PAYMENT_ADMIN,
-                                        [PurchaseState.ADVANCE_PENDING], PurchaseModel.perform_checked)
+                                   PurchaseModel.perform_advance_paid, [PurchaseState.ADVANCE_PENDING])
 
 class PurchaseForm(wtforms.Form):
     quote_amount = wtforms.FormField(custom_fields.MoneyForm, widget=custom_fields.form_field_widget)
@@ -174,103 +164,18 @@ class AdvanceAmountForm(wtforms.Form):
 def view_purchase_list(db_id):
     fund = data_models.lookup_entity(db_id)
     new_purchase = db.Purchase(parent=fund.key)
-    form = create_purchase_form(request.form, new_purchase)
-    committee = data_models.get_owning_committee(fund)
-    model = data_models.Model(committee)
-    model.add_form('create', form)
-    if request.method == 'POST' and form.validate():
-        form.populate_obj(new_purchase)
-        ACTION_CREATE.apply_to(new_purchase, model.user)
-        ACTION_CREATE.audit(new_purchase, model.user)
-        return redirect(request.base_url)
-    
-    breadcrumbs = views.create_breadcrumbs(fund)
-    purchase_field_list = (readonly_fields.ReadOnlyKeyField('supplier'),
-              readonly_fields.ReadOnlyField('quote_amount'), po_number_field, state_field)
-    purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
-    entity_table = views.render_entity_list(purchase_list, purchase_field_list)
-    buttons = views.view_actions([ACTION_CREATE], model, None)
-    return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=buttons)
-                
-def get_fields(form):
-    return [po_number_field, state_field, invoiced_amount_field, invoice_transferred_field, creator_field] + map(readonly_fields.create_readonly_field,
-                form._fields.keys(), form._fields.values())
-
-def process_invoiced_button(purchase, user):
-    if (request.method == 'POST' and request.form.get('_action') == 'invoiced' 
-              and form.validate()):
-        purchase.invoice = db.Payment()
-        form.populate_obj(purchase.invoice)
-        purchase.state_index = PURCHASE_PAYMENT_DUE
-        purchase.put()
-        ACTION_INVOICED.audit(purchase, user)
-        return True
-    # enabled = (ACTION_INVOICED.is_allowed(model, purchase) and purchase.state_index == PURCHASE_ORDERED 
-                  # and (purchase.advance is None or purchase.advance.paid))
-    # button = custom_fields.render_dialog_button(ACTION_INVOICED.label, 'invoiced', form, enabled)
-    # buttons.append(button)
-    return False
-
-def process_advance_button(purchase, user):
-    form = AdvanceAmountForm(request.form)
-    if (request.method == 'POST' and request.form.get('_action') == 'advance' 
-              and form.validate()):
-        purchase.advance = db.Payment()
-        form.populate_obj(purchase.advance)
-        purchase.put()
-        ACTION_ADVANCE.audit(purchase, user)
-        return True
-    # enabled = (ACTION_ADVANCE.is_allowed(purchase, user) and purchase.state_index == PURCHASE_ORDERED
-                    # and purchase.advance is None)
-    # button = custom_fields.render_dialog_button(ACTION_ADVANCE.label, 'advance', form, enabled)
-    # buttons.append(button)
-    return False
-
-@app.route('/purchase/<db_id>', methods=['GET', 'POST'])
-def view_purchase(db_id):
-    purchase = data_models.lookup_entity(db_id)
-    form = create_purchase_form(request.form, purchase)
-    committee = data_models.get_owning_committee(purchase)
-    model = data_models.Model(committee)
-    model.add_form('update', form)
-    invoice_form = InvoicedAmountForm(request.form, amount=purchase.quote_amount)
-    model.add_form(ACTION_ORDERED.name, invoice_form)
-    if views.process_edit_button(ACTION_UPDATE, form, purchase):
-        return redirect(request.base_url)
-    for action in [ACTION_CHECKED, ACTION_ORDERED]:
-      if views.process_action_button(action, model, purchase):
-        action.apply_to(purchase, model.user)
-        action.audit(purchase, model.user)
-        return redirect(request.base_url)
-    if process_invoiced_button(purchase, model.user):
-      return redirect(request.base_url)
-    if process_advance_button(purchase, model.user):
-      return redirect(request.base_url)
-    for action in [ACTION_PAID, ACTION_CANCEL]:
-      if views.process_action_button(action, model, purchase):
-        if action is ACTION_PAID:
-            purchase.invoice.paid = True
-        purchase.put()
-        action.audit(purchase, model.user)
-=======
-    fund = data_models.lookup_entity(db_id, 'Fund')
-    new_purchase = db.Purchase(parent=fund.key)
     model = PurchaseModel(new_purchase, fund.committee)
     add_purchase_form(request.form, model, ACTION_CREATE)
     if request.method == 'POST' and ACTION_CREATE.process_input(model):
         return redirect(request.base_url)
-    property_list = (properties.KeyProperty('supplier'), properties.StringProperty('quote_amount'),
-                     po_number_field, state_field)
-    purchase_list = db.Purchase.query(ancestor = fund.key).fetch()
-    entity_table = views.render_entity_list(purchase_list, property_list)
-    new_button = ACTION_CREATE.render(model)
+    
     breadcrumbs = views.create_breadcrumbs(fund)
-    return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=[new_button])
-
-def get_fields(model):
-    form = model.get_form(ACTION_UPDATE.name)
-    return [po_number_field, state_field, invoiced_amount_field, invoice_transferred_field, creator_field] + map(properties.create_readonly_field,
-                form._fields.keys(), form._fields.values())
+    property_list = (supplier_field, properties.StringProperty('quote_amount'),
+                     po_number_field, state_field)
+    purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
+    entity_table = views.render_entity_list(purchase_list, property_list)
+    buttons = views.view_actions([ACTION_CREATE], model)
+    return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=buttons)
 
 def load_purchase_model(db_id, request_data):
     purchase = data_models.lookup_entity(db_id, 'Purchase')
@@ -286,19 +191,21 @@ def load_purchase_model(db_id, request_data):
 @app.route('/purchase/<db_id>', methods=['GET', 'POST'])
 def view_purchase(db_id):
     model = load_purchase_model(db_id, request.form)
-    if request.method == 'POST'and views.handle_post(model, action_list):
+    action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ORDERED, ACTION_ADVANCE, ACTION_PAID, ACTION_CANCEL]
+    if request.method == 'POST'and views.handle_post(model, action_list + [ACTION_ADVANCE_PAID]):
         return redirect(request.base_url)
     purchase = model.entity
     breadcrumbs = views.create_breadcrumbs_list(purchase)
-    content = views.render_entity(purchase, get_fields(model), 1)
+    property_list = [po_number_field, state_field, invoiced_amount_field, invoice_transferred_field, creator_field,
+            supplier_field, quote_amount_field, description_field]
+    content = views.render_entity(purchase, property_list, 1)
     if purchase.advance is not None:
         sub_heading = renderers.sub_heading('Advance Payment')
         advance_button = ACTION_ADVANCE_PAID.render(model)
         advance_fields = (advance_amount_field, advance_paid_field, advance_transferred_field)
         advance_grid = views.render_entity(purchase, advance_fields)
-        content = (content, sub_heading, [advance_button], advance_grid)
+        content = (content, sub_heading, advance_button, advance_grid)
     history = views.render_entity_history(purchase.key)
     title = 'Purchase ' + purchase.po_number if purchase.po_number is not None else ""
-    action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ORDERED, ACTION_ADVANCE, ACTION_PAID, ACTION_CANCEL]
     buttons = views.view_actions(action_list, model)
     return views.render_view(title, breadcrumbs, (content, history), buttons=buttons)

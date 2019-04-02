@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import render_template, redirect, request, url_for
+from flask import render_template, redirect, request
 from flask.views import View
 from google.appengine.api import users
 
@@ -9,16 +9,7 @@ import renderers
 import data_models
 import custom_fields
 import properties
-
-def url_for_entity(entity):
-    key = entity.key
-    return url_for('view_%s' % key.kind().lower(), db_id=key.urlsafe())
-
-def url_for_list(kind, parent):
-    db_id = None
-    if parent:
-        db_id = parent.key.urlsafe()
-    return url_for('view_%s_list' % kind.lower(), db_id=db_id)
+import urls
 
 def render_user():
     email = users.get_current_user().email()
@@ -30,13 +21,13 @@ def create_breadcrumbs(entity):
     if entity is None:
         return [renderers.render_link('Dashboard', '/')]
     listBreadcrumbs = create_breadcrumbs_list(entity)
-    return listBreadcrumbs + [" / ", renderers.render_link(entity.name, url_for_entity(entity))]
+    return listBreadcrumbs + [" / ", renderers.render_link(entity.name, urls.url_for_entity(entity))]
 
 def create_breadcrumbs_list(entity):
     kind = entity.key.kind()
     parent = data_models.get_parent(entity)
     breadcrumbs = create_breadcrumbs(parent)
-    return breadcrumbs + [" / ", renderers.render_link(kind + " List", url_for_list(kind, parent))]
+    return breadcrumbs + [" / ", renderers.render_link(kind + " List", urls.url_for_list(kind, parent))]
 
 def render_entity(entity, fields, num_wide=0):
     values = properties.display_entity(entity, fields)
@@ -46,11 +37,11 @@ def render_entity(entity, fields, num_wide=0):
 def render_entity_list(entity_list, fields, selectable=True):
     column_headers = properties.get_labels(fields)
     grid = properties.display_entity_list(entity_list, fields, selectable)
-    url_list = map(url_for_entity, entity_list) if selectable else None
+    url_list = map(urls.url_for_entity, entity_list) if selectable else None
     return renderers.render_table(column_headers, grid, url_list)
 
 def render_link(kind, label, parent=None):
-    url = url_for_list(kind, parent)
+    url = urls.url_for_list(kind, parent)
     return renderers.render_link(label, url, class_="button")
 
 audit_fields = [
@@ -74,8 +65,7 @@ class Action(object):
         self.perform = perform
 
     def is_allowed(self, model):
-        types = model.get_role_types()
-        return self.required_role in types
+        return model.user_has_role(self.required_role)
 
     def process_input(self, model):
         enabled = self.is_allowed(model)
@@ -151,17 +141,17 @@ def render_view(title, breadcrumbs, content, links=[], buttons=""):
     main = renderers.render_div(nav, buttons, content)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
 
-def process_action_button(action, model, entity):
+def process_action_button(action, model):
     if (request.method == 'POST' and request.form.has_key('_action')
              and request.form['_action'] == action.name):
-        if not action.is_allowed(model, entity):
+        if not action.is_allowed(model):
             raise Exception("Illegal action %s was performed" % action.name)
         return True
 
     return False
     
-def view_actions(action_list, model, entity):
-    buttons = [action.render(model, entity) for action in action_list]
+def view_actions(action_list, model):
+    buttons = [action.render(model) for action in action_list]
     return renderers.render_nav(*buttons)
 
 def process_edit_button(action, form, entity):
@@ -182,7 +172,7 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     return render_view(title, breadcrumbs, [content, history], buttons=buttons, links=links)
 
 class EntityView(View):
-    methods = ['GET', 'POST', 'DELETE']
+    methods = ['GET', 'POST']
 
     def __init__(self, update_action, num_wide=0, *actions):
         self.update_action = update_action
@@ -201,11 +191,12 @@ class EntityView(View):
         if process_edit_button(self.update_action, form, entity):
             return redirect(request.base_url)    
         for action in self.actions:
-          if process_action_button(action, model, entity):
+          if process_action_button(action, model):
             action.apply_to(entity, model.user)
             action.audit(entity, model.user)
             return redirect(request.base_url)
         title = self.title(entity)
+        breadcrumbs = create_breadcrumbs_list(entity)
         links = self.get_links(entity)
         fields = self.get_fields(form)
         grid = render_entity(entity, fields, self.num_wide)

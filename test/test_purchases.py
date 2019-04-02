@@ -10,12 +10,23 @@ import committees
 from role_types import RoleType
 
 class TestPurchases(unittest.TestCase):
+    def setUp(self):
+        self.dbstate = ndb.clone()
+
+    def tearDown(self):
+        ndb.reset(self.dbstate)
+
     def test_purchase_list(self):
+        fund = db.Fund(id=11)
+        fund.committee = 'EDU'
+        fund.name = 'myFund'
+        fund.put()
         with app.test_request_context('/', method='GET'):
             purchases.view_purchase_list('Fund-11')
 
     def test_create_purchase(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.COMMITTEE_ADMIN
         role.committee = 'EDU'
         role.put()
@@ -35,7 +46,8 @@ class TestPurchases(unittest.TestCase):
             purchases.view_purchase_list('Fund-11')
         
     def test_update(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.COMMITTEE_ADMIN
         role.committee = 'EDU'
         role.put()
@@ -60,7 +72,8 @@ class TestPurchases(unittest.TestCase):
         self.assertEqual('b', purchase.description)
 
     def test_checked(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.FUND_ADMIN
         role.put()
         fund = db.Fund(id=11)

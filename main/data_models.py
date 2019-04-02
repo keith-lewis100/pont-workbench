@@ -1,4 +1,4 @@
-git#_*_ coding: UTF-8 _*_
+#_*_ coding: UTF-8 _*_
 
 import logging
 from google.appengine.api import users
@@ -108,7 +108,9 @@ def lookup_current_user():
 def role_matches(role, role_type, committee):
     if role.type_index != role_type:
         return False
-    return role.committee == "" or role.committee == committee
+    if role.committee is None or role.committee == "":
+        return True
+    return role.committee == committee
 
 INDEX_CLOSED = 0
 
@@ -153,7 +155,7 @@ class Model(object):
         self.audit(action_name, "Update performed")
         return True
 
-   def perform_close(self, action_name):
+    def perform_close(self, action_name):
         self.entity.state_index = INDEX_CLOSED
         self.entity.put()
         self.audit(action_name, "%s performed" % action_name.title())
@@ -166,3 +168,6 @@ class Model(object):
         audit.action = action_name
         audit.message = message
         return audit.put()
+
+    def __repr__(self):
+        return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

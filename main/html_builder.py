@@ -49,6 +49,19 @@ class Element:
         else:
            result += '/>'
         return result
+
+    def __repr__(self):
+        return self.__html__()
+
+    def __eq__(self, other):
+        if self._name != other._name:
+            return False
+        if self._children != other._children:
+            return False
+        return self._attributes == other._attributes
+
+    def __ne__(self, other):
+        return not self == other
         
 def serialize_attrs(attributes):
     result = ''

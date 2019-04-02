@@ -13,6 +13,7 @@ committee_field_list = (properties.StringProperty('name'), )
 @app.route('/committee_list', methods=['GET'])
 def view_committee_list():
     breadcrumbs = views.create_breadcrumbs(None)
+    supplier_field_list = (properties.StringProperty('name'), )
     committee_list = data_models.get_committee_list()
     entity_table = views.render_entity_list(committee_list, committee_field_list)
     return views.render_view('Committee List', breadcrumbs, entity_table)
