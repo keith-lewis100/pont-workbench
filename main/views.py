@@ -11,23 +11,27 @@ import custom_fields
 import properties
 import urls
 
-def render_user():
-    email = users.get_current_user().email()
-    user = data_models.lookup_user_by_email(email)
-    logout_url = users.create_logout_url('/')
-    return renderers.render_logout(user.name, logout_url)
+def view_user_controls(model):
+    logout_url = data_models.logout_url()
+    return renderers.render_logout(model.user.name, logout_url)
 
 def create_breadcrumbs(entity):
     if entity is None:
         return [renderers.render_link('Dashboard', '/')]
-    listBreadcrumbs = create_breadcrumbs_list(entity)
+    parent = data_models.get_parent(entity)
+    listBreadcrumbs = create_breadcrumbs_list(parent, entity.key.kind())
     return listBreadcrumbs + [" / ", renderers.render_link(entity.name, urls.url_for_entity(entity))]
 
-def create_breadcrumbs_list(entity):
-    kind = entity.key.kind()
-    parent = data_models.get_parent(entity)
+def create_breadcrumbs_list(parent, kind):
     breadcrumbs = create_breadcrumbs(parent)
     return breadcrumbs + [" / ", renderers.render_link(kind + " List", urls.url_for_list(kind, parent))]
+
+def view_breadcrumbs(entity, list_kind=None):
+    if list_kind:
+        breadcrumbs = create_breadcrumbs_list(entity, list_kind)
+    else:
+        breadcrumbs = create_breadcrumbs(entity)
+    return renderers.render_div(*breadcrumbs)
 
 def render_entity(entity, fields, num_wide=0):
     values = properties.display_entity(entity, fields)
@@ -43,6 +47,10 @@ def render_entity_list(entity_list, fields, selectable=True):
 def render_link(kind, label, parent=None):
     url = urls.url_for_list(kind, parent)
     return renderers.render_link(label, url, class_="button")
+
+def view_links(parent, *link_pairs):
+    links = [render_link(lind, label, parent) for kind, label in link_pairs]
+    return renderers.nav(*links)
 
 audit_fields = [
     properties.DateProperty('timestamp'),
@@ -131,15 +139,15 @@ class ListView(View):
             self.create_action.audit(entity, model.user)
             return redirect(request.base_url)
         entity_table = self.render_entities(parent, form)
-        breadcrumbs = create_breadcrumbs(parent)
+        breadcrumbs = view_breadcrumbs(parent)
         buttons = view_actions([self.create_action], model, None)
-        return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=buttons)
+        user_controls = view_user_controls(model)
+        return render_view(self.name + ' List', user_controls, breadcrumbs, entity_table, buttons=buttons)
 
-def render_view(title, breadcrumbs, content, links=[], buttons=""):
-    breadcrumbHtml = renderers.render_div(*breadcrumbs);
-    nav = renderers.render_nav(*links)
-    main = renderers.render_div(nav, buttons, content)
-    return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
+def render_view(title, user_controls, breadcrumbs, content_list, links="", buttons=""):
+    content = renderers.render_div(content_list)
+    return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
+                           links=links, buttons=buttons, content=content)
 
 def process_action_button(action, model):
     if (request.method == 'POST' and request.form.has_key('_action')
@@ -166,11 +174,14 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     if request.method == 'POST'and handle_post(model, action_list):
         return redirect(request.base_url)
     buttons = [action.render(model) for action in action_list]
-    breadcrumbs = create_breadcrumbs_list(model.entity)
-    content = render_entity(model.entity, property_list, num_wide)
+    parent = data_models.get_parent(model.entity)
+    breadcrumbs = view_breadcrumbs(parent, model.entity.key.kind())
+    grid = render_entity(model.entity, property_list, num_wide)
     history = render_entity_history(model.entity.key)
-    return render_view(title, breadcrumbs, [content, history], buttons=buttons, links=links)
-
+    content = renderers.render_div(grid, history)
+    user_controls = view_user_controls(model)
+    return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
+                           links=links, buttons=buttons, content=content)
 class EntityView(View):
     methods = ['GET', 'POST']
 
@@ -179,7 +190,7 @@ class EntityView(View):
         self.num_wide = num_wide
         self.actions = actions
 
-    def get_links(self, entity):
+    def get_link_pairs(self):
         return []
         
     def dispatch_request(self, db_id):
@@ -196,10 +207,14 @@ class EntityView(View):
             action.audit(entity, model.user)
             return redirect(request.base_url)
         title = self.title(entity)
-        breadcrumbs = create_breadcrumbs_list(entity)
-        links = self.get_links(entity)
+        parent = data_models.get_parent(entity)
+        breadcrumbs = view_breadcrumbs(parent, entity.key.kind())
+        links = view_links(entity, *self.get_link_pairs())
         fields = self.get_fields(form)
         grid = render_entity(entity, fields, self.num_wide)
         history = render_entity_history(entity.key)
         buttons = view_actions([self.update_action] + list(self.actions), model, entity)
-        return render_view(title, breadcrumbs, (grid, history), links, buttons)
+        content = renderers.render_div(grid, history)
+        user_controls = view_user_controls(model)
+        return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
+                           links=links, buttons=buttons, content=content)

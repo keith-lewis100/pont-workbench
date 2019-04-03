@@ -45,16 +45,13 @@ def view_supplier_list():
     buttons = views.view_actions([ACTION_CREATE], model, None)
     return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=buttons)
 
-def get_links(supplier):
-    db_id = supplier.key.urlsafe()
+def get_link_pairs(supplier):
     links = []
     if supplier.receives_grants:
-        showFunds = views.render_link('SupplierFund', 'Show Supplier Funds', supplier)
-        showPartners = views.render_link('Partners', 'Show Partners', supplier)
-        links = [showFunds, showPartners]
+        links = [('SupplierFund', 'Show Supplier Funds'), ('Partners', 'Show Partners')]
     if supplier.paid_in_sterling:
         return links
-    return links + [views.render_link('ForeignTransfer', 'Show Foreign Transfers', supplier)]
+    return links + [('ForeignTransfer', 'Show Foreign Transfers')]
 
 def create_transfer(supplier, user):
     transfer = db.ForeignTransfer(parent=supplier.key)
@@ -123,7 +120,7 @@ def view_supplier(db_id):
             return redirect(transfer_url)
         error = renderers.render_error("No grants are pending - nothing to transfer")
     breadcrumbs = views.create_breadcrumbs_list(supplier)
-    links = get_links(supplier)
+    links = views.view_links(supplier, *get_link_pairs(supplier))
     fields = (properties.StringProperty('name'), )
     grid = views.render_entity(supplier, fields)
     title = 'Supplier ' + supplier.name
@@ -134,4 +131,4 @@ def view_supplier(db_id):
         content.append(grant_payments)
     content.append(views.render_entity_history(supplier.key))
     buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model, supplier)
-    return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)
+    return views.render_view(title, breadcrumbs, content, links, buttons)

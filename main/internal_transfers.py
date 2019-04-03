@@ -60,10 +60,11 @@ def view_internaltransfer_list(db_id):
     property_list = (properties.KeyProperty('dest_fund'),
               properties.StringProperty('amount'), state_field)
     transfer_list = db.InternalTransfer.query(ancestor = fund.key).fetch()
-    entity_table = views.render_entity_list(transfer_list, property_list)
+    entity_table = [views.render_entity_list(transfer_list, property_list)]
     new_button = ACTION_CREATE.render(model)
-    breadcrumbs = views.create_breadcrumbs(fund)
-    return views.render_view('Internal Transfer List', breadcrumbs, entity_table, buttons=[new_button])
+    breadcrumbs = views.view_breadcrumbs(fund)
+    user_controls = views.view_user_controls(model)
+    return views.render_view('Internal Transfer List', user_controls, breadcrumbs, entity_table, buttons=[new_button])
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):

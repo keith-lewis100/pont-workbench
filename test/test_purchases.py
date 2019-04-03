@@ -86,7 +86,7 @@ class TestPurchases(unittest.TestCase):
             purchases.view_purchase('Purchase-12')
         self.assertEqual("MB0001", purchase.po_number)
 
-    def test_render_update_button(self):
+    def test_view_purchase(self):
         fund = db.Fund(id=11)
         fund.committee = 'EDU'
         fund.name = 'myFund'
@@ -97,11 +97,8 @@ class TestPurchases(unittest.TestCase):
         purchase.quote_amount = db.Money(value=1234)
         purchase.description = "desc"
         purchase.put()
-        model = purchases.load_purchase_model('Purchase-12', None)
         with app.test_request_context('/', method='GET'):
-            update = purchases.ACTION_UPDATE.render(model)
-        self.assertEquals(2, len(update))
-#        print update[1].__html__()
+            purchases.view_purchase('Purchase-12')
 
 if __name__ == '__main__':
    unittest.main()

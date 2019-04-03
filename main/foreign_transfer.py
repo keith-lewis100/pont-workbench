@@ -64,11 +64,12 @@ class ExchangeRateForm(wtforms.Form):
 @app.route('/foreigntransfer_list/<db_id>')
 def view_foreigntransfer_list(db_id):
     supplier = data_models.lookup_entity(db_id)
-    breadcrumbs = views.create_breadcrumbs(supplier)
+    breadcrumbs = views.view_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
     entity_table = views.render_entity_list(transfer_list, transfer_fields)
-    return views.render_view('Foreign Transfer List', breadcrumbs, entity_table)
+    user_controls = views.view_user_controls(model)
+    return views.render_view('Foreign Transfer List', user_controls, breadcrumbs, entity_table)
 
 def process_transferred_button(model, transfer):
     form = model.get_form(ACTION_TRANSFERRED.name)
@@ -129,7 +130,7 @@ def view_foreigntransfer(db_id):
         do_acknowledge(transfer, model.user)
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
-    breadcrumbs = views.create_breadcrumbs_list(transfer)
+    breadcrumbs = views.view_breadcrumbs(transfer, True)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
     grid = views.render_entity(transfer, transfer_fields)
@@ -138,4 +139,5 @@ def view_foreigntransfer(db_id):
     history = views.render_entity_history(transfer.key)
     content = (grid, grant_payments, history)
     buttons = views.view_actions([ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED], model, transfer)
-    return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons)
+    user_controls = views.view_user_controls(model)
+    return views.render_view('Foreign Transfer', user_controls, breadcrumbs, content, buttons=buttons)

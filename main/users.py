@@ -50,8 +50,8 @@ class UserView(views.EntityView):
     def get_fields(self, form):
         return (name_field, email_field)
         
-    def get_links(self, entity):
-        return (views.render_link('Role', 'Show Roles', entity), )
+    def get_link_pairs(self):
+        return [('Role', 'Show Roles')]
 
 def add_rules(app):
     app.add_url_rule('/user_list', view_func=UserListView.as_view('view_user_list'))

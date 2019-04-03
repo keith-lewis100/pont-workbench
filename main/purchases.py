@@ -71,14 +71,16 @@ advance_type_field = properties.StringProperty(lambda e: 'Advance', 'Type')
 advance_transferred_field = properties.ExchangeCurrencyProperty('advance', 'Transferred Amount')
 
 
+def perform_checked(model, action_name):
+    entity = model.entity
+    entity.state_index = INDEX_READY
+    ref = data_models.get_next_ref()
+    entity.po_number = 'MB%04d' % ref
+    entity.put()
+    model.audit(action_name, "Check performed")
+    return True
+
 class PurchaseModel(data_models.Model):
-    def perform_checked(self, action_name):
-        self.entity.state_index = INDEX_READY
-        ref = data_models.get_next_ref()
-        self.entity.po_number = 'MB%04d' % ref
-        self.entity.put()
-        self.audit(action_name, "Check performed")
-        return True
 
     def perform_ordered(self, action_name):
         self.entity.state_index = INDEX_ORDERED
@@ -125,7 +127,7 @@ class PurchaseModel(data_models.Model):
         return state_of(self.entity)
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
-                                   PurchaseModel.perform_checked, [PurchaseState.CHECKING])
+                                   perform_checked, [PurchaseState.CHECKING])
 ACTION_ORDERED = views.StateAction('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN,
                                    PurchaseModel.perform_ordered, [PurchaseState.READY])
 ACTION_INVOICED = views.StateAction('invoiced', 'Invoiced', RoleType.COMMITTEE_ADMIN,
@@ -169,13 +171,14 @@ def view_purchase_list(db_id):
     if request.method == 'POST' and ACTION_CREATE.process_input(model):
         return redirect(request.base_url)
     
-    breadcrumbs = views.create_breadcrumbs(fund)
+    breadcrumbs = views.view_breadcrumbs(fund)
     property_list = (supplier_field, properties.StringProperty('quote_amount'),
                      po_number_field, state_field)
     purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
     entity_table = views.render_entity_list(purchase_list, property_list)
     buttons = views.view_actions([ACTION_CREATE], model)
-    return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=buttons)
+    user_controls = views.view_user_controls(model)
+    return views.render_view('Purchase List', user_controls, breadcrumbs, entity_table, buttons=buttons)
 
 def load_purchase_model(db_id, request_data):
     purchase = data_models.lookup_entity(db_id, 'Purchase')
@@ -195,17 +198,20 @@ def view_purchase(db_id):
     if request.method == 'POST'and views.handle_post(model, action_list + [ACTION_ADVANCE_PAID]):
         return redirect(request.base_url)
     purchase = model.entity
-    breadcrumbs = views.create_breadcrumbs_list(purchase)
+    fund = data_models.get_parent(purchase)
+    breadcrumbs = views.view_breadcrumbs(fund, 'Purchase')
     property_list = [po_number_field, state_field, invoiced_amount_field, invoice_transferred_field, creator_field,
             supplier_field, quote_amount_field, description_field]
-    content = views.render_entity(purchase, property_list, 1)
+    content_list = [views.render_entity(purchase, property_list, 1)]
     if purchase.advance is not None:
         sub_heading = renderers.sub_heading('Advance Payment')
         advance_button = ACTION_ADVANCE_PAID.render(model)
         advance_fields = (advance_amount_field, advance_paid_field, advance_transferred_field)
         advance_grid = views.render_entity(purchase, advance_fields)
-        content = (content, sub_heading, advance_button, advance_grid)
-    history = views.render_entity_history(purchase.key)
+        content_list = content_list + [sub_heading, advance_button, advance_grid]
+    content_list.append(views.render_entity_history(purchase.key))
     title = 'Purchase ' + purchase.po_number if purchase.po_number is not None else ""
     buttons = views.view_actions(action_list, model)
-    return views.render_view(title, breadcrumbs, (content, history), buttons=buttons)
+    user_controls = views.view_user_controls(model)
+    content = renderers.render_div(*content_list)
+    return views.render_view(title, user_controls, breadcrumbs, content, buttons=buttons)

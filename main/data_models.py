@@ -105,6 +105,9 @@ def lookup_current_user():
     email = users.get_current_user().email()
     return lookup_user_by_email(email)
 
+def logout_url():
+    return users.create_logout_url('/')
+
 def role_matches(role, role_type, committee):
     if role.type_index != role_type:
         return False
