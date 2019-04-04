@@ -54,6 +54,9 @@ class IntegerProperty:
   def __init__(self, default=None):
     self.default = default
 
+  def IN(self, *args):
+      return True
+
 class BooleanProperty:
   def __init__(self, default=None):
     self.default = default
@@ -66,6 +69,9 @@ class DateProperty:
    def __init__(self, auto_now_add=False):
        self.default = None
 
+   def __le__(self, other):
+       return True
+
 class DateTimeProperty:
    def __init__(self, auto_now_add=False):
        self.default = None
@@ -76,6 +82,8 @@ class DateTimeProperty:
 class StructuredProperty:
     def __init__(self, cls):
        self.default = None
+       for attr_name, attr in cls.__dict__.iteritems():
+           setattr(self, attr_name, None)
 
 class Query:
     def __init__(self, kind, ancestor=None):
@@ -102,6 +110,12 @@ class Query:
 
     def iter(self, **kwargs):
         return []
+
+    def filter(self, *args):
+        return self
+
+def AND(*args):
+    return None
 
 class Model(object):
     @classmethod

@@ -17,8 +17,8 @@ import purchases
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    receives_grants = wtforms.BooleanField()
-    paid_in_sterling = wtforms.BooleanField()
+    receives_grants = custom_fields.BooleanField()
+    paid_in_sterling = custom_fields.BooleanField()
 
 ACTION_TRANSFER_START = data_models.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN)
 ACTION_CREATE = data_models.Action('create', 'New', RoleType.SUPPLIER_ADMIN)
@@ -137,3 +137,4 @@ def view_supplier(db_id):
     content.append(views.render_entity_history(supplier.key))
     buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)
+
