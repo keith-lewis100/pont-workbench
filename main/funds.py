@@ -41,7 +41,7 @@ link_pairs = [('Purchase', 'Show Purchase Requests'),
 
 @app.route('/fund/<db_id>', methods=['GET', 'POST'])
 def view_fund(db_id):
-    fund = data_models.lookup_entity(db_id, 'Fund')
+    fund = data_models.lookup_entity(db_id)
     model = data_models.Model(fund)
     form = FundForm(request.form, fund)
     model.add_form(ACTION_UPDATE.name, form)   

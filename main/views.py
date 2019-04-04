@@ -2,7 +2,6 @@
 
 from flask import render_template, redirect, request
 from flask.views import View
-from google.appengine.api import users
 
 import db
 from html_builder import html
@@ -140,11 +139,6 @@ class ListView(View):
         self.name = name
         self.create_action = create_action
         
-    def render_entities(self, parent, form):
-        entity_list = self.load_entities(parent)
-        fields = self.get_fields(form)
-        return view_entity_list(entity_list, fields)
-
     def dispatch_request(self, db_id=None):
         parent = data_models.lookup_entity(db_id)
         entity = self.create_entity(parent)
@@ -152,14 +146,9 @@ class ListView(View):
         committee = data_models.get_owning_committee(parent)
         model = data_models.Model(entity, committee)
         model.add_form('create', form)
-        if request.method == 'POST' and self.create_action.process_input(model):
-            return redirect(request.base_url)
-        entity_table = self.render_entities(parent, form)
-        breadcrumbs = view_breadcrumbs(parent)
-        buttons = view_actions([self.create_action], model)
-        user_controls = view_user_controls(model)
-        return render_template('layout.html', title=self.name + ' List', breadcrumbs=breadcrumbs, user=user_controls,
-                           links=links, buttons=buttons, content=entity_table)
+        entity_list = self.load_entities(parent)
+        property_list = self.get_fields(form)
+        return view_std_entity_list(model, self.name + ' List', self.create_action, property_list, entity_list)
 
 def view_actions(action_list, model):
     buttons = [action.render(model) for action in action_list]

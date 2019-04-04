@@ -61,12 +61,8 @@ def get_next_ref():
     workbench.put()
     return ref
 
-def lookup_entity(db_id, kind=None):
-    # if len(db_id) == 3:
-        # return lookup_committee(db_id)
-    key = db.create_key(db_id)
-    if kind:
-        assert key.kind() == kind
+def lookup_entity(db_id):
+    key = create_key(db_id)
     return key.get()
 
 def create_key(db_id):

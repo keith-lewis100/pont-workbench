@@ -127,6 +127,7 @@ def view_supplier(db_id):
         content_list.append(grant_payments)
     content_list.append(views.view_entity_history(supplier.key))
     buttons = views.view_actions(valid_actions, model, supplier)
-    content = renderers.render_div(content_list)
+    content = renderers.render_div(*content_list)
+    user_controls = views.view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
                            links=links, buttons=buttons, content=content)

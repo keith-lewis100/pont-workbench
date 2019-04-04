@@ -73,9 +73,9 @@ request_totals_field = properties.StringProperty(calculate_totals, 'Request Tota
 grant_field_list = [
     grants.state_field, grants.creator_field, grants.project_field, grants.amount_field,
     grants.transferred_amount_field,
-    properties.StringProperty('project.partner.name', 'Implementing Partner'),
+    properties.StringProperty(lambda e: e.project.get().partner.get().name, 'Implementing Partner'),
     grants.source_field,
-    properties.StringProperty('project.^.name', 'Destination Fund')
+    properties.StringProperty(lambda e: e.project.key.parent().get().name, 'Destination Fund')
 ]
 
 advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 

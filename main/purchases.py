@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import request, redirect
+from flask import request, redirect, render_template
 import wtforms
 
 from application import app
@@ -18,7 +18,7 @@ STATE_ORDERED = 3
 STATE_ADVANCE_PENDING = 4
 STATE_PAYMENT_DUE = 5
 
-state_names = ['Closed', 'Checking', 'Ready', 'Ordered', 'Advance Payment Pending', 'Payment Due']
+state_labels = ['Closed', 'Checking', 'Ready', 'Ordered', 'Advance Payment Pending', 'Payment Due']
 
 def state_of(purchase):
     state = purchase.state_index
@@ -42,7 +42,7 @@ def invoice_paid(entity):
 supplier_field = properties.KeyProperty('supplier')
 quote_amount_field = properties.StringProperty('quote_amount')
 description_field = properties.StringProperty('description')
-state_field = properties.SelectProperty(state_of, 'State', enumerate(state_names))
+state_field = properties.SelectProperty(state_of, 'State', enumerate(state_labels))
 po_number_field = properties.StringProperty('po_number', 'PO number')
 creator_field = properties.KeyProperty('creator')
 invoiced_amount_field = properties.StringProperty(invoice_amount, 'Invoiced Amount')
@@ -159,7 +159,7 @@ def view_purchase_list(db_id):
                                       purchase_list, parent=fund)
 
 def load_purchase_model(db_id, request_data):
-    purchase = data_models.lookup_entity(db_id, 'Purchase')
+    purchase = data_models.lookup_entity(db_id)
     fund = data_models.get_parent(purchase)
     model = PurchaseModel(purchase, fund.committee)
     add_purchase_form(request_data, model, ACTION_UPDATE)
@@ -191,4 +191,6 @@ def view_purchase(db_id):
     title = 'Purchase ' + purchase.po_number if purchase.po_number is not None else ""
     buttons = views.view_actions(action_list, model)
     user_controls = views.view_user_controls(model)
-    return views.render_view(title, user_controls, breadcrumbs, content_list, buttons=buttons)
+    content = renderers.render_div(*content_list)
+    return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
+                           buttons=buttons, content=content)

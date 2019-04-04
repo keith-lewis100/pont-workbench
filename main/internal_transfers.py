@@ -49,7 +49,7 @@ def add_transfer_form(request_data, model, action):
 
 @app.route('/internaltransfer_list/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer_list(db_id):
-    fund = data_models.lookup_entity(db_id, 'Fund')
+    fund = data_models.lookup_entity(db_id)
     new_transfer = db.InternalTransfer(parent=fund.key)
     model = data_models.Model(new_transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_CREATE)   
@@ -61,7 +61,7 @@ def view_internaltransfer_list(db_id):
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):
-    transfer = data_models.lookup_entity(db_id, 'InternalTransfer')
+    transfer = data_models.lookup_entity(db_id)
     fund = data_models.get_parent(transfer)
     model = data_models.Model(transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_UPDATE)
