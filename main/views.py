@@ -79,7 +79,7 @@ class ListView(View):
         entity = self.create_entity(parent)
         form = self.create_form(request.form, entity)
         committee = data_models.get_owning_committee(parent)
-        model = data_models.Model(committee)
+        model = data_models.Model(entity, committee)
         model.add_form('create', form)
         if request.method == 'POST' and form.validate():
             form.populate_obj(entity)
@@ -89,7 +89,7 @@ class ListView(View):
         
         entity_table = self.render_entities(parent, form)
         breadcrumbs = create_breadcrumbs(parent)
-        buttons = view_actions([self.create_action], model, None)
+        buttons = view_actions([self.create_action], model)
         return render_view(self.name + ' List', breadcrumbs, entity_table, buttons=buttons)
 
 def render_view(title, breadcrumbs, content, links=[], buttons=""):
@@ -98,24 +98,25 @@ def render_view(title, breadcrumbs, content, links=[], buttons=""):
     main = renderers.render_div(nav, buttons, content)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbHtml, user=render_user(), main=main)
 
-def process_action_button(action, model, entity):
+def process_action_button(action, model):
     if (request.method == 'POST' and request.form.has_key('_action')
              and request.form['_action'] == action.name):
-        if not action.is_allowed(model, entity):
+        if not action.is_allowed(model):
             raise Exception("Illegal action %s was performed" % action.name)
         return True
 
     return False
     
-def view_actions(action_list, model, entity):
-    buttons = [action.render(model, entity) for action in action_list]
+def view_actions(action_list, model):
+    buttons = [action.render(model) for action in action_list]
     return renderers.render_nav(*buttons)
 
-def process_edit_button(action, form, entity):
+def process_edit_button(action, model, form):
     if request.method == 'POST' and request.form.get('_action') == 'update' and form.validate():
+        entity = model.entity
         form.populate_obj(entity)
         entity.put()
-        action.audit(entity, user)
+        action.audit(entity, model.user)
         return True
     return False
 
@@ -134,12 +135,12 @@ class EntityView(View):
         entity = data_models.lookup_entity(db_id)
         form = self.create_form(request.form, entity)
         committee = data_models.get_owning_committee(entity)
-        model = data_models.Model(committee)
+        model = data_models.Model(entity, committee)
         model.add_form('update', form)
-        if process_edit_button(self.update_action, form, entity):
+        if process_edit_button(self.update_action, model, form):
             return redirect(request.base_url)    
         for action in self.actions:
-          if process_action_button(action, model, entity):
+          if process_action_button(action, model):
             action.apply_to(entity, model.user)
             action.audit(entity, model.user)
             return redirect(request.base_url)
@@ -149,5 +150,5 @@ class EntityView(View):
         fields = self.get_fields(form)
         grid = render_entity(entity, fields, self.num_wide)
         history = render_entity_history(entity.key)
-        buttons = view_actions([self.update_action] + list(self.actions), model, entity)
+        buttons = view_actions([self.update_action] + list(self.actions), model)
         return render_view(title, breadcrumbs, (grid, history), links, buttons)

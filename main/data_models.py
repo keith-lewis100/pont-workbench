@@ -89,14 +89,6 @@ def get_owning_committee(entity):
         entity = get_parent(entity)
     return None
 
-def get_role_types(user, entity):
-    if user.key is None:
-       logger.debug("no user")
-       return set()
-    roles = db.Role.query(ancestor=user.key).fetch()
-    committee = get_owning_committee(entity)
-    return role_types.get_types(roles, committee)
-
 def lookup_user_with_role(type):
     roles = db.Role.query(type_index=type)
     for role in roles:
@@ -127,11 +119,11 @@ class Action(object):
         self.required_role = required_role
         self.message = message
 
-    def is_allowed(self, model, entity):
+    def is_allowed(self, model):
         return model.user_has_role(self.required_role)
 
-    def render(self, model, entity):
-        enabled = self.is_allowed(model, entity)
+    def render(self, model):
+        enabled = self.is_allowed(model)
         form = model.get_form(self.name)
         if form:
             return custom_fields.render_dialog_button(self.label, self.name, form, enabled)
@@ -158,10 +150,10 @@ class StateAction(Action):
         self.next_state = next_state
         self.allowed_states = allowed_states
         
-    def is_allowed(self, model, entity):
-        if not super(StateAction, self).is_allowed(model, entity):
+    def is_allowed(self, model):
+        if not super(StateAction, self).is_allowed(model):
             return False
-        state = entity.state_index
+        state = model.entity.state_index
         return state in self.allowed_states
         
     def apply_to(self, entity, user):
@@ -178,11 +170,12 @@ class CreateAction(Action):
         entity.put()
 
 class Model:
-    def __init__(self, committee):
-        self.user = lookup_current_user()
+    def __init__(self, entity, committee=None):
+        self.entity = entity
         self.committee = committee
+        self.user = lookup_current_user()
         self.forms = {}
-        
+
     def user_has_role(self, role_type):
         roles = db.Role.query(ancestor=self.user.key).fetch()
         for r in roles:

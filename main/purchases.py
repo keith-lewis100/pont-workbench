@@ -75,8 +75,7 @@ def view_purchase_list(db_id):
     fund = data_models.lookup_entity(db_id)
     new_purchase = db.Purchase(parent=fund.key)
     form = create_purchase_form(request.form, new_purchase)
-    committee = data_models.get_owning_committee(fund)
-    model = data_models.Model(committee)
+    model = data_models.Model(new_purchase, fund.committee)
     model.add_form('create', form)
     if request.method == 'POST' and form.validate():
         form.populate_obj(new_purchase)
@@ -89,7 +88,7 @@ def view_purchase_list(db_id):
               readonly_fields.ReadOnlyField('quote_amount'), po_number_field, state_field)
     purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
     entity_table = views.render_entity_list(purchase_list, purchase_field_list)
-    buttons = views.view_actions([ACTION_CREATE], model, None)
+    buttons = views.view_actions([ACTION_CREATE], model)
     return views.render_view('Purchase List', breadcrumbs, entity_table, buttons=buttons)
                 
 def get_fields(form):
@@ -131,14 +130,14 @@ def view_purchase(db_id):
     purchase = data_models.lookup_entity(db_id)
     form = create_purchase_form(request.form, purchase)
     committee = data_models.get_owning_committee(purchase)
-    model = data_models.Model(committee)
+    model = data_models.Model(purchase, committee)
     model.add_form('update', form)
     invoice_form = InvoicedAmountForm(request.form, amount=purchase.quote_amount)
     model.add_form(ACTION_ORDERED.name, invoice_form)
-    if views.process_edit_button(ACTION_UPDATE, form, purchase):
+    if views.process_edit_button(ACTION_UPDATE, model, form):
         return redirect(request.base_url)
     for action in [ACTION_CHECKED, ACTION_ORDERED]:
-      if views.process_action_button(action, model, purchase):
+      if views.process_action_button(action, model):
         action.apply_to(purchase, model.user)
         action.audit(purchase, model.user)
         return redirect(request.base_url)
@@ -147,7 +146,7 @@ def view_purchase(db_id):
     if process_advance_button(purchase, model.user):
       return redirect(request.base_url)
     for action in [ACTION_PAID, ACTION_CANCEL]:
-      if views.process_action_button(action, model, purchase):
+      if views.process_action_button(action, model):
         if action is ACTION_PAID:
             purchase.invoice.paid = True
         purchase.put()
@@ -158,7 +157,7 @@ def view_purchase(db_id):
     if purchase.advance is not None:
         sub_heading = renderers.sub_heading('Advance Payment')
         advance_buttons = []
-        if views.process_action_button(ACTION_ADVANCE_PAID, model, purchase):
+        if views.process_action_button(ACTION_ADVANCE_PAID, model):
           purchase.advance.paid = True
           purchase.put()
           ACTION_ADVANCE_PAID.audit(purchase, model.user)

@@ -28,7 +28,7 @@ ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
 def view_supplier_list():
     new_supplier = db.Supplier()
     form = SupplierForm(request.form, obj=new_supplier)
-    model = data_models.Model(None)
+    model = data_models.Model(new_supplier)
     model.add_form('create', form)
     if request.method == 'POST' and form.validate():
         form.populate_obj(new_supplier)
@@ -40,7 +40,7 @@ def view_supplier_list():
     supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
     supplier_list = db.Supplier.query().fetch()
     entity_table = views.render_entity_list(supplier_list, supplier_field_list)
-    buttons = views.view_actions([ACTION_CREATE], model, None)
+    buttons = views.view_actions([ACTION_CREATE], model)
     return views.render_view('Supplier List', breadcrumbs, entity_table, buttons=buttons)
 
 def get_links(supplier):
@@ -113,12 +113,12 @@ def render_purchase_payments_list(supplier):
 def view_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
     form = SupplierForm(request.form, obj=supplier)
-    model = data_models.Model(None)
+    model = data_models.Model(supplier)
     model.add_form('update', form)
-    if views.process_edit_button(ACTION_UPDATE, form, supplier):
+    if views.process_edit_button(ACTION_UPDATE, model, form):
         return redirect(request.base_url)
     error = ""
-    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model, supplier):
+    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model):
         transfer = process_transfer_request(supplier, model.user)
         if transfer is not None:
             transfer_url = views.url_for_entity(transfer)
@@ -135,5 +135,5 @@ def view_supplier(db_id):
         grant_payments = render_grants_due_list(supplier)
         content.append(grant_payments)
     content.append(views.render_entity_history(supplier.key))
-    buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model, supplier)
+    buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)

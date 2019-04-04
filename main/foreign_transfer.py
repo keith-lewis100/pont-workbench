@@ -118,13 +118,12 @@ def render_purchase_payments_list(transfer):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = data_models.lookup_entity(db_id)
-    committee = data_models.get_owning_committee(transfer)
     form = ExchangeRateForm(request.form)
-    model = data_models.Model(committee)
+    model = data_models.Model(transfer)
     model.add_form(ACTION_TRANSFERRED.name, form)
     if process_transferred_button(model, transfer):
         return redirect(request.base_url)
-    if views.process_action_button(ACTION_ACKNOWLEDGED, model, transfer):
+    if views.process_action_button(ACTION_ACKNOWLEDGED, model):
         do_acknowledge(transfer, model.user)
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
@@ -136,5 +135,5 @@ def view_foreigntransfer(db_id):
 #    purchase_payments = render_purchase_payments_list(transfer)
     history = views.render_entity_history(transfer.key)
     content = (grid, grant_payments, history)
-    buttons = views.view_actions([ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED], model, transfer)
+    buttons = views.view_actions([ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED], model)
     return views.render_view('Foreign Transfer', breadcrumbs, content, buttons=buttons)
