@@ -1,9 +1,8 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for, request, redirect
+from flask import request, redirect, render_template
 from application import app
 import wtforms
-from datetime import date
 
 import db
 import data_models
@@ -16,17 +15,43 @@ import urls
 import grants
 import purchases
 
-TRANSFER_CLOSED = 0
-TRANSFER_REQUESTED = 1
-TRANSFER_TRANSFERRED = 2
+STATE_REQUESTED = 1
+STATE_TRANSFERRED = 2
 
 state_labels = ['Closed', 'Requested', 'Transferred']
-def state_of(entity):
-    return state_labels[entity.state_index]
+
+def perform_transferred(model, action_name):
+    form = model.get_form(ACTION_TRANSFERRED.name)
+    if not form.validate():
+        return False
+    transfer = model.entity
+    form.populate_obj(transfer)
+    transfer.state_index = STATE_TRANSFERRED
+    transfer.put()
+    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    for grant in grant_list:
+        grant.state_index = grants.STATE_TRANSFERED
+        grant.put()
+    model.audit(action_name, 'Tranferred performed')
+    return True
+
+def perform_ack(model, action_name):
+    model.perform_close(action_name)
+    transfer = model.entity
+    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    for grant in grant_list:
+        project = grant.project.get()
+        if project.partner is None:
+            grant.state_index = data_models.STATE_CLOSED
+            grant.put()
+    return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
-                            [TRANSFER_REQUESTED])
-ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN, [TRANSFER_TRANSFERRED])
+                            perform_transferred, [STATE_REQUESTED])
+ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN,
+                                        perform_ack, [STATE_TRANSFERRED])
+
+action_list = [ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED]
 
 def calculate_totals(transfer):
     total_sterling = 0
@@ -39,7 +64,7 @@ def calculate_totals(transfer):
     return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
 
 ref_field = properties.StringProperty('ref_id')
-state_field = properties.StringProperty(state_of, 'State')
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 creator_field = properties.KeyProperty('creator')
 creation_date_field = properties.DateProperty('creation_date')
 rate_field = properties.StringProperty('exchange_rate')
@@ -67,39 +92,14 @@ def view_foreigntransfer_list(db_id):
     breadcrumbs = views.view_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
-    entity_table = views.render_entity_list(transfer_list, transfer_fields)
+    entity_table = views.view_entity_list(transfer_list, transfer_fields)
     user_controls = views.view_user_controls(model)
-    return views.render_view('Foreign Transfer List', user_controls, breadcrumbs, entity_table)
-
-def process_transferred_button(model, transfer):
-    form = model.get_form(ACTION_TRANSFERRED.name)
-    if (request.method == 'POST' and request.form.get('_action') == ACTION_TRANSFERRED.name 
-              and form.validate()):
-        form.populate_obj(transfer)
-        transfer.state_index = TRANSFER_TRANSFERRED
-        transfer.put()
-        grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-        for grant in grant_list:
-            grant.state_index = grants.GRANT_TRANSFERED
-            grant.put()
-        ACTION_TRANSFERRED.audit(transfer, model.user)
-        return True
-    return False
-
-def do_acknowledge(transfer, user):
-    transfer.state_index = TRANSFER_CLOSED
-    transfer.put()
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    for grant in grant_list:
-        project = grant.project.get()
-        if project.partner is None:
-            grant.state_index = grants.GRANT_CLOSED
-            grant.put()
-    ACTION_ACKNOWLEDGED.audit(transfer, user)
+    return render_template('layout.html', title='Foreign Transfer List', breadcrumbs=breadcrumbs,
+                           user=user_controls, content=entity_table)
 
 def render_grants_due_list(grant_list):
     sub_heading = renderers.sub_heading('Grant Payments')
-    table = views.render_entity_list(grant_list, grant_field_list)
+    table = views.view_entity_list(grant_list, grant_field_list)
     return (sub_heading, table)
 
 def render_purchase_payments_list(transfer):
@@ -124,20 +124,18 @@ def view_foreigntransfer(db_id):
     form = ExchangeRateForm(request.form)
     model = data_models.Model(transfer, None)
     model.add_form(ACTION_TRANSFERRED.name, form)
-    if process_transferred_button(model, transfer):
-        return redirect(request.base_url)
-    if views.process_action_button(ACTION_ACKNOWLEDGED, model, transfer):
-        do_acknowledge(transfer, model.user)
+    if request.method == 'POST'and views.handle_post(model, action_list):
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
     breadcrumbs = views.view_breadcrumbs(transfer, True)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
-    grid = views.render_entity(transfer, transfer_fields)
+    grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
 #    purchase_payments = render_purchase_payments_list(transfer)
-    history = views.render_entity_history(transfer.key)
-    content = (grid, grant_payments, history)
-    buttons = views.view_actions([ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED], model, transfer)
+    history = views.view_entity_history(transfer.key)
+    content = renderers.render_div(grid, grant_payments, history)
+    buttons = views.view_actions(action_list, model)
     user_controls = views.view_user_controls(model)
-    return views.render_view('Foreign Transfer', user_controls, breadcrumbs, content, buttons=buttons)
+    return render_template('layout.html', title='Foreign Transfer', breadcrumbs=breadcrumbs, user=user_controls,
+                           buttons=buttons, content=content)

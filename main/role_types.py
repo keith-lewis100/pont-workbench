@@ -14,12 +14,3 @@ role_names = ['UserAdmin', 'SupplierAdmin', 'FundAdmin', 'CommitteeAdmin',
 
 def get_choices():
     return list(enumerate(role_names))
-
-def committee_matches(committee, role):
-    if role.committee == "":
-        return True
-    return role.committee == committee
-
-def get_types(roles, committee):
-    types = [r.type_index for r in roles if committee_matches(committee, r)]
-    return set(types)

@@ -31,11 +31,8 @@ def view_fund_list(db_id):
     model.add_form(ACTION_CREATE.name, form)   
     property_list = (name_field, code_field)
     fund_list = db.Fund.query(db.Fund.committee == committee.id).fetch()
-    entity_table = views.render_entity_list(fund_list, property_list)
-    new_button = ACTION_CREATE.render(model)
-    breadcrumbs = views.view_breadcrumbs(fund)
-    user_controls = views.view_user_controls(model)
-    return views.render_view('Fund List', user_controls, breadcrumbs, entity_table, buttons=[new_button])
+    return views.view_std_entity_list(model, 'Fund List', ACTION_CREATE,
+                                      property_list, fund_list, committee)
 
 link_pairs = [('Purchase', 'Show Purchase Requests'),
               ('Grant', 'Show Grants'),
@@ -45,9 +42,8 @@ link_pairs = [('Purchase', 'Show Purchase Requests'),
 @app.route('/fund/<db_id>', methods=['GET', 'POST'])
 def view_fund(db_id):
     fund = data_models.lookup_entity(db_id, 'Fund')
-    model = FundModel(fund)
+    model = data_models.Model(fund)
     form = FundForm(request.form, fund)
     model.add_form(ACTION_UPDATE.name, form)   
     property_list = (name_field, code_field, description_field)
-    links = views.view_links(fund, *link_pairs)
-    return views.view_std_entity(model, 'Fund ' + fund.name, property_list, [ACTION_UPDATE], 1, links)
+    return views.view_std_entity(model, 'Fund ' + fund.name, property_list, [ACTION_UPDATE], 1, link_pairs)

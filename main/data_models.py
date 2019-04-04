@@ -115,7 +115,7 @@ def role_matches(role, role_type, committee):
         return True
     return role.committee == committee
 
-INDEX_CLOSED = 0
+STATE_CLOSED = 0
 
 class Model(object):
     def __init__(self, entity, committee):
@@ -141,16 +141,19 @@ class Model(object):
         return self.forms.get(action_name)
 
     def perform_create(self, action_name):
-        form = self.get_form('create')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
-        form.populate_obj(self.entity)
-        self.entity.put()
+        entity = self.entity
+        form.populate_obj(entity)
+        if hasattr(entity, 'creator'):
+            entity.creator = self.user.key
+        entity.put()
         self.audit(action_name, "Create performed")
         return True
 
     def perform_update(self, action_name):
-        form = self.get_form('update')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
         form.populate_obj(self.entity)
@@ -159,7 +162,7 @@ class Model(object):
         return True
 
     def perform_close(self, action_name):
-        self.entity.state_index = INDEX_CLOSED
+        self.entity.state_index = STATE_CLOSED
         self.entity.put()
         self.audit(action_name, "%s performed" % action_name.title())
         return True

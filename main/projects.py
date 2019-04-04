@@ -1,30 +1,31 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import redirect, request, url_for
-from flask.views import View
 import wtforms
 
 import db
 import data_models
-import renderers
 import custom_fields
 import properties
 import views
-import logging
 from role_types import RoleType
 
-PROJECT_APPROVAL_PENDING = 1
-PROJECT_APPROVED = 2
-PROJECT_CLOSED = 0
+STATE_APPROVAL_PENDING = 1
+STATE_APPROVED = 2
+STATE_CLOSED = 0
 
-state_labels = ['Closed', 'Pending', 'Approved']
-def state_of(entity):
-    return state_labels[entity.state_index]
+state_names = ['Closed', 'Pending', 'Approved']
 
-state_field = properties.StringProperty(state_of, 'State')
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_names))
 
-ACTION_APPROVE = views.StateAction('approve', 'Approve', RoleType.PROJECT_APPROVER, [PROJECT_APPROVAL_PENDING])
-ACTION_UPDATE = views.update_action(RoleType.PROJECT_CREATOR, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
+def perform_approve(model, action_name):
+    model.entity.state_index = STATE_APPROVED
+    model.entity.put()
+    model.audit(action_name, 'Approved performed')
+    return True
+
+ACTION_APPROVE = views.StateAction('approve', 'Approve', RoleType.PROJECT_APPROVER,
+                                   perform_approve, [STATE_APPROVAL_PENDING])
+ACTION_UPDATE = views.update_action(RoleType.PROJECT_CREATOR, [STATE_APPROVAL_PENDING, STATE_APPROVED])
 ACTION_CREATE = views.create_action(RoleType.PROJECT_CREATOR)
 
 class ProjectForm(wtforms.Form):

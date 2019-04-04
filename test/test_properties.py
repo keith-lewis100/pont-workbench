@@ -15,7 +15,7 @@ class TestProperties(unittest.TestCase):
     def test_select(self):
         obj = Entity()
         obj.opt = 2
-        options = {1: 'opt1', 2: 'opt2'}
+        options = enumerate(['opt1', 'opt2'], 1)
         select = properties.SelectProperty('opt', 'label', options)
         val = select.str_for(obj, False)
         self.assertEquals('opt2', val)

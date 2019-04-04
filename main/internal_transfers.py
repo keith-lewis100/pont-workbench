@@ -1,6 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import request, redirect, url_for
+from flask import request
 import wtforms
 
 from application import app
@@ -16,10 +16,8 @@ TRANSFER_PENDING = 1
 TRANSFER_COMPLETE = 0
 
 state_labels = ['Closed', 'Pending']
-def state_of(entity):
-    return state_labels[entity.state_index]
 
-state_field = properties.StringProperty(state_of, 'State')
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 
 class InternalTransferModel(data_models.Model):
     def perform_transferred(self, action_name):
@@ -55,16 +53,11 @@ def view_internaltransfer_list(db_id):
     new_transfer = db.InternalTransfer(parent=fund.key)
     model = data_models.Model(new_transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_CREATE)   
-    if request.method == 'POST' and ACTION_CREATE.process_input(model):
-        return redirect(request.base_url)
     property_list = (properties.KeyProperty('dest_fund'),
               properties.StringProperty('amount'), state_field)
     transfer_list = db.InternalTransfer.query(ancestor = fund.key).fetch()
-    entity_table = [views.render_entity_list(transfer_list, property_list)]
-    new_button = ACTION_CREATE.render(model)
-    breadcrumbs = views.view_breadcrumbs(fund)
-    user_controls = views.view_user_controls(model)
-    return views.render_view('Internal Transfer List', user_controls, breadcrumbs, entity_table, buttons=[new_button])
+    return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE,
+                                      property_list, transfer_list, fund)
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):

@@ -17,8 +17,8 @@ def create_readonly_field(name, form_field):
     if hasattr(form_field, 'coerce') and form_field.coerce == data_models.create_key:
         return KeyProperty(name, form_field.label)
     if hasattr(form_field, 'choices'):
-        option_list = [(form_field.coerce(val), label) for val, label in form_field.choices]
-        return SelectProperty(name, form_field.label, dict(option_list))
+        options = [(form_field.coerce(val), label) for val, label in form_field.choices]
+        return SelectProperty(name, form_field.label, options)
     if form_field.type == 'DateField':
         return DateProperty(name, form_field.label, form_field.format)
     return StringProperty(name, form_field.label)
@@ -38,13 +38,13 @@ class StringProperty(Property):
         return unicode(self.value_for(entity))
 
 class SelectProperty(Property):
-    def __init__(self, attr, label=None, options={}):
+    def __init__(self, attr, label=None, options=[]):
         super(SelectProperty, self).__init__(attr, label)
-        self.options = options
+        self.option_map = dict(options)
 
     def str_for(self, entity, no_links):
         prop = self.value_for(entity)
-        return self.options.get(prop, "")
+        return self.option_map.get(prop, "")
 
 class KeyProperty(Property):
     def __init__(self, attr, label=None, title_of=lambda e : e.name):

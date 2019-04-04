@@ -1,37 +1,45 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View
 import wtforms
 
 import db
 import data_models
-import renderers
 import custom_fields
 import properties
 import views
 from role_types import RoleType
 
-PLEDGE_PENDING = 1
-PLEDGE_FULFILLED = 2
-PLEDGE_CLOSED = 3
+STATE_PENDING = 1
+STATE_FULFILLED = 2
 
 state_labels = ['Closed', 'Pending', 'Fulfilled']
-def state_of(entity):
-    return state_labels[entity.state_index]
 
-class PledgeCreate:
-    def apply_to(self, entity, user):
+def perform_create(model, action_name):
+        form = self.get_form('create')
+        if not form.validate():
+            return False
+        entity = model.entity
+        form.populate_obj(entity)
         ref = data_models.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
         entity.creator = user.key
         entity.put()
+        model.audit(action_name, "Create performed")
+        return True
 
-ACTION_FULFILLED = views.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, [PLEDGE_PENDING])
-ACTION_BOOKED = views.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, [PLEDGE_FULFILLED])
-ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [PLEDGE_PENDING], True)
-ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
+def perform_fulfilled(model, action_name):
+    model.entity.state_index = STATE_FULFILLED
+    model.entity.put()
+    model.audit(action_name, 'Fulfilled performed')
 
-state_field = properties.StringProperty(state_of, 'State')
+ACTION_FULFILLED = views.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN,
+                                     perform_fulfilled, [STATE_PENDING])
+ACTION_BOOKED = views.StateAction('booked', 'Booked', RoleType.FUND_ADMIN,
+                                  data_models.Model.perform_close, [STATE_FULFILLED])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_PENDING])
+ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_create)
+
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()

@@ -1,12 +1,8 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for
 import wtforms
 
 import db
-import data_models
-import renderers
-import custom_fields
 import properties
 import views
 from role_types import RoleType

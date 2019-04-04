@@ -55,9 +55,6 @@ def render_submit_button(label, **kwargs):
     button = html.button(label, type="submit", **kwargs)
     return ('\n', html.form(button, method="post"))
 
-def render_nav(*content):
-    return html.nav(*content)
-
 def render_div(*content, **kwargs):
     return html.div(*content, **kwargs)
 

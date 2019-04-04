@@ -1,9 +1,8 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for, render_template
-from application import app
+from flask import render_template
 
-import renderers
+from application import app
 import views
 
 import funds

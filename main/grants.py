@@ -1,41 +1,53 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View
-from flask import request
 import wtforms
 import wtforms.widgets.html5 as widgets
 from datetime import date, timedelta
+
 import db
 import data_models
-import renderers
 import views
 import custom_fields
 import properties
 from role_types import RoleType
 
-GRANT_WAITING = 1
-GRANT_READY = 2
-GRANT_TRANSFERED = 3
-GRANT_CLOSED = 0
+STATE_WAITING = 1
+STATE_READY = 2
+STATE_TRANSFERED = 3
+STATE_CLOSED = 0
 
 state_labels = ['Closed', 'Waiting', 'Ready', 'Transferred']
 def state_of(entity):
     return state_labels[entity.state_index]
 
-class GrantCreate:
-    def apply_to(self, entity, user):
+def perform_create(model, action_name):
+        form = self.get_form('create')
+        if not form.validate():
+            return False
+        entity = model.entity
+        form.populate_obj(entity)
         entity.creator = user.key
         fund = entity.project.parent()
         entity.supplier = fund.parent()
         entity.put()
+        model.audit(action_name, "Create performed")
+        return True
 
-ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN, [GRANT_WAITING])
-ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN, [GRANT_TRANSFERED])
-ACTION_CANCEL = views.StateAction('cancel', 'Cancel', RoleType.COMMITTEE_ADMIN, [GRANT_WAITING])
-ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [GRANT_WAITING])
-ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
+def perform_checked(model, action_name):
+    model.entity.state_index = STATE_READY
+    model.entity.put()
+    model.audit(action_name, 'Checked performed')
 
-state_field = properties.StringProperty(state_of, 'State')
+ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
+                                   perform_checked, [STATE_WAITING])
+ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN,
+                                        data_models.Model.perform_close, [STATE_TRANSFERED])
+ACTION_CANCEL = views.create_cancel(RoleType.COMMITTEE_ADMIN, [STATE_WAITING])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_WAITING])
+ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_create)
+
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
+
 creator_field = properties.KeyProperty('creator', 'Requestor')
 project_field = properties.KeyProperty('project')
 amount_field = properties.StringProperty('amount')

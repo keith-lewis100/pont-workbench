@@ -1,6 +1,5 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import redirect, request, url_for
 import wtforms
 
 import db
@@ -8,14 +7,13 @@ import data_models
 import custom_fields
 import properties
 import views
-import logging
-from role_types import RoleType
+from role_types import RoleType, get_choices
 
 ACTION_UPDATE = views.update_action(RoleType.USER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.USER_ADMIN)
 
 class RoleForm(wtforms.Form):
-    type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=role_types.get_choices())
+    type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=get_choices())
     committee = custom_fields.SelectField(choices=[("", "")] + data_models.committee_labels)
     
 class RoleListView(views.ListView):
