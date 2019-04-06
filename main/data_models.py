@@ -111,10 +111,26 @@ def role_matches(role, role_type, committee):
         return True
     return role.committee == committee
 
+        
+def calculate_transferred_amount(payment):
+    if payment is None or payment.transfer is None:
+        return ""
+    transfer = payment.transfer.get()
+    if transfer.exchange_rate is None:
+        return ""
+    requested_amount = payment.amount.value
+    if payment.amount.currency == 'sterling':
+        sterling = requested_amount
+        shillings = int(requested_amount * transfer.exchange_rate)
+    if payment.amount.currency == 'ugx':
+        sterling = int(requested_amount / transfer.exchange_rate)
+        shillings = requested_amount
+    return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
+
 STATE_CLOSED = 0
 
 class Model(object):
-    def __init__(self, entity, committee):
+    def __init__(self, entity, committee=None):
         self.entity = entity
         self.committee = committee
         self.user = lookup_current_user()

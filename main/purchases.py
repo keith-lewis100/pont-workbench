@@ -29,31 +29,26 @@ def state_of(purchase):
             return STATE_PAYMENT_DUE
     return state
 
-def invoice_amount(entity):
-    if entity.invoice is None:
-        return ""
-    return entity.invoice.amount
-
-def invoice_paid(entity):
-    if entity.invoice is None:
-        return ""
-    return entity.invoice.paid
-
 supplier_field = properties.KeyProperty('supplier')
 quote_amount_field = properties.StringProperty('quote_amount')
 description_field = properties.StringProperty('description')
 state_field = properties.SelectProperty(state_of, 'State', enumerate(state_labels))
 po_number_field = properties.StringProperty('po_number', 'PO number')
 creator_field = properties.KeyProperty('creator')
-invoiced_amount_field = properties.StringProperty(invoice_amount, 'Invoiced Amount')
-invoiced_paid_field = properties.StringProperty(invoice_paid, 'paid')
-invoice_type_field = properties.StringProperty(lambda e: 'Invoice', 'Type')
-invoice_transferred_field = properties.ExchangeCurrencyProperty('invoice', 'Transferred Amount')
 
+invoiced_amount_field = properties.StringProperty(lambda e: e.advance.amount, 'Invoiced Amount')
+invoiced_paid_field = properties.StringProperty(lambda e: e.advance.paid, 'paid')
+invoice_type_field = properties.StringProperty(lambda e: 'Invoice', 'Type')
+invoice_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e.invoice), 
+                                    'Transferred Amount')
+
+def advance_transferred_amount(purchase):
+    return data_models.calculate_transferred_amount(payment)
 advance_amount_field = properties.StringProperty(lambda e: e.advance.amount, 'Amount')
 advance_paid_field = properties.StringProperty(lambda e: e.advance.paid, 'Paid')
 advance_type_field = properties.StringProperty(lambda e: 'Advance', 'Type')
-advance_transferred_field = properties.ExchangeCurrencyProperty('advance', 'Transferred Amount')
+advance_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e.advance), 
+                                    'Transferred Amount')
 
 
 class PurchaseModel(data_models.Model):
@@ -121,7 +116,7 @@ ACTION_ADVANCE = views.StateAction('advance', 'Advance Payment', RoleType.COMMIT
                               PurchaseModel.perform_advance, [STATE_ORDERED])
 ACTION_PAID = views.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN,
                                 PurchaseModel.perform_close, [STATE_PAYMENT_DUE])
-ACTION_CANCEL = views.create_cancel(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
+ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
 
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])

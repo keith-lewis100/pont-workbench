@@ -53,7 +53,7 @@ def view_supplier_list():
 def get_link_pairs(supplier):
     links = []
     if supplier.receives_grants:
-        links = [('SupplierFund', 'Show Supplier Funds'), ('Partners', 'Show Partners')]
+        links = [('SupplierFund', 'Show Supplier Funds'), ('Partner', 'Show Partners')]
     if supplier.paid_in_sterling:
         return links
     return links + [('ForeignTransfer', 'Show Foreign Transfers')]
@@ -71,7 +71,7 @@ def render_grants_due_list(supplier):
     grant_list = db.find_pending_payments(supplier, cutoff_date)
     field_list = (grants.state_field, grants.target_date_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
     sub_heading = renderers.sub_heading('Grant Payments Due')
-    table = views.render_entity_list(grant_list, field_list)
+    table = views.view_entity_list(grant_list, field_list)
     return (sub_heading, table)
     
 common_field_list = [purchases.advance_type_field, purchases.po_number_field, purchases.creator_field,
@@ -115,7 +115,7 @@ def view_supplier(db_id):
 ##            transfer_url = urls.url_for_entity(transfer)
 ##            return redirect(transfer_url)
 ##        error = renderers.render_error("No grants are pending - nothing to transfer")
-    breadcrumbs = views.create_breadcrumbs_list(supplier)
+    breadcrumbs = views.view_breadcrumbs(None, 'Supplier')
     links = views.view_links(supplier, *get_link_pairs(supplier))
     fields = (properties.StringProperty('name'), )
     grid = views.view_entity(supplier, fields)
@@ -126,7 +126,7 @@ def view_supplier(db_id):
         grant_payments = render_grants_due_list(supplier)
         content_list.append(grant_payments)
     content_list.append(views.view_entity_history(supplier.key))
-    buttons = views.view_actions(valid_actions, model, supplier)
+    buttons = views.view_actions(valid_actions, model)
     content = renderers.render_div(*content_list)
     user_controls = views.view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,

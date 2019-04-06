@@ -70,12 +70,18 @@ creation_date_field = properties.DateProperty('creation_date')
 rate_field = properties.StringProperty('exchange_rate')
 request_totals_field = properties.StringProperty(calculate_totals, 'Request Totals')
 
+def get_partner(grant):
+    project = grant.project.get()
+    if project.partner:
+        return project.partner.get().name
+    return ""
+
 grant_field_list = [
     grants.state_field, grants.creator_field, grants.project_field, grants.amount_field,
     grants.transferred_amount_field,
-    properties.StringProperty(lambda e: e.project.get().partner.get().name, 'Implementing Partner'),
+    properties.StringProperty(get_partner, 'Implementing Partner'),
     grants.source_field,
-    properties.StringProperty(lambda e: e.project.key.parent().get().name, 'Destination Fund')
+    properties.StringProperty(lambda e: e.project.parent().get().name, 'Destination Fund')
 ]
 
 advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 
@@ -89,6 +95,7 @@ class ExchangeRateForm(wtforms.Form):
 @app.route('/foreigntransfer_list/<db_id>')
 def view_foreigntransfer_list(db_id):
     supplier = data_models.lookup_entity(db_id)
+    model = data_models.Model(None, None)
     breadcrumbs = views.view_breadcrumbs(supplier)
     transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
@@ -121,13 +128,14 @@ def render_purchase_payments_list(transfer):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = data_models.lookup_entity(db_id)
+    supplier = data_models.get_parent(transfer)
     form = ExchangeRateForm(request.form)
     model = data_models.Model(transfer, None)
     model.add_form(ACTION_TRANSFERRED.name, form)
     if request.method == 'POST'and views.handle_post(model, action_list):
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
-    breadcrumbs = views.view_breadcrumbs(transfer, True)
+    breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
     grid = views.view_entity(transfer, transfer_fields)

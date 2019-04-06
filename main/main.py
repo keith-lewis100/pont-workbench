@@ -3,6 +3,7 @@
 from flask import render_template
 
 from application import app
+import data_models
 import views
 
 import funds
@@ -21,11 +22,12 @@ import committees
 
 @app.route('/')
 def home():
+    model = data_models.Model(None)
     links = views.view_links(None, 
                 ('Committee', 'Show Committees'),
                 ('Supplier', 'Show Suppliers'),
                 ('User', 'Show Users'))
-    return render_template('layout.html', title='DashBoard', user=views.render_user(), links=links)
+    return render_template('layout.html', title='DashBoard', user=views.view_user_controls(model), links=links)
 
 projects.add_rules(app)
 grants.add_rules(app)

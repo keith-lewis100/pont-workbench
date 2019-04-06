@@ -30,7 +30,8 @@ ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FU
                             [TRANSFER_PENDING], InternalTransferModel.perform_transferred)
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
-action_list = [ACTION_UPDATE, ACTION_TRANSFERRED]
+ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
+action_list = [ACTION_UPDATE, ACTION_TRANSFERRED, ACTION_CANCEL]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()

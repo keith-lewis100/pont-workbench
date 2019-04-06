@@ -107,7 +107,7 @@ def update_action(required_role, allowed_states=None):
 def create_action(required_role):
     return Action('create', 'New', required_role, data_models.Model.perform_create)
 
-def create_cancel(required_role, allowed_states):
+def cancel_action(required_role, allowed_states):
     return StateAction('cancel', 'Cancel', required_role,
                        data_models.Model.perform_close, allowed_states)
 
@@ -140,7 +140,9 @@ class ListView(View):
         self.create_action = create_action
         
     def dispatch_request(self, db_id=None):
-        parent = data_models.lookup_entity(db_id)
+        parent = None
+        if db_id:
+            parent = data_models.lookup_entity(db_id)
         entity = self.create_entity(parent)
         form = self.create_form(request.form, entity)
         committee = data_models.get_owning_committee(parent)
@@ -148,7 +150,8 @@ class ListView(View):
         model.add_form('create', form)
         entity_list = self.load_entities(parent)
         property_list = self.get_fields(form)
-        return view_std_entity_list(model, self.name + ' List', self.create_action, property_list, entity_list)
+        return view_std_entity_list(model, self.name + ' List', self.create_action, property_list, 
+                                    entity_list, parent)
 
 def view_actions(action_list, model):
     buttons = [action.render(model) for action in action_list]

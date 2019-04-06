@@ -11,6 +11,7 @@ committee_field_list = (properties.StringProperty('name'), )
 
 @app.route('/committee_list', methods=['GET'])
 def view_committee_list():
+    model = data_models.Model(None)
     breadcrumbs = views.view_breadcrumbs(None)
     supplier_field_list = (properties.StringProperty('name'), )
     committee_list = data_models.get_committee_list()
@@ -21,6 +22,7 @@ def view_committee_list():
 
 @app.route('/committee/<db_id>', methods=['GET'])
 def view_committee(db_id):
+    model = data_models.Model(None)
     committee = data_models.lookup_committee(db_id)
     breadcrumbs = views.view_breadcrumbs(None, 'Committee')
     grid = views.view_entity(committee, committee_field_list)

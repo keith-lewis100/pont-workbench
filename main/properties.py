@@ -30,7 +30,10 @@ class Property(object):
 
     def value_for(self, entity):
         if callable(self.attr):
-            return self.attr(entity)
+            try:
+                return self.attr(entity)
+            except AttributeError:
+                return ""
         return getattr(entity, self.attr)
 
 class StringProperty(Property):
@@ -69,23 +72,3 @@ class DateProperty(Property):
     def str_for(self, entity, no_links):
         date = self.value_for(entity)
         return date.strftime(self.format)
-        
-class ExchangeCurrencyProperty(Property):
-    def __init__(self, attr, label=None):
-        super(ExchangeCurrencyProperty, self).__init__(attr, label)
-
-    def str_for(self, entity, no_links):
-        payment = self.value_for(entity)
-        if payment is None or payment.transfer is None:
-            return ""
-        transfer = payment.transfer.get()
-        if transfer.exchange_rate is None:
-            return ""
-        requested_amount = payment.amount.value
-        if payment.amount.currency == 'sterling':
-            sterling = requested_amount
-            shillings = int(requested_amount * transfer.exchange_rate)
-        if payment.amount.currency == 'ugx':
-            sterling = int(requested_amount / transfer.exchange_rate)
-            shillings = requested_amount
-        return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
