@@ -112,29 +112,35 @@ def render_purchase_payments_list(supplier):
 @app.route('/supplier/<db_id>', methods=['GET', 'POST'])
 def view_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
-    form = SupplierForm(request.form, obj=supplier)
+    if request.method == 'POST':
+        form = SupplierForm(request.form)
+    else:
+        form = SupplierForm(obj=supplier)
     model = data_models.Model(supplier)
     model.add_form('update', form)
     if views.process_edit_button(ACTION_UPDATE, model, form):
         return redirect(request.base_url)
     error = ""
-    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model):
-        transfer = process_transfer_request(supplier, model.user)
-        if transfer is not None:
-            transfer_url = views.url_for_entity(transfer)
-            return redirect(transfer_url)
-        error = renderers.render_error("No grants are pending - nothing to transfer")
+    valid_actions = [ACTION_UPDATE]
+    if not supplier.paid_in_sterling:
+        valid_actions.append(ACTION_TRANSFER_START)
+        if views.process_action_button(ACTION_TRANSFER_START, model):
+            transfer = process_transfer_request(supplier, model.user)
+            if transfer is not None:
+                transfer_url = views.url_for_entity(transfer)
+                return redirect(transfer_url)
+            error = renderers.render_error("No grants are pending - nothing to transfer")
     breadcrumbs = views.create_breadcrumbs_list(supplier)
     links = get_links(supplier)
     fields = (readonly_fields.ReadOnlyField('name'), )
     grid = views.render_entity(supplier, fields)
-    title = 'Supplier ' + supplier.name
+    title = 'Supplier ' + supplier.name + " "
     purchase_payments = render_purchase_payments_list(supplier)
     content = [error, grid, purchase_payments]
     if supplier.receives_grants:
         grant_payments = render_grants_due_list(supplier)
         content.append(grant_payments)
     content.append(views.render_entity_history(supplier.key))
-    buttons = views.view_actions([ACTION_UPDATE, ACTION_TRANSFER_START], model)
+    buttons = views.view_actions(valid_actions, model)
     return views.render_view(title, breadcrumbs, content, links=links, buttons=buttons)
 
