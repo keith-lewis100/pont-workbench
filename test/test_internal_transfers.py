@@ -21,8 +21,8 @@ class TestPurchases(unittest.TestCase):
         fund.committee = 'EDU'
         fund.name = 'myFund'
         fund.put()
-        purchase = db.InternalTransfer(id=12, parent=fund.key)
-        purchase.put()
+        transfer = db.InternalTransfer(id=12, parent=fund.key)
+        transfer.put()
         with app.test_request_context('/', method='GET'):
             internal_transfers.view_internaltransfer('InternalTransfer-12')
 

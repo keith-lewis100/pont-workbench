@@ -171,6 +171,7 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     user_controls = view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
                            links=links, buttons=buttons, content=content)
+
 class EntityView(View):
     methods = ['GET', 'POST']
 

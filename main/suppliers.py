@@ -10,6 +10,7 @@ import data_models
 import renderers
 import properties
 import views
+import custom_fields
 from role_types import RoleType
 import urls
 
@@ -18,8 +19,8 @@ import purchases
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    receives_grants = wtforms.BooleanField()
-    paid_in_sterling = wtforms.BooleanField()
+    receives_grants = custom_fields.BooleanField()
+    paid_in_sterling = custom_fields.BooleanField()
 
 def perform_create_transfer(model, action_name):
     supplier = model.entity
@@ -43,7 +44,7 @@ ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 def view_supplier_list():
     new_supplier = db.Supplier()
     form = SupplierForm(request.form, obj=new_supplier)
-    model = data_models.Model(new_supplier, None)
+    model = data_models.Model(new_supplier)
     model.add_form('create', form)
     property_list = (properties.StringProperty('name'), )
     supplier_list = db.Supplier.query().fetch()
@@ -120,6 +121,7 @@ def view_supplier(db_id):
     fields = (properties.StringProperty('name'), )
     grid = views.view_entity(supplier, fields)
     title = 'Supplier ' + supplier.name
+
     purchase_payments = render_purchase_payments_list(supplier)
     content_list = [error, grid, purchase_payments]
     if supplier.receives_grants:

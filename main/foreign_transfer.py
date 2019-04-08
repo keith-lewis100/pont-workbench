@@ -147,3 +147,4 @@ def view_foreigntransfer(db_id):
     user_controls = views.view_user_controls(model)
     return render_template('layout.html', title='Foreign Transfer', breadcrumbs=breadcrumbs, user=user_controls,
                            buttons=buttons, content=content)
+
