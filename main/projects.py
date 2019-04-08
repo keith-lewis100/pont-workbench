@@ -13,9 +13,9 @@ STATE_APPROVAL_PENDING = 1
 STATE_APPROVED = 2
 STATE_CLOSED = 0
 
-state_names = ['Closed', 'Pending', 'Approved']
+state_labels = ['Closed', 'Pending', 'Approved']
 
-state_field = properties.SelectProperty('state_index', 'State', enumerate(state_names))
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 
 def perform_approve(model, action_name):
     model.entity.state_index = STATE_APPROVED

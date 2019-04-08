@@ -69,7 +69,7 @@ class PurchaseModel(data_models.Model):
         return True
 
     def perform_invoiced(self, action_name):
-        form = self.get_form('invoiced')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
         invoice = db.Payment()
@@ -80,7 +80,7 @@ class PurchaseModel(data_models.Model):
         return True
 
     def perform_advance(self, action_name):
-        form = self.get_form('advance')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
         advance = db.Payment()

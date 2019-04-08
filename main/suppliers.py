@@ -13,6 +13,7 @@ import views
 import custom_fields
 from role_types import RoleType
 import urls
+from html_builder import html
 
 import grants
 import purchases
@@ -26,12 +27,13 @@ def perform_create_transfer(model, action_name):
     supplier = model.entity
     grant_list = db.find_ready_payments(supplier)
     if len(grant_list) == 0:
-        return None
-    transfer = create_transfer(supplier, user)
+        model.add_error("No grants are pending - nothing to transfer")
+        return False
+    transfer = create_transfer(supplier, model.user)
+    model.next_entity = transfer
     for grant in grant_list:
-        if getattr(grant, 'transfer', None) is None:
-            grant.transfer = transfer.key
-            grant.put()
+        grant.transfer = transfer.key
+        grant.put()
     model.audit(action_name, 'Transfer started')
     return True
 
@@ -98,7 +100,15 @@ def render_purchase_payments_list(supplier):
                             advance_url_list + invoice_url_list)
     return (sub_heading, table)
 
-@app.route('/supplier/<db_id>', methods=['GET', 'POST'])
+def view_errors(model):
+    error_list = [renderers.render_error(message) for message in model.errors]
+    return html.div(*error_list)
+
+def redirect_url(model):
+    if model.next_entity:
+        return urls.url_for_entity(model.next_entity)
+    return request.base_url
+
 def view_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
     form = SupplierForm(request.form, obj=supplier)
@@ -107,29 +117,30 @@ def view_supplier(db_id):
     valid_actions = [ACTION_UPDATE]
     if not supplier.paid_in_sterling:
         valid_actions.append(ACTION_TRANSFER_START)
-    if request.method == 'POST'  and views.handle_post(model, valid_actions):
-        return redirect(request.base_url)
-    error = ""
-##    if not supplier.paid_in_sterling and views.process_action_button(ACTION_TRANSFER_START, model, supplier):
-##        transfer = process_transfer_request(supplier, model.user)
-##        if transfer is not None:
-##            transfer_url = urls.url_for_entity(transfer)
-##            return redirect(transfer_url)
-##        error = renderers.render_error("No grants are pending - nothing to transfer")
+    if request.method == 'POST' and views.handle_post(model, valid_actions):
+        return redirect_url(model)
     breadcrumbs = views.view_breadcrumbs(None, 'Supplier')
     links = views.view_links(supplier, *get_link_pairs(supplier))
     fields = (properties.StringProperty('name'), )
     grid = views.view_entity(supplier, fields)
     title = 'Supplier ' + supplier.name
-
     purchase_payments = render_purchase_payments_list(supplier)
-    content_list = [error, grid, purchase_payments]
+    content_list = [grid, purchase_payments]
     if supplier.receives_grants:
         grant_payments = render_grants_due_list(supplier)
         content_list.append(grant_payments)
     content_list.append(views.view_entity_history(supplier.key))
     buttons = views.view_actions(valid_actions, model)
+    errors = view_errors(model)
     content = renderers.render_div(*content_list)
     user_controls = views.view_user_controls(model)
-    return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
-                           links=links, buttons=buttons, content=content)
+    return {'title': title, 'breadcrumbs': breadcrumbs, 'user': user_controls,
+            'links': links, 'buttons': buttons, 'errors': errors,
+            'content': content}
+
+@app.route('/supplier/<db_id>', methods=['GET', 'POST'])
+def route_supplier(db_id):
+    template_args = view_supplier(db_id)
+    if type(template_args) == dict:
+        return render_template('layout.html', **template_args)
+    return redirect(template_args)

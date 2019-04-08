@@ -77,7 +77,9 @@ class Action(object):
 
     def process_input(self, model):
         enabled = self.is_allowed(model)
-        assert enabled
+        if not enabled:
+            model.add_error("Operation failed - use back button to retry")
+            return Fasle
         return self.perform(model, self.name)
 
     def render(self, model):

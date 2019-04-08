@@ -19,15 +19,14 @@ state_labels = ['Closed', 'Pending']
 
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 
-class InternalTransferModel(data_models.Model):
-    def perform_transferred(self, action_name):
-        self.entity.state_index = TRANSFER_COMPLETE
-        self.entity.put()
-        self.audit(action_name, "Transfer performed")
-        return True
+def perform_transferred(model, action_name):
+    model.entity.state_index = TRANSFER_COMPLETE
+    model.entity.put()
+    model.audit(action_name, "Transfer performed")
+    return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
-                            [TRANSFER_PENDING], InternalTransferModel.perform_transferred)
+                            [TRANSFER_PENDING], perform_transferred)
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])

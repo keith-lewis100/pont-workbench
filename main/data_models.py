@@ -135,6 +135,8 @@ class Model(object):
         self.committee = committee
         self.user = lookup_current_user()
         self.forms = {}
+        self.errors=[]
+        self.next_entity = None
 
     def get_state(self):
         return self.entity.state_index
@@ -178,6 +180,9 @@ class Model(object):
         self.entity.put()
         self.audit(action_name, "%s performed" % action_name.title())
         return True
+
+    def add_error(self, error_text):
+            self.errors.append(error_text)
 
     def audit(self, action_name, message):
         audit = db.AuditRecord()
