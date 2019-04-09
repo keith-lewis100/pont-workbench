@@ -21,7 +21,7 @@ def state_of(entity):
     return state_labels[entity.state_index]
 
 def perform_create(model, action_name):
-        form = self.get_form('create')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
         entity = model.entity

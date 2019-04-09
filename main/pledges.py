@@ -15,7 +15,7 @@ STATE_FULFILLED = 2
 state_labels = ['Closed', 'Pending', 'Fulfilled']
 
 def perform_create(model, action_name):
-        form = self.get_form('create')
+        form = self.get_form(action_name)
         if not form.validate():
             return False
         entity = model.entity

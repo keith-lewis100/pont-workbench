@@ -21,7 +21,7 @@ STATE_TRANSFERRED = 2
 state_labels = ['Closed', 'Requested', 'Transferred']
 
 def perform_transferred(model, action_name):
-    form = model.get_form(ACTION_TRANSFERRED.name)
+    form = model.get_form(action_name)
     if not form.validate():
         return False
     transfer = model.entity
@@ -32,7 +32,8 @@ def perform_transferred(model, action_name):
     for grant in grant_list:
         grant.state_index = grants.STATE_TRANSFERED
         grant.put()
-    model.audit(action_name, 'Tranferred performed')
+        model.audit(action_name, 'Transfer performed', grant)
+    model.audit(action_name, 'Tranfer performed')
     return True
 
 def perform_ack(model, action_name):
@@ -44,6 +45,7 @@ def perform_ack(model, action_name):
         if project.partner is None:
             grant.state_index = data_models.STATE_CLOSED
             grant.put()
+            model.audit(action_name, 'Transfer received', grant)
     return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 

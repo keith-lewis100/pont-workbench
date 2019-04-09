@@ -13,7 +13,6 @@ import views
 import custom_fields
 from role_types import RoleType
 import urls
-from html_builder import html
 
 import grants
 import purchases
@@ -23,7 +22,7 @@ class SupplierForm(wtforms.Form):
     receives_grants = custom_fields.BooleanField()
     paid_in_sterling = custom_fields.BooleanField()
 
-def perform_create_transfer(model, action_name):
+def perform_start_transfer(model, action_name):
     supplier = model.entity
     grant_list = db.find_ready_payments(supplier)
     if len(grant_list) == 0:
@@ -34,11 +33,12 @@ def perform_create_transfer(model, action_name):
     for grant in grant_list:
         grant.transfer = transfer.key
         grant.put()
+        model.audit(action_name, 'Transfer started', grant)
     model.audit(action_name, 'Transfer started')
     return True
 
 ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN,
-                                     perform_create_transfer)
+                                     perform_start_transfer)
 ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 
@@ -100,10 +100,6 @@ def render_purchase_payments_list(supplier):
                             advance_url_list + invoice_url_list)
     return (sub_heading, table)
 
-def view_errors(model):
-    error_list = [renderers.render_error(message) for message in model.errors]
-    return html.div(*error_list)
-
 def redirect_url(model):
     if model.next_entity:
         return urls.url_for_entity(model.next_entity)
@@ -131,7 +127,7 @@ def view_supplier(db_id):
         content_list.append(grant_payments)
     content_list.append(views.view_entity_history(supplier.key))
     buttons = views.view_actions(valid_actions, model)
-    errors = view_errors(model)
+    errors = views.view_errors(model)
     content = renderers.render_div(*content_list)
     user_controls = views.view_user_controls(model)
     return {'title': title, 'breadcrumbs': breadcrumbs, 'user': user_controls,

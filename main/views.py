@@ -52,6 +52,10 @@ def view_links(parent, *link_pairs):
     links = [view_link(kind, label, parent) for kind, label in link_pairs]
     return html.nav(*links)
 
+def view_errors(model):
+    error_list = [renderers.render_error(error) for error in model.errors]
+    return html.div(*error_list)
+
 audit_fields = [
     properties.DateProperty('timestamp'),
     properties.StringProperty('message'),
@@ -78,8 +82,8 @@ class Action(object):
     def process_input(self, model):
         enabled = self.is_allowed(model)
         if not enabled:
-            model.add_error("Operation failed - use back button to retry")
-            return Fasle
+            model.add_error("Cannot perform requested action %s" % self.name)
+            return False
         return self.perform(model, self.name)
 
     def render(self, model):
@@ -129,10 +133,11 @@ def view_std_entity_list(model, title, create_action, property_list, entity_list
         return redirect(request.base_url)
     entity_table = view_entity_list(entity_list, property_list)
     buttons = view_actions([create_action], model)
+    errors = view_errors(model)
     breadcrumbs = view_breadcrumbs(parent)
     user_controls = view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
-                           buttons=buttons, content=entity_table)
+                           buttons=buttons, errors=errors, content=entity_table)
 
 class ListView(View):
     methods = ['GET', 'POST']
@@ -165,6 +170,7 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     entity = model.entity
     links = view_links(entity, *link_pairs)
     buttons = view_actions(action_list, model)
+    errors = view_errors(model)
     parent = data_models.get_parent(entity)
     breadcrumbs = view_breadcrumbs(parent, entity.key.kind())
     grid = view_entity(entity, property_list, num_wide)
@@ -172,7 +178,7 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     content = renderers.render_div(grid, history)
     user_controls = view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
-                           links=links, buttons=buttons, content=content)
+                           links=links, buttons=buttons, errors=errors, content=content)
 
 class EntityView(View):
     methods = ['GET', 'POST']

@@ -184,9 +184,11 @@ class Model(object):
     def add_error(self, error_text):
             self.errors.append(error_text)
 
-    def audit(self, action_name, message):
+    def audit(self, action_name, message, entity=None):
+        if not entity:
+            entity = self.entity
         audit = db.AuditRecord()
-        audit.entity = self.entity.key
+        audit.entity = entity.key
         audit.user = self.user.key
         audit.action = action_name
         audit.message = message
