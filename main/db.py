@@ -130,7 +130,7 @@ class Pledge(ndb.Model):
 
 class Payment(ndb.Model):
     amount = MoneyProperty(default=Money())
-    transfer = ndb.KeyProperty(kind=ForeignTransfer)
+    transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
     paid = ndb.BooleanProperty(default=False)
 
 # ancestor = Fund

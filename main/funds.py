@@ -25,12 +25,13 @@ class FundForm(wtforms.Form):
 @app.route('/fund_list/<db_id>', methods=['GET', 'POST'])
 def view_fund_list(db_id):
     committee = data_models.lookup_committee(db_id)
-    new_fund = db.Fund(committee = committee.id)
-    model = data_models.Model(new_fund, committee.id)
+    id = db_id
+    new_fund = db.Fund(committee = id)
+    model = data_models.Model(new_fund, id)
     form = FundForm(request.form, new_fund)
     model.add_form(ACTION_CREATE.name, form)   
     property_list = (name_field, code_field)
-    fund_list = db.Fund.query(db.Fund.committee == committee.id).fetch()
+    fund_list = db.Fund.query(db.Fund.committee == id).fetch()
     return views.view_std_entity_list(model, 'Fund List', ACTION_CREATE,
                                       property_list, fund_list, committee)
 
@@ -42,7 +43,7 @@ link_pairs = [('Purchase', 'Show Purchase Requests'),
 @app.route('/fund/<db_id>', methods=['GET', 'POST'])
 def view_fund(db_id):
     fund = data_models.lookup_entity(db_id)
-    model = data_models.Model(fund)
+    model = data_models.Model(fund, fund.committee)
     form = FundForm(request.form, fund)
     model.add_form(ACTION_UPDATE.name, form)   
     property_list = (name_field, code_field, description_field)

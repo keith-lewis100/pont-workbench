@@ -15,8 +15,8 @@ from role_types import RoleType
 STATE_CHECKING = 1
 STATE_READY = 2
 STATE_ORDERED = 3
-STATE_ADVANCE_PENDING = 4
-STATE_PAYMENT_DUE = 5
+STATE_ADVANCE_PENDING = 4 # derived state
+STATE_PAYMENT_DUE = 5 # derived state
 
 state_labels = ['Closed', 'Checking', 'Ready', 'Ordered', 'Advance Payment Pending', 'Payment Due']
 
@@ -60,7 +60,6 @@ class PurchaseModel(data_models.Model):
         entity.put()
         self.audit(action_name, "Check performed")
         return True
-
 
     def perform_ordered(self, action_name):
         self.entity.state_index = STATE_ORDERED

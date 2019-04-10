@@ -29,12 +29,12 @@ def perform_start_transfer(model, action_name):
         model.add_error("No grants are pending - nothing to transfer")
         return False
     transfer = create_transfer(supplier, model.user)
+    model.audit(action_name, 'Transfer started', transfer)
     model.next_entity = transfer
     for grant in grant_list:
         grant.transfer = transfer.key
         grant.put()
         model.audit(action_name, 'Transfer started', grant)
-    model.audit(action_name, 'Transfer started')
     return True
 
 ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN,

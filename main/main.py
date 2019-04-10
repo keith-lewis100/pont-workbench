@@ -30,7 +30,6 @@ def home():
     return render_template('layout.html', title='DashBoard', user=views.view_user_controls(model), links=links)
 
 projects.add_rules(app)
-grants.add_rules(app)
 pledges.add_rules(app)
 supplier_funds.add_rules(app)
 users.add_rules(app)

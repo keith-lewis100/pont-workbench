@@ -29,11 +29,7 @@ def perform_transferred(model, action_name):
     transfer.state_index = STATE_TRANSFERRED
     transfer.put()
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    for grant in grant_list:
-        grant.state_index = grants.STATE_TRANSFERED
-        grant.put()
-        model.audit(action_name, 'Transfer performed', grant)
-    model.audit(action_name, 'Tranfer performed')
+    model.audit(action_name, 'Transfer performed')
     return True
 
 def perform_ack(model, action_name):
