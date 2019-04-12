@@ -33,21 +33,24 @@ class GrantModel(data_models.Model):
         return state_of(self.entity)
 
 def perform_create(model, action_name):
-        form = model.get_form(action_name)
-        if not form.validate():
-            return False
-        entity = model.entity
-        form.populate_obj(entity)
-        entity.creator = model.user.key
-        supplier_fund = entity.project.parent()
-        entity.supplier = supplier_fund.parent()
-        entity.put()
-        model.audit(action_name, "Create performed")
-        return True
+    form = model.get_form(action_name)
+    if not form.validate():
+        return False
+    entity = model.entity
+    form.populate_obj(entity)
+    entity.creator = model.user.key
+    supplier_fund = entity.project.parent()
+    entity.supplier = supplier_fund.parent()
+    entity.transfer = None
+    entity.put()
+    model.audit(action_name, "Create performed")
+    return True
 
 def perform_checked(model, action_name):
-    model.entity.state_index = STATE_READY
-    model.entity.put()
+    entity = model.entity
+    entity.state_index = STATE_READY
+    entity.transfer = None
+    entity.put()
     model.audit(action_name, 'Checked performed')
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
@@ -68,6 +71,7 @@ transferred_amount_field = properties.StringProperty(data_models.calculate_trans
 source_field = properties.StringProperty(lambda e: e.key.parent().get().code, 'Source Fund')
 target_date_field = properties.DateProperty('target_date', format='%Y-%m')
 description_field = properties.StringProperty('description')
+foreign_transfer_field = properties.KeyProperty('transfer', title_of=lambda e: e.ref_id)
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)
@@ -102,5 +106,5 @@ def view_grant(db_id):
     add_grant_form(request.form, model, ACTION_UPDATE)
     title = 'Grant on ' + str(grant.target_date)
     property_list = (state_field, creator_field, transferred_amount_field, amount_field, 
-                     project_field, target_date_field, description_field)
+                     project_field, target_date_field, foreign_transfer_field, description_field)
     return views.view_std_entity(model, title, property_list, action_list)

@@ -2,6 +2,7 @@
 
 import logging
 from google.appengine.api import users
+from google.appengine.ext import ndb
 
 import db
 import role_types
@@ -66,7 +67,9 @@ def lookup_entity(db_id):
     return key.get()
 
 def create_key(db_id):
-    return db.create_key(db_id)
+    if db_id is None or db_id == "":
+        return None
+    return ndb.Key(urlsafe=db_id)
 
 def get_parent(entity):
     parent_key = entity.key.parent()

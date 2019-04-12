@@ -15,14 +15,14 @@ STATE_FULFILLED = 2
 state_labels = ['Closed', 'Pending', 'Fulfilled']
 
 def perform_create(model, action_name):
-        form = self.get_form(action_name)
+        form = model.get_form(action_name)
         if not form.validate():
             return False
         entity = model.entity
         form.populate_obj(entity)
         ref = data_models.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
-        entity.creator = user.key
+        entity.creator = model.user.key
         entity.put()
         model.audit(action_name, "Create performed")
         return True
