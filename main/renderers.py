@@ -20,12 +20,12 @@ def render_grid(values, labels, num_wide=0):
             legend = html.legend(labels[index])
             col = html.div(legend, value, class_="four columns")
             cols.append(col)
-        rows.append(('\n', html.div(*cols, class_="row")))
+        rows.append(html.div(*cols, class_="row"))
     for i in range(numItems, len(values)):
         value = values[i]
         legend = html.legend(labels[i])
         rows.append(html.div(legend, value,  class_="u-full-width"))
-    return rows
+    return html.div(rows)
 
 def legend(label):
     return html.legend(label)
@@ -54,9 +54,6 @@ def render_link(label, url, **kwargs):
 def render_submit_button(label, **kwargs):
     button = html.button(label, type="submit", **kwargs)
     return ('\n', html.form(button, method="post"))
-
-def render_nav(*content):
-    return html.nav(*content)
 
 def render_div(*content, **kwargs):
     return html.div(*content, **kwargs)

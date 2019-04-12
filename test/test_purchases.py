@@ -9,15 +9,24 @@ import funds
 import committees
 from role_types import RoleType
 
-funds.add_rules(app)
-
 class TestPurchases(unittest.TestCase):
+    def setUp(self):
+        self.dbstate = ndb.clone()
+
+    def tearDown(self):
+        ndb.reset(self.dbstate)
+
     def test_purchase_list(self):
+        fund = db.Fund(id=11)
+        fund.committee = 'EDU'
+        fund.name = 'myFund'
+        fund.put()
         with app.test_request_context('/', method='GET'):
             purchases.view_purchase_list('Fund-11')
 
     def test_create_purchase(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.COMMITTEE_ADMIN
         role.committee = 'EDU'
         role.put()
@@ -37,7 +46,8 @@ class TestPurchases(unittest.TestCase):
             purchases.view_purchase_list('Fund-11')
         
     def test_update(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.COMMITTEE_ADMIN
         role.committee = 'EDU'
         role.put()
@@ -62,11 +72,13 @@ class TestPurchases(unittest.TestCase):
         self.assertEqual('b', purchase.description)
 
     def test_checked(self):
-        role = db.Role()
+        user = db.User.query().get()
+        role = db.Role(parent=user.key)
         role.type_index = RoleType.FUND_ADMIN
         role.put()
         fund = db.Fund(id=11)
-        purchase = db.Purchase(id=12)
+        fund.put()
+        purchase = db.Purchase(id=12, parent=fund.key)
         purchase.put()
         with app.test_request_context('/p', method='POST', data={
                '_action': 'checked'
@@ -74,7 +86,7 @@ class TestPurchases(unittest.TestCase):
             purchases.view_purchase('Purchase-12')
         self.assertEqual("MB0001", purchase.po_number)
 
-    def test_render_update_button(self):
+    def test_view_purchase(self):
         fund = db.Fund(id=11)
         fund.committee = 'EDU'
         fund.name = 'myFund'
@@ -85,11 +97,8 @@ class TestPurchases(unittest.TestCase):
         purchase.quote_amount = db.Money(value=1234)
         purchase.description = "desc"
         purchase.put()
-        model = purchases.load_purchase_model('Purchase-12', None)
         with app.test_request_context('/', method='GET'):
-            update = purchases.ACTION_UPDATE.render(model)
-        self.assertEquals(2, len(update))
-#        print update[1].__html__()
+            purchases.view_purchase('Purchase-12')
 
 if __name__ == '__main__':
    unittest.main()

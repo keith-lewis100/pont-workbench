@@ -1,27 +1,32 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import redirect, request, url_for
-from flask.views import View
 import wtforms
 
 import db
 import data_models
-import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
-import logging
 from role_types import RoleType
 
-PROJECT_APPROVAL_PENDING = 1
-PROJECT_APPROVED = 2
-PROJECT_CLOSED = 0
+STATE_APPROVAL_PENDING = 1
+STATE_APPROVED = 2
+STATE_CLOSED = 0
 
-state_field = readonly_fields.StateField('Closed', 'Approval Pending', 'Approved')
+state_labels = ['Closed', 'Pending', 'Approved']
 
-ACTION_APPROVE = data_models.StateAction("approve", "Approve", RoleType.PROJECT_APPROVER, PROJECT_APPROVED, [PROJECT_APPROVAL_PENDING])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.PROJECT_CREATOR, None, [PROJECT_APPROVAL_PENDING, PROJECT_APPROVED])
-ACTION_CREATE = data_models.CreateAction(RoleType.PROJECT_CREATOR)
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
+
+def perform_approve(model, action_name):
+    model.entity.state_index = STATE_APPROVED
+    model.entity.put()
+    model.audit(action_name, 'Approved performed')
+    return True
+
+ACTION_APPROVE = views.StateAction('approve', 'Approve', RoleType.PROJECT_APPROVER,
+                                   perform_approve, [STATE_APPROVAL_PENDING])
+ACTION_UPDATE = views.update_action(RoleType.PROJECT_CREATOR, [STATE_APPROVAL_PENDING, STATE_APPROVED])
+ACTION_CREATE = views.create_action(RoleType.PROJECT_CREATOR)
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -50,7 +55,7 @@ class ProjectListView(views.ListView):
         return create_project_form(request_input, entity)
 
     def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name', 'Name'), state_field)
+        return (properties.StringProperty('name', 'Name'), state_field)
 
 class ProjectView(views.EntityView):
     def __init__(self):
@@ -63,7 +68,7 @@ class ProjectView(views.EntityView):
         return create_project_form(request_input, entity)
         
     def get_fields(self, form):
-        return [state_field] + map(readonly_fields.create_readonly_field, 
+        return [state_field] + map(properties.create_readonly_field, 
                    form._fields.keys(), form._fields.values())
 
 def add_rules(app):

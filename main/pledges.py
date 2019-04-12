@@ -1,33 +1,45 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View
 import wtforms
 
 import db
 import data_models
-import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
-PLEDGE_PENDING = 1
-PLEDGE_FULFILLED = 2
-PLEDGE_CLOSED = 3
-    
-class PledgeCreate(data_models.CreateAction):
-    def apply_to(self, entity, user):
+STATE_PENDING = 1
+STATE_FULFILLED = 2
+
+state_labels = ['Closed', 'Pending', 'Fulfilled']
+
+def perform_create(model, action_name):
+        form = model.get_form(action_name)
+        if not form.validate():
+            return False
+        entity = model.entity
+        form.populate_obj(entity)
         ref = data_models.get_next_ref()
         entity.ref_id = 'PL%04d' % ref
-        entity.creator = user.key
+        entity.creator = model.user.key
         entity.put()
+        model.audit(action_name, "Create performed")
+        return True
 
-ACTION_FULFILLED = data_models.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN, PLEDGE_FULFILLED, [PLEDGE_PENDING])
-ACTION_BOOKED = data_models.StateAction('booked', 'Booked', RoleType.FUND_ADMIN, PLEDGE_CLOSED, [PLEDGE_FULFILLED])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [PLEDGE_PENDING])
-ACTION_CREATE = PledgeCreate(RoleType.COMMITTEE_ADMIN)
+def perform_fulfilled(model, action_name):
+    model.entity.state_index = STATE_FULFILLED
+    model.entity.put()
+    model.audit(action_name, 'Fulfilled performed')
 
-state_field = readonly_fields.StateField('Closed', 'Pending', 'Fulfilled')
+ACTION_FULFILLED = views.StateAction('fulfilled', 'Fulfilled', RoleType.INCOME_ADMIN,
+                                     perform_fulfilled, [STATE_PENDING])
+ACTION_BOOKED = views.StateAction('booked', 'Booked', RoleType.FUND_ADMIN,
+                                  data_models.Model.perform_close, [STATE_FULFILLED])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_PENDING])
+ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_create)
+
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -50,8 +62,8 @@ class PledgeListView(views.ListView):
         return PledgeForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
-        return (ref_id, readonly_fields.ReadOnlyField('amount'), state_field)
+        ref_id = properties.StringProperty('ref_id', 'Reference')
+        return (ref_id, properties.StringProperty('amount'), state_field)
 
 class PledgeView(views.EntityView):
     def __init__(self):
@@ -64,13 +76,10 @@ class PledgeView(views.EntityView):
         return PledgeForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        ref_id = readonly_fields.ReadOnlyField('ref_id', 'Reference')
-        creator = readonly_fields.ReadOnlyKeyField('creator')
-        return [ref_id, state_field, creator] + map(readonly_fields.create_readonly_field, 
+        ref_id = properties.StringProperty('ref_id', 'Reference')
+        creator = properties.KeyProperty('creator')
+        return [ref_id, state_field, creator] + map(properties.create_readonly_field, 
                     form._fields.keys(), form._fields.values())
-
-    def get_links(self, entity):
-        return []
 
 def add_rules(app):
     app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))

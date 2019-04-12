@@ -36,7 +36,7 @@ def form_field_widget(form_field, **kwargs):
 def set_field_choices(field, entity_list):
     choices = [(e.key.urlsafe(), e.name) for e in entity_list]
     if field.flags.optional:
-        choices = [(None, "")] + choices
+        choices = [("", "")] + choices
     field.choices=choices
 
 class SelectField(SelectFieldBase):

@@ -1,18 +1,14 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for
 import wtforms
 
 import db
-import data_models
-import renderers
-import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
-ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.SUPPLIER_ADMIN)
-ACTION_CREATE = data_models.CreateAction(RoleType.SUPPLIER_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 
 class SupplierFundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -32,7 +28,7 @@ class SupplierFundListView(views.ListView):
         return SupplierFundForm(request_input, obj=entity)
 
     def get_fields(self, form):
-        return [readonly_fields.ReadOnlyField('name')]
+        return [properties.StringProperty('name')]
 
 class SupplierFundView(views.EntityView):
     def __init__(self):
@@ -45,12 +41,10 @@ class SupplierFundView(views.EntityView):
         return SupplierFundForm(request_input, obj=entity)
         
     def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
+        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
 
-    def get_links(self, entity):
-        projects_url = url_for('view_project_list', db_id=entity.key.urlsafe())
-        showProjects = renderers.render_link('Show Projects', projects_url, class_="button")
-        return [showProjects]
+    def get_link_pairs(self):
+        return [('Project', 'Show Projects')]
 
 def add_rules(app):
     app.add_url_rule('/supplierfund_list/<db_id>', view_func=SupplierFundListView.as_view('view_supplierfund_list'))

@@ -1,24 +1,36 @@
 #_*_ coding: UTF-8 _*_
 
-from flask.views import View
+from flask import request
 import wtforms
 
+from application import app
 import db
 import data_models
 import renderers
 import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
 TRANSFER_PENDING = 1
 TRANSFER_COMPLETE = 0
-state_field = readonly_fields.StateField('Transferred', 'Pending')
 
-ACTION_TRANSFERRED = data_models.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
-                            TRANSFER_COMPLETE, [TRANSFER_PENDING])
-ACTION_UPDATE = data_models.StateAction('update', 'Edit', RoleType.COMMITTEE_ADMIN, None, [TRANSFER_PENDING])
-ACTION_CREATE = data_models.CreateAction(RoleType.COMMITTEE_ADMIN)
+state_labels = ['Closed', 'Pending']
+
+state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
+
+def perform_transferred(model, action_name):
+    model.entity.state_index = TRANSFER_COMPLETE
+    model.entity.put()
+    model.audit(action_name, "Transfer performed")
+    return True
+
+ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
+                            [TRANSFER_PENDING], perform_transferred)
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
+ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
+ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
+action_list = [ACTION_UPDATE, ACTION_TRANSFERRED, ACTION_CANCEL]
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -29,48 +41,31 @@ class InternalTransferForm(wtforms.Form):
                     validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-def create_transfer_form(request_fields, entity):
-    form = InternalTransferForm(request_fields, obj=entity)
+def add_transfer_form(request_data, model, action):
+    form = InternalTransferForm(request_data, obj=model.entity)
     fund_list = db.Fund.query().fetch()
     custom_fields.set_field_choices(form.dest_fund, fund_list)
-    return form
+    model.add_form(action.name, form)
 
-class InternalTransferListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Internal Transfer', ACTION_CREATE)
+@app.route('/internaltransfer_list/<db_id>', methods=['GET', 'POST'])
+def view_internaltransfer_list(db_id):
+    fund = data_models.lookup_entity(db_id)
+    new_transfer = db.InternalTransfer(parent=fund.key)
+    model = data_models.Model(new_transfer, fund.committee)
+    add_transfer_form(request.form, model, ACTION_CREATE)   
+    property_list = (properties.KeyProperty('dest_fund'),
+              properties.StringProperty('amount'), state_field)
+    transfer_list = db.InternalTransfer.query(ancestor = fund.key).fetch()
+    return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE,
+                                      property_list, transfer_list, fund)
 
-    def load_entities(self, parent):
-        return db.InternalTransfer.query(ancestor=parent.key).fetch()
-        
-    def create_entity(self, parent):
-        return db.InternalTransfer(parent=parent.key)
-
-    def create_form(self, request_input, entity):
-        return create_transfer_form(request_input, entity)
-
-    def get_fields(self, form):
-        return (readonly_fields.create_readonly_field('dest_fund', form.dest_fund),
-                readonly_fields.ReadOnlyField('amount'), state_field)
-
-class InternalTransferView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, 1)
-                        
-    def title(self, entity):
-        dest_name = entity.dest_fund.get().name if entity.dest_fund != None else ""
-        return 'InternalTransfer to ' + dest_name
-
-    def create_form(self, request_input, entity):
-        return create_transfer_form(request_input, entity)
-
-    def get_fields(self, form):
-        creator = readonly_fields.ReadOnlyKeyField('creator', 'Creator')
-        return [state_field, creator] + map(readonly_fields.create_readonly_field, 
-                       form._fields.keys(), form._fields.values())
-
-    def get_links(self, entity):
-        return []
-
-def add_rules(app):
-    app.add_url_rule('/internaltransfer_list/<db_id>', view_func=InternalTransferListView.as_view('view_internaltransfer_list'))
-    app.add_url_rule('/internaltransfer/<db_id>/', view_func=InternalTransferView.as_view('view_internaltransfer'))        
+@app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
+def view_internaltransfer(db_id):
+    transfer = data_models.lookup_entity(db_id)
+    fund = data_models.get_parent(transfer)
+    model = data_models.Model(transfer, fund.committee)
+    add_transfer_form(request.form, model, ACTION_UPDATE)
+    title = 'InternalTransfer to ' + transfer.dest_fund.get().name if transfer.dest_fund != None else ""
+    property_list = (state_field, properties.KeyProperty('creator'), properties.KeyProperty('dest_fund'),
+              properties.StringProperty('amount'), properties.StringProperty('description'))
+    return views.view_std_entity(model, title, property_list, action_list)

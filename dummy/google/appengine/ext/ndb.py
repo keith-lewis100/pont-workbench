@@ -1,3 +1,4 @@
+import copy
 
 nextid = 0
 
@@ -7,6 +8,13 @@ def get_next_id():
     return nextid
 
 repo = {}
+
+def clone():
+    return copy.deepcopy(repo)
+
+def reset(dbstate):
+    global repo
+    repo = dbstate
 
 class Key:
   def __init__(self, kind=None, id=None, parent=None, urlsafe=None):
@@ -38,13 +46,22 @@ class Key:
   def urlsafe(self):
     result = ""
     if self.parent_key:
-       result = self.parent_key.urlsafe() + ':'
+       result = self.parent_key.urlsafe() + '/'
     return self._kind + '-' + str(self._id)
 
-  def __cmp__(self, other):
+  def __eq__(self, other):
       if not hasattr(other, '_id'):
           return False
-      return cmp(self._id, other._id)
+      return self._id == other._id
+
+  def __ne__(self, other):
+      return not self == other
+
+  def __repr__(self):
+      parent = ""
+      if self.parent_key:
+          parent = repr(self.parent_key) + ':'
+      return parent + "Key(%s, %s)" % (self._kind, self._id)
 
 class StringProperty:
   def __init__(self, default=None):
@@ -134,14 +151,22 @@ class Model(object):
         return Query(cls.__name__, **kwargs)
 
     def __init__(self, id=None, parent=None):
-        kind = type(self).__name__
+        self._kind = type(self).__name__
         if not id:
             id = get_next_id()
-        self.key = Key(kind, id, parent)
+        self._key = Key(self._kind, id, parent)
         for attr_name, attr in type(self).__dict__.iteritems():
             if hasattr(attr, 'default'):
                 setattr(self, attr_name, getattr(attr, 'default'))
 
     def put(self):
+        self.key = self._key
         store = repo.setdefault(self.key._kind, {})
         store[self.key._id] = self
+        return self.key
+
+    def __repr__(self):
+        rep = self._kind + '('
+##        for attr in type(self).__dict__.itervalues():
+##            rep = rep + attr + ','
+        return rep + ')'

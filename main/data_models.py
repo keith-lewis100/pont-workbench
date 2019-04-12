@@ -2,23 +2,22 @@
 
 import logging
 from google.appengine.api import users
+from google.appengine.ext import ndb
 
 import db
 import role_types
-import custom_fields
-import renderers
 
-logger = logging.getLogger('data_models')
+logger = logging.getLogger('model')
 
 workbench = db.WorkBench.get_or_insert('main')
 committee_labels=[
         ('AMB', 'Ambulance'),
         ('PHC', 'PrimaryHealth'),
         ('SEC', 'SecondaryHealth'),
-        ('LIV', 'Livelihoods'), 
+        ('LIV', 'Livelihoods'),
         ('ENG', 'Engineering'),
-        ('EDU', 'Education'), 
-        ('CHU', 'Churches'), 
+        ('EDU', 'Education'),
+        ('CHU', 'Churches'),
         ('WEC', 'Wildlife Centre'),
         ('GEN', 'General')]
 
@@ -64,22 +63,20 @@ def get_next_ref():
     return ref
 
 def lookup_entity(db_id):
-    if db_id is None:
-        return None
-    if len(db_id) == 3:
-        return lookup_committee(db_id)
-    key = db.create_key(db_id)
+    key = create_key(db_id)
     return key.get()
-    
+
 def create_key(db_id):
-    return db.create_key(db_id)
+    if db_id is None or db_id == "":
+        return None
+    return ndb.Key(urlsafe=db_id)
 
 def get_parent(entity):
-    parentKey = entity.key.parent()
-    if parentKey is not None:
-        return parentKey.get()
+    parent_key = entity.key.parent()
+    if parent_key is not None:
+         return parent_key.get()
     if entity.key.kind() == 'Fund':
-        return lookup_committee(entity.committee)
+         return lookup_committee(entity.committee)
     return None
 
 def get_owning_committee(entity):
@@ -102,79 +99,50 @@ def lookup_user_by_email(email):
         user = db.User()
         user.name = email
     return user
-    
+
 def lookup_current_user():
     email = users.get_current_user().email()
     return lookup_user_by_email(email)
 
+def logout_url():
+    return users.create_logout_url('/')
+
 def role_matches(role, role_type, committee):
     if role.type_index != role_type:
         return False
-    return role.committee == "" or role.committee == committee
-    
-class Action(object):
-    def __init__(self, name, label, required_role, message=None):
-        self.name = name
-        self.label = label
-        self.required_role = required_role
-        self.message = message
+    if role.committee is None or role.committee == "":
+        return True
+    return role.committee == committee
 
-    def is_allowed(self, model):
-        return model.user_has_role(self.required_role)
-
-    def render(self, model):
-        enabled = self.is_allowed(model)
-        form = model.get_form(self.name)
-        if form:
-            return custom_fields.render_dialog_button(self.label, self.name, form, enabled)
-        return renderers.render_submit_button(self.label, name='_action', value=self.name,
-                disabled=not enabled)
-
-    def apply_to(self, entity, user):
-        entity.put()
-
-    def audit(self, entity, user, **kwargs):
-        audit = db.AuditRecord()
-        audit.entity = entity.key
-        audit.user = user.key
-        audit.action = self.name
-        message = '{action} performed'
-        if self.message:
-            message = self.message
-        audit.message = message.format(action=self.name, kind=entity.key.kind(), **kwargs)
-        return audit.put()
-
-class StateAction(Action):
-    def __init__(self, name, label, required_role, next_state, allowed_states):
-        super(StateAction, self).__init__(name, label, required_role)
-        self.next_state = next_state
-        self.allowed_states = allowed_states
         
-    def is_allowed(self, model):
-        if not super(StateAction, self).is_allowed(model):
-            return False
-        state = model.entity.state_index
-        return state in self.allowed_states
-        
-    def apply_to(self, entity, user):
-        entity.state_index = self.next_state
-        entity.put()
+def calculate_transferred_amount(payment):
+    if payment is None or payment.transfer is None:
+        return ""
+    transfer = payment.transfer.get()
+    if transfer.exchange_rate is None:
+        return ""
+    requested_amount = payment.amount.value
+    if payment.amount.currency == 'sterling':
+        sterling = requested_amount
+        shillings = int(requested_amount * transfer.exchange_rate)
+    if payment.amount.currency == 'ugx':
+        sterling = int(requested_amount / transfer.exchange_rate)
+        shillings = requested_amount
+    return u"£{:,}".format(sterling) + "/" + u"{:,}".format(shillings) + ' Ush'
 
-class CreateAction(Action):
-    def __init__(self, required_role):
-        super(CreateAction, self).__init__('create', 'New', required_role, message='Created')
+STATE_CLOSED = 0
 
-    def apply_to(self, entity, user):
-        if hasattr(entity, 'creator'):
-            entity.creator = user.key
-        entity.put()
-
-class Model:
+class Model(object):
     def __init__(self, entity, committee=None):
         self.entity = entity
         self.committee = committee
         self.user = lookup_current_user()
         self.forms = {}
+        self.errors=[]
+        self.next_entity = None
+
+    def get_state(self):
+        return self.entity.state_index
 
     def user_has_role(self, role_type):
         roles = db.Role.query(ancestor=self.user.key).fetch()
@@ -188,3 +156,46 @@ class Model:
 
     def get_form(self, action_name):
         return self.forms.get(action_name)
+
+    def perform_create(self, action_name):
+        form = self.get_form(action_name)
+        if not form.validate():
+            return False
+        entity = self.entity
+        form.populate_obj(entity)
+        if hasattr(entity, 'creator'):
+            entity.creator = self.user.key
+        entity.put()
+        self.audit(action_name, "Create performed")
+        return True
+
+    def perform_update(self, action_name):
+        form = self.get_form(action_name)
+        if not form.validate():
+            return False
+        form.populate_obj(self.entity)
+        self.entity.put()
+        self.audit(action_name, "Update performed")
+        return True
+
+    def perform_close(self, action_name):
+        self.entity.state_index = STATE_CLOSED
+        self.entity.put()
+        self.audit(action_name, "%s performed" % action_name.title())
+        return True
+
+    def add_error(self, error_text):
+            self.errors.append(error_text)
+
+    def audit(self, action_name, message, entity=None):
+        if not entity:
+            entity = self.entity
+        audit = db.AuditRecord()
+        audit.entity = entity.key
+        audit.user = self.user.key
+        audit.action = action_name
+        audit.message = message
+        return audit.put()
+
+    def __repr__(self):
+        return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

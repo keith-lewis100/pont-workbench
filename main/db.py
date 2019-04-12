@@ -2,12 +2,6 @@
 
 from google.appengine.ext import ndb
 import json
-#import role_types
-
-def create_key(db_id):
-    if db_id is None:
-        return None
-    return ndb.Key(urlsafe=db_id)
 
 class Money:
     def __init__(self, currency='sterling', value=None):
@@ -130,7 +124,7 @@ class Pledge(ndb.Model):
 
 class Payment(ndb.Model):
     amount = MoneyProperty(default=Money())
-    transfer = ndb.KeyProperty(kind=ForeignTransfer)
+    transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
     paid = ndb.BooleanProperty(default=False)
 
 # ancestor = Fund

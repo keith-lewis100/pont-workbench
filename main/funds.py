@@ -1,64 +1,50 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import url_for
+from flask import request
 import wtforms
 
+from application import app
 import db
 import data_models
-import renderers
-import custom_fields
-import readonly_fields
+import properties
 import views
 from role_types import RoleType
 
-ACTION_UPDATE = data_models.Action('update', 'Edit', RoleType.FUND_ADMIN)
-ACTION_CREATE = data_models.CreateAction(RoleType.FUND_ADMIN)
+name_field = properties.StringProperty('name')
+code_field = properties.StringProperty('code')
+description_field = properties.StringProperty('description')
+
+ACTION_UPDATE = views.update_action(RoleType.FUND_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.FUND_ADMIN)
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-class FundListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Fund', ACTION_CREATE)
+@app.route('/fund_list/<db_id>', methods=['GET', 'POST'])
+def view_fund_list(db_id):
+    committee = data_models.lookup_committee(db_id)
+    id = db_id
+    new_fund = db.Fund(committee = id)
+    model = data_models.Model(new_fund, id)
+    form = FundForm(request.form, new_fund)
+    model.add_form(ACTION_CREATE.name, form)   
+    property_list = (name_field, code_field)
+    fund_list = db.Fund.query(db.Fund.committee == id).fetch()
+    return views.view_std_entity_list(model, 'Fund List', ACTION_CREATE,
+                                      property_list, fund_list, committee)
 
-    def load_entities(self, committee):
-        return db.Fund.query(db.Fund.committee == committee.id).fetch()
+link_pairs = [('Purchase', 'Show Purchase Requests'),
+              ('Grant', 'Show Grants'),
+              ('Pledge', 'Show Pledges'),
+              ('InternalTransfer', 'Show Transfers')]
 
-    def create_entity(self, committee):
-        return db.Fund(committee = committee.id)
-
-    def create_form(self, request_input, entity):
-        return FundForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return (readonly_fields.ReadOnlyField('name'), readonly_fields.ReadOnlyField('code'))
-
-class FundView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, 1)
-        
-    def title(self, entity):
-        return 'Fund ' + entity.name
-        
-    def create_form(self, request_input, entity):
-        return FundForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return map(readonly_fields.create_readonly_field, form._fields.keys(), form._fields.values())
-
-    def get_links(self, entity):
-        purchases_url = url_for('view_purchase_list', db_id=entity.key.urlsafe())
-        showPurchases = renderers.render_link('Show Purchase Requests', purchases_url, class_="button")
-        grants_url = url_for('view_grant_list', db_id=entity.key.urlsafe())
-        showGrants = renderers.render_link('Show Grants', grants_url, class_="button")
-        pledges_url = url_for('view_pledge_list', db_id=entity.key.urlsafe())
-        showPledges = renderers.render_link('Show Pledges', pledges_url, class_="button")
-        transfers_url = url_for('view_internaltransfer_list', db_id=entity.key.urlsafe())
-        showTransfers = renderers.render_link('Show Transfers', transfers_url, class_="button")        
-        return [showPurchases, showGrants, showPledges, showTransfers]
-
-def add_rules(app):
-    app.add_url_rule('/fund_list/<db_id>', view_func=FundListView.as_view('view_fund_list'))
-    app.add_url_rule('/fund/<db_id>/', view_func=FundView.as_view('view_fund'))        
+@app.route('/fund/<db_id>', methods=['GET', 'POST'])
+def view_fund(db_id):
+    fund = data_models.lookup_entity(db_id)
+    model = data_models.Model(fund, fund.committee)
+    form = FundForm(request.form, fund)
+    model.add_form(ACTION_UPDATE.name, form)   
+    property_list = (name_field, code_field, description_field)
+    return views.view_std_entity(model, 'Fund ' + fund.name, property_list, [ACTION_UPDATE], 1, link_pairs)

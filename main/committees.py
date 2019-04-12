@@ -1,35 +1,33 @@
 #_*_ coding: UTF-8 _*_
 
-from flask import request, redirect, url_for
+from flask import render_template
 from application import app
-import datetime
-import wtforms
 
 import data_models
-import renderers
-import custom_fields
-import readonly_fields
+import properties
 import views
-from role_types import RoleType
-import grants
-import purchases
 
-committee_field_list = (readonly_fields.ReadOnlyField('name'), )
+committee_field_list = (properties.StringProperty('name'), )
 
 @app.route('/committee_list', methods=['GET'])
 def view_committee_list():
-    breadcrumbs = views.create_breadcrumbs(None)
-    supplier_field_list = (readonly_fields.ReadOnlyField('name'), )
+    model = data_models.Model(None)
+    breadcrumbs = views.view_breadcrumbs(None)
+    supplier_field_list = (properties.StringProperty('name'), )
     committee_list = data_models.get_committee_list()
-    entity_table = views.render_entity_list(committee_list, committee_field_list)
-    return views.render_view('Committee List', breadcrumbs, entity_table)
+    entity_table = views.view_entity_list(committee_list, committee_field_list)
+    user_controls = views.view_user_controls(model)
+    return render_template('layout.html', title='Committee List', breadcrumbs=breadcrumbs, user=user_controls,
+                           content=entity_table)
 
 @app.route('/committee/<db_id>', methods=['GET'])
 def view_committee(db_id):
+    model = data_models.Model(None)
     committee = data_models.lookup_committee(db_id)
-    breadcrumbs = views.create_breadcrumbs_list(committee)
-    content = views.render_entity(committee,committee_field_list)
-    funds_url = url_for('view_fund_list', db_id=db_id)
-    showFunds = renderers.render_link('Show Funds', funds_url, class_="button")        
+    breadcrumbs = views.view_breadcrumbs(None, 'Committee')
+    grid = views.view_entity(committee, committee_field_list)
+    links = views.view_links(committee, ('Fund', 'Show Funds'))        
     title = 'Committee ' + committee.name
-    return views.render_view(title, breadcrumbs, content, links=[showFunds])
+    user_controls = views.view_user_controls(model)
+    return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
+                           links=links, content=grid)
