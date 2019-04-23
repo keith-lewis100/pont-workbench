@@ -107,7 +107,10 @@ def redirect_url(model):
 
 def view_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
-    form = SupplierForm(request.form, obj=supplier)
+    if request.method == 'POST':
+        form = SupplierForm(request.form)
+    else:
+        form = SupplierForm(obj=supplier)
     model = data_models.Model(supplier, None)
     model.add_form('update', form)
     valid_actions = [ACTION_UPDATE]
