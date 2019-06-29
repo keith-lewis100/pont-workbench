@@ -13,7 +13,7 @@ class Money:
 
     def __unicode__(self):
         if self.currency=='sterling':
-            return u'£' + unicode(self.value)
+            return u"£{:,}".format(self.value)
         else:
             return "{:,}".format(self.value) + ' Ush'
 
