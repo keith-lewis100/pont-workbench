@@ -37,7 +37,7 @@ class ProjectForm(wtforms.Form):
     
 def create_project_form(request_input, entity):
     form = ProjectForm(request_input, obj=entity)
-    partner_list = db.Partner.query().fetch()
+    partner_list = db.Partner.query().order(db.Partner.name).fetch()
     custom_fields.set_field_choices(form._fields['partner'], partner_list)
     return form
         
@@ -46,7 +46,7 @@ class ProjectListView(views.ListView):
         views.ListView.__init__(self, 'Project', ACTION_CREATE)
 
     def load_entities(self, parent):
-        return db.Project.query(ancestor=parent.key).fetch()
+        return db.Project.query(ancestor=parent.key).order(db.Project.name).fetch()
 
     def create_entity(self, parent):
         return db.Project(parent=parent.key)

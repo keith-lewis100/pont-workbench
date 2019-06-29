@@ -49,7 +49,7 @@ def view_supplier_list():
     model = data_models.Model(new_supplier)
     model.add_form('create', form)
     property_list = (properties.StringProperty('name'), )
-    supplier_list = db.Supplier.query().fetch()
+    supplier_list = db.Supplier.query().order(db.Supplier.name).fetch()
     return views.view_std_entity_list(model, 'Supplier List', ACTION_CREATE, property_list,
                                       supplier_list)
 

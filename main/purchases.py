@@ -148,7 +148,7 @@ def view_purchase_list(db_id):
     add_purchase_form(request.form, model, ACTION_CREATE)
     property_list = (supplier_field, properties.StringProperty('quote_amount'),
                      po_number_field, state_field)
-    purchase_list = db.Purchase.query(ancestor=fund.key).fetch()
+    purchase_list = db.Purchase.query(ancestor=fund.key).order(db.Purchase.po_number).fetch()
     return views.view_std_entity_list(model, 'Purchase List', ACTION_CREATE, property_list,
                                       purchase_list, parent=fund)
 

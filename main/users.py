@@ -22,7 +22,7 @@ class UserListView(views.ListView):
         views.ListView.__init__(self, 'User', ACTION_CREATE)
 
     def load_entities(self, parent):
-        return db.User.query().fetch()
+        return db.User.query().order(db.User.name).fetch()
         
     def create_entity(self, parent):
         return db.User()

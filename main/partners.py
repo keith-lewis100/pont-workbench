@@ -18,7 +18,7 @@ class PartnerListView(views.ListView):
         views.ListView.__init__(self, 'Partner', ACTION_CREATE)
 
     def load_entities(self, parent):
-        return db.Partner.query(ancestor=parent.key).fetch()
+        return db.Partner.query(ancestor=parent.key).order(db.Partner.name).fetch()
 
     def create_entity(self, parent):
         return db.Partner(parent=parent.key)

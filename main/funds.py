@@ -31,7 +31,7 @@ def view_fund_list(db_id):
     form = FundForm(request.form, new_fund)
     model.add_form(ACTION_CREATE.name, form)   
     property_list = (name_field, code_field)
-    fund_list = db.Fund.query(db.Fund.committee == id).fetch()
+    fund_list = db.Fund.query(db.Fund.committee == id).order(db.Fund.name).fetch()
     return views.view_std_entity_list(model, 'Fund List', ACTION_CREATE,
                                       property_list, fund_list, committee)
 

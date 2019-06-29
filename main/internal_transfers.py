@@ -43,7 +43,7 @@ class InternalTransferForm(wtforms.Form):
 
 def add_transfer_form(request_data, model, action):
     form = InternalTransferForm(request_data, obj=model.entity)
-    fund_list = db.Fund.query().fetch()
+    fund_list = db.Fund.query().order(db.Fund.name).fetch()
     custom_fields.set_field_choices(form.dest_fund, fund_list)
     model.add_form(action.name, form)
 

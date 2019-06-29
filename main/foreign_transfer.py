@@ -95,7 +95,7 @@ def view_foreigntransfer_list(db_id):
     supplier = data_models.lookup_entity(db_id)
     model = data_models.Model(None, None)
     breadcrumbs = views.view_breadcrumbs(supplier)
-    transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).fetch()
+    transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).order(db.ForeignTransfer.ref_id).fetch()
     transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
     entity_table = views.view_entity_list(transfer_list, transfer_fields)
     user_controls = views.view_user_controls(model)
