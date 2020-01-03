@@ -1,7 +1,9 @@
 #_*_ coding: UTF-8 _*_
 
+from flask import request
 import wtforms
 
+from application import app
 import db
 import data_models
 import custom_fields
@@ -9,42 +11,39 @@ import properties
 import views
 from role_types import RoleType, get_choices
 
+def perform_delete(model, action_name):
+    model.entity.key.delete()
+    model.audit(action_name, "Delete performed")
+    model.entity_deleted = True
+    return True
+
 ACTION_UPDATE = views.update_action(RoleType.USER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.USER_ADMIN)
+ACTION_DELETE = views.Action('delete', 'Delete', RoleType.USER_ADMIN, perform_delete)
 
 class RoleForm(wtforms.Form):
     type_index = custom_fields.SelectField(label='Role Type', coerce=int, choices=get_choices())
     committee = custom_fields.SelectField(choices=[("", "")] + data_models.committee_labels)
-    
-class RoleListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Role', ACTION_CREATE)
 
-    def load_entities(self, parent):
-        return db.Role.query(ancestor=parent.key).fetch()
+@app.route('/role_list/<db_id>', methods=['GET', 'POST'])
+def view_role_list(db_id):
+    user = data_models.lookup_entity(db_id)
+    new_role = db.Role(parent=user.key)
+    model = data_models.Model(new_role)
+    form = RoleForm(request.form, new_role)
+    model.add_form(ACTION_CREATE.name, form)
+    property_list = map(properties.create_readonly_field, form._fields.keys(),
+                        form._fields.values())
+    role_list = db.Role.query(ancestor=user.key).fetch()
+    return views.view_std_entity_list(model, 'Role List', ACTION_CREATE,
+                                      property_list, role_list, user)
 
-    def create_entity(self, parent):
-        return db.Role(parent=parent.key)
-                
-    def create_form(self, request_input, entity):
-        return RoleForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
-
-class RoleView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE)
-
-    def title(self, entity):
-        return 'Role'
-                
-    def create_form(self, request_input, entity):
-        return RoleForm(request_input, obj=entity)
-        
-    def get_fields(self, form):
-        return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
-
-def add_rules(app):
-    app.add_url_rule('/role_list/<db_id>', view_func=RoleListView.as_view('view_role_list'))
-    app.add_url_rule('/role/<db_id>/', view_func=RoleView.as_view('view_role'))        
+@app.route('/role/<db_id>', methods=['GET', 'POST', 'DELETE'])
+def view_roles(db_id):
+    role = data_models.lookup_entity(db_id)
+    model = data_models.Model(role, None)
+    form = RoleForm(request.form, role)
+    model.add_form(ACTION_UPDATE.name, form)
+    property_list = map(properties.create_readonly_field, form._fields.keys(),
+                        form._fields.values())
+    return views.view_std_entity(model, 'Role', property_list, [ACTION_UPDATE, ACTION_DELETE])

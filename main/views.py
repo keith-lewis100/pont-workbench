@@ -164,9 +164,16 @@ def view_actions(action_list, model):
     buttons = [action.render(model) for action in action_list]
     return html.nav(*buttons)
 
+def redirect_url(model):
+    if model.entity_deleted:
+        kind = model.entity.key.kind()
+        parent = data_models.get_parent(model.entity)
+        return urls.url_for_list(kind, parent)
+    return request.base_url
+
 def view_std_entity(model, title, property_list, action_list=[], num_wide=0, link_pairs=[]):
     if request.method == 'POST'and handle_post(model, action_list):
-        return redirect(request.base_url)
+        return redirect(redirect_url(model))
     entity = model.entity
     links = view_links(entity, *link_pairs)
     buttons = view_actions(action_list, model)

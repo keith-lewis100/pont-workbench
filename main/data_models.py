@@ -140,6 +140,7 @@ class Model(object):
         self.forms = {}
         self.errors=[]
         self.next_entity = None
+        self.entity_deleted = False
 
     def get_state(self):
         return self.entity.state_index

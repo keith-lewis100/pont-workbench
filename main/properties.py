@@ -62,7 +62,7 @@ class KeyProperty(Property):
         title = self.title_of(target)
         if no_links:
             return title
-        return html.a(self.title_of(target), href=url_for_entity(target))
+        return html.a(title, href=url_for_entity(target))
 
 class DateProperty(Property):
     def __init__(self, attr, label=None, format='%Y-%m-%d %H:%M:%S'):

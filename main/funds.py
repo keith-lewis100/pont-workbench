@@ -14,8 +14,8 @@ name_field = properties.StringProperty('name')
 code_field = properties.StringProperty('code')
 description_field = properties.StringProperty('description')
 
-ACTION_UPDATE = views.update_action(RoleType.FUND_ADMIN)
-ACTION_CREATE = views.create_action(RoleType.FUND_ADMIN)
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN)
+ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 
 class FundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -25,9 +25,8 @@ class FundForm(wtforms.Form):
 @app.route('/fund_list/<db_id>', methods=['GET', 'POST'])
 def view_fund_list(db_id):
     committee = data_models.lookup_committee(db_id)
-    id = db_id
-    new_fund = db.Fund(committee = id)
-    model = data_models.Model(new_fund, id)
+    new_fund = db.Fund(committee = db_id)
+    model = data_models.Model(new_fund, db_id)
     form = FundForm(request.form, new_fund)
     model.add_form(ACTION_CREATE.name, form)   
     property_list = (name_field, code_field)
