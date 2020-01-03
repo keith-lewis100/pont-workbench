@@ -71,27 +71,6 @@ class SelectField(SelectFieldBase):
         else:
             raise ValueError(self.gettext('Not a valid choice'))
 
-class BooleanField(Field):
-    widget = widgets.CheckboxInput()
-    false_values = (False, 'false', '')
-
-    def __init__(self, label=None, validators=None, false_values=None, **kwargs):
-        super(BooleanField, self).__init__(label, validators, **kwargs)
-        if false_values is not None:
-            self.false_values = false_values
-
-    def process_data(self, value):
-        self.data = bool(value)
-
-    def process_formdata(self, valuelist):
-        if not valuelist or valuelist[0] in self.false_values:
-            self.data = False
-        else:
-            self.data = True
-
-    def _value(self):
-        return 'true' if self.data else 'false'
-
 class MoneyForm(Form):
     currency = SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=radio_field_widget, default='sterling')

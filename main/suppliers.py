@@ -19,8 +19,8 @@ import purchases
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
-    receives_grants = custom_fields.BooleanField()
-    paid_in_sterling = custom_fields.BooleanField()
+    receives_grants = wtforms.BooleanField()
+    paid_in_sterling = wtforms.BooleanField()
 
 def perform_start_transfer(model, action_name):
     supplier = model.entity
