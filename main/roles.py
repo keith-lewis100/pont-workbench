@@ -13,7 +13,9 @@ from role_types import RoleType, get_choices
 
 def perform_delete(model, action_name):
     model.entity.key.delete()
-    model.audit(action_name, "Delete performed")
+    parent = data_models.get_parent(model.entity)
+    roleName = dict(get_choices()).get(model.entity.type_index, "")
+    model.audit(action_name, "Delete role %s performed" % roleName, parent)
     model.entity_deleted = True
     return True
 
