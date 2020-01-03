@@ -82,7 +82,8 @@ class GrantForm(wtforms.Form):
 
 def add_grant_form(request_input, model, action):
     form = GrantForm(request_input, obj=model.entity)
-    project_list = db.Project.query(db.Project.committee == model.committee).fetch()
+    project_list = db.Project.query(db.Project.committee == model.committee,
+                                    db.Project.state_index == 2).fetch()
     custom_fields.set_field_choices(form._fields['project'], project_list)
     model.add_form(action.name, form)
        
