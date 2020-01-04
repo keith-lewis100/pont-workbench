@@ -32,13 +32,17 @@ class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(label='Primary Committee', choices=data_models.committee_labels)
     multi_committee = wtforms.BooleanField()
-    partner = custom_fields.SelectField(coerce=data_models.create_key, validators=[wtforms.validators.Optional()])
+    partner = custom_fields.SelectField(coerce=data_models.create_key)
     description = wtforms.TextAreaField()
     
 def create_project_form(request_input, entity):
     form = ProjectForm(request_input, obj=entity)
     partner_list = db.Partner.query().order(db.Partner.name).fetch()
-    custom_fields.set_field_choices(form._fields['partner'], partner_list)
+    partner_field = form._fields['partner']
+    fund = data_models.get_parent(entity)
+    if not fund.partner_required:
+        partner_field.flags.optional=True
+    custom_fields.set_field_choices(partner_field, partner_list)
     return form
         
 class ProjectListView(views.ListView):

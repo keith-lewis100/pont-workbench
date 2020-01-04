@@ -13,6 +13,7 @@ ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 class SupplierFundForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
+    partner_required = wtforms.BooleanField('Project Partner Required')
 
 class SupplierFundListView(views.ListView):
     def __init__(self):
@@ -38,7 +39,10 @@ class SupplierFundView(views.EntityView):
         return 'SupplierFund ' + entity.name
 
     def create_form(self, request_input, entity):
-        return SupplierFundForm(request_input, obj=entity)
+        if request_input:
+          return SupplierFundForm(request_input)
+        else:
+          return SupplierFundForm(obj=entity)
         
     def get_fields(self, form):
         return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())

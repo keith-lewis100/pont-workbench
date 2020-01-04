@@ -54,6 +54,7 @@ class Supplier(ndb.Model):
 class SupplierFund(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
+    partner_required = ndb.BooleanProperty(default=False)
 
 # ancestor = Supplier
 class Partner(ndb.Model):
