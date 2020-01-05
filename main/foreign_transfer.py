@@ -28,7 +28,6 @@ def perform_transferred(model, action_name):
     form.populate_obj(transfer)
     transfer.state_index = STATE_TRANSFERRED
     transfer.put()
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     model.audit(action_name, 'Transfer performed')
     return True
 
@@ -42,6 +41,15 @@ def perform_ack(model, action_name):
             grant.state_index = data_models.STATE_CLOSED
             grant.put()
             model.audit(action_name, 'Transfer received', grant)
+    advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
+    for purchase in advance_list:
+        purchase.advance.paid = True
+        purchase.put()
+    invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
+    for purchase in invoice_list:
+        purchase.invoice.paid = True
+        purchase.state_index = data_models.STATE_CLOSED
+        purchase.put()
     return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
@@ -138,9 +146,9 @@ def view_foreigntransfer(db_id):
     transfer.grant_list = grant_list
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
-#    purchase_payments = render_purchase_payments_list(transfer)
+    purchase_payments = render_purchase_payments_list(transfer)
     history = views.view_entity_history(transfer.key)
-    content = renderers.render_div(grid, grant_payments, history)
+    content = renderers.render_div(grid, purchase_payments, grant_payments, history)
     buttons = views.view_actions(action_list, model)
     user_controls = views.view_user_controls(model)
     return render_template('layout.html', title='Foreign Transfer', breadcrumbs=breadcrumbs, user=user_controls,

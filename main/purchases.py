@@ -16,17 +16,18 @@ STATE_CHECKING = 1
 STATE_READY = 2
 STATE_ORDERED = 3
 STATE_ADVANCE_PENDING = 4 # derived state
-STATE_PAYMENT_DUE = 5 # derived state
+STATE_ADVANCED = 5 # derived state
+STATE_PAYMENT_DUE = 6 # derived state
 
-state_labels = ['Closed', 'Checking', 'Ready', 'Ordered', 'Advance Payment Pending', 'Payment Due']
+state_labels = ['Closed', 'Checking', 'Ready', 'Ordered', 'Advance Payment Pending', 'Advance Paid', 'Payment Due']
 
 def state_of(purchase):
     state = purchase.state_index
-    if state == STATE_ORDERED:
-        if purchase.advance != None and not purchase.advance.paid:
-            return STATE_ADVANCE_PENDING
+    if state == STATE_ORDERED:        
         if  purchase.invoice != None and not purchase.invoice.paid:
             return STATE_PAYMENT_DUE
+        if purchase.advance != None:
+            return STATE_ADVANCED  if purchase.advance.paid else STATE_ADVANCE_PENDING
     return state
 
 supplier_field = properties.KeyProperty('supplier')
@@ -36,20 +37,17 @@ state_field = properties.SelectProperty(state_of, 'State', enumerate(state_label
 po_number_field = properties.StringProperty('po_number', 'PO number')
 creator_field = properties.KeyProperty('creator')
 
-invoiced_amount_field = properties.StringProperty(lambda e: e.advance.amount, 'Invoiced Amount')
-invoiced_paid_field = properties.StringProperty(lambda e: e.advance.paid, 'paid')
+invoiced_amount_field = properties.StringProperty(lambda e: e.invoice.amount, 'Invoiced Amount')
+invoiced_paid_field = properties.StringProperty(lambda e: e.invoice.paid, 'Paid')
 invoice_type_field = properties.StringProperty(lambda e: 'Invoice', 'Type')
 invoice_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e.invoice), 
                                     'Transferred Amount')
 
-def advance_transferred_amount(purchase):
-    return data_models.calculate_transferred_amount(payment)
 advance_amount_field = properties.StringProperty(lambda e: e.advance.amount, 'Amount')
 advance_paid_field = properties.StringProperty(lambda e: e.advance.paid, 'Paid')
 advance_type_field = properties.StringProperty(lambda e: 'Advance', 'Type')
 advance_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e.advance), 
                                     'Transferred Amount')
-
 
 class PurchaseModel(data_models.Model):
     def perform_checked(self, action_name):
@@ -110,7 +108,7 @@ ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADM
 ACTION_ORDERED = views.StateAction('ordered', 'Ordered', RoleType.COMMITTEE_ADMIN,
                                    PurchaseModel.perform_ordered, [STATE_READY])
 ACTION_INVOICED = views.StateAction('invoiced', 'Invoiced', RoleType.COMMITTEE_ADMIN,
-                               PurchaseModel.perform_invoiced, [STATE_ORDERED])
+                               PurchaseModel.perform_invoiced, [STATE_ORDERED, STATE_ADVANCED])
 ACTION_ADVANCE = views.StateAction('advance', 'Advance Payment', RoleType.COMMITTEE_ADMIN,
                               PurchaseModel.perform_advance, [STATE_ORDERED])
 ACTION_PAID = views.StateAction('paid', 'Paid', RoleType.PAYMENT_ADMIN,
@@ -166,7 +164,7 @@ def load_purchase_model(db_id, request_data):
 @app.route('/purchase/<db_id>', methods=['GET', 'POST'])
 def view_purchase(db_id):
     model = load_purchase_model(db_id, request.form)
-    action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ORDERED, ACTION_ADVANCE, ACTION_PAID, ACTION_CANCEL]
+    action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ORDERED, ACTION_ADVANCE, ACTION_INVOICED, ACTION_PAID, ACTION_CANCEL]
     if request.method == 'POST'and views.handle_post(model, action_list + [ACTION_ADVANCE_PAID]):
         return redirect(request.base_url)
     purchase = model.entity

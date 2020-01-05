@@ -25,8 +25,12 @@ class SupplierForm(wtforms.Form):
 def perform_start_transfer(model, action_name):
     supplier = model.entity
     grant_list = db.find_ready_payments(supplier)
-    if len(grant_list) == 0:
-        model.add_error("No grants are pending - nothing to transfer")
+    advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
+                         db.Purchase.advance.paid == False).fetch()
+    invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
+                         db.Purchase.invoice.paid == False).fetch()
+    if len(grant_list) == 0 and len(advance_list) == 0 and len(invoice_list) == 0:
+        model.add_error("No grants or purchase payments are pending - nothing to transfer")
         return False
     transfer = create_transfer(supplier, model.user)
     model.audit(action_name, 'Transfer started', transfer)
@@ -35,6 +39,14 @@ def perform_start_transfer(model, action_name):
         grant.transfer = transfer.key
         grant.put()
         model.audit(action_name, 'Transfer started', grant)
+    for purchase in advance_list:
+        purchase.advance.transfer = transfer.key
+        purchase.put()
+        model.audit(action_name, 'Advance Transfer started', purchase)
+    for purchase in invoice_list:
+        purchase.invoice.transfer = transfer.key
+        purchase.put()
+        model.audit(action_name, 'Invoice Transfer started', purchase)
     return True
 
 ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN,
@@ -77,10 +89,10 @@ def render_grants_due_list(supplier):
     table = views.view_entity_list(grant_list, field_list)
     return (sub_heading, table)
     
-common_field_list = [purchases.advance_type_field, purchases.po_number_field, purchases.creator_field,
+common_field_list = [purchases.po_number_field, purchases.creator_field,
        grants.source_field]
-advance_field_list = common_field_list + [purchases.advance_amount_field]
-invoice_field_list = common_field_list + [purchases.invoiced_amount_field]
+advance_field_list = [purchases.advance_type_field] + common_field_list + [purchases.advance_amount_field]
+invoice_field_list = [purchases.invoice_type_field] + common_field_list + [purchases.invoiced_amount_field]
 
 def render_purchase_payments_list(supplier):
     column_headers = properties.get_labels(advance_field_list)
