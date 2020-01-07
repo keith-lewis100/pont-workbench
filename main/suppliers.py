@@ -25,11 +25,9 @@ class SupplierForm(wtforms.Form):
 def perform_start_transfer(model, action_name):
     supplier = model.entity
     grant_list = db.find_ready_payments(supplier)
-    advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
-                         db.Purchase.advance.paid == False).fetch()
-    invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
-                         db.Purchase.invoice.paid == False).fetch()
-    if len(grant_list) == 0 and len(advance_list) == 0 and len(invoice_list) == 0:
+    payment_list = db.PurchasePayment.query(db.PurchasePayment.supplier == supplier.key).filter(
+                         db.PurchasePayment.paid == False).fetch()
+    if len(grant_list) == 0 and len(payment_list) == 0:
         model.add_error("No grants or purchase payments are pending - nothing to transfer")
         return False
     transfer = create_transfer(supplier, model.user)
@@ -39,14 +37,11 @@ def perform_start_transfer(model, action_name):
         grant.transfer = transfer.key
         grant.put()
         model.audit(action_name, 'Transfer started', grant)
-    for purchase in advance_list:
-        purchase.advance.transfer = transfer.key
-        purchase.put()
+    for payment in payment_list:
+        payment.transfer = transfer.key
+        payment.put()
+        purchase = data_models.get_parent(payment)
         model.audit(action_name, 'Advance Transfer started', purchase)
-    for purchase in invoice_list:
-        purchase.invoice.transfer = transfer.key
-        purchase.put()
-        model.audit(action_name, 'Invoice Transfer started', purchase)
     return True
 
 ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN,
@@ -88,28 +83,24 @@ def render_grants_due_list(supplier):
     sub_heading = renderers.sub_heading('Grant Payments Due')
     table = views.view_entity_list(grant_list, field_list)
     return (sub_heading, table)
-    
-common_field_list = [purchases.po_number_field, purchases.creator_field,
-       grants.source_field]
-advance_field_list = [purchases.advance_type_field] + common_field_list + [purchases.advance_amount_field]
-invoice_field_list = [purchases.invoice_type_field] + common_field_list + [purchases.invoiced_amount_field]
+
+po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')
+creator_field = properties.KeyProperty(lambda e: e.key.parent().get().creator, 'Requestor')
+source_field = properties.StringProperty(lambda e: e.key.parent().parent().get().code, 'Source Fund')
+payment_field_list = [purchases.payment_type_field, po_number_field, creator_field, source_field,
+        purchases.payment_amount_field]
 
 def render_purchase_payments_list(supplier):
-    column_headers = properties.get_labels(advance_field_list)
-    
-    advance_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
-                         db.Purchase.advance.paid == False).fetch()
-    advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(urls.url_for_entity, advance_list)
-    
-    invoice_list = db.Purchase.query(db.Purchase.supplier == supplier.key).filter(
-                         db.Purchase.invoice.paid == False).fetch()
-    invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(urls.url_for_entity, invoice_list)
+    column_headers = properties.get_labels(payment_field_list)
+    payment_list = db.PurchasePayment.query(db.PurchasePayment.supplier == supplier.key).filter(
+                         db.PurchasePayment.paid == False).fetch()
+    payment_grid = properties.display_entity_list(payment_list, payment_field_list, no_links=True)
+    purchase_list = [data_models.get_parent(e) for e in payment_list]
+    payment_url_list = map(urls.url_for_entity, purchase_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments Due')
-    table = renderers.render_table(column_headers, advance_grid + invoice_grid,
-                            advance_url_list + invoice_url_list)
+    table = renderers.render_table(column_headers, payment_grid,
+                            payment_url_list)
     return (sub_heading, table)
 
 def redirect_url(model):

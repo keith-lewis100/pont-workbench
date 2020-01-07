@@ -123,7 +123,10 @@ class Pledge(ndb.Model):
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
 
-class Payment(ndb.Model):
+# ancestor = Payment
+class PurchasePayment(ndb.Model):
+    payment_type = ndb.StringProperty()
+    supplier = ndb.KeyProperty(kind=Supplier)
     amount = MoneyProperty(default=Money())
     transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
     paid = ndb.BooleanProperty(default=False)
@@ -136,8 +139,6 @@ class Purchase(ndb.Model):
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
-    invoice = ndb.StructuredProperty(Payment)
-    advance = ndb.StructuredProperty(Payment)
 
 class AuditRecord(ndb.Model):
     entity = ndb.KeyProperty()

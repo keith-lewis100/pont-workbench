@@ -1,5 +1,6 @@
 #_*_ coding: UTF-8 _*_
 
+import logging
 from html_builder import html
 import data_models
 from urls import url_for_entity
@@ -33,6 +34,7 @@ class Property(object):
             try:
                 return self.attr(entity)
             except AttributeError:
+                logging.exception("Unable to evaluate property %s", self.label)
                 return ""
         return getattr(entity, self.attr)
 

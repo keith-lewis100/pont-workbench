@@ -3,6 +3,7 @@
 from flask import request, redirect, render_template
 from application import app
 import wtforms
+import logging
 
 import db
 import data_models
@@ -28,6 +29,14 @@ def perform_transferred(model, action_name):
     form.populate_obj(transfer)
     transfer.state_index = STATE_TRANSFERRED
     transfer.put()
+    payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
+    for payment in payment_list:
+        payment.paid = True
+        payment.put()
+        if payment.payment_type == 'invoice':
+            purchase = data_models.get_parent(payment)
+            purchase.state_index = data_models.STATE_CLOSED
+            purchase.put()
     model.audit(action_name, 'Transfer performed')
     return True
 
@@ -41,15 +50,6 @@ def perform_ack(model, action_name):
             grant.state_index = data_models.STATE_CLOSED
             grant.put()
             model.audit(action_name, 'Transfer received', grant)
-    advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
-    for purchase in advance_list:
-        purchase.advance.paid = True
-        purchase.put()
-    invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
-    for purchase in invoice_list:
-        purchase.invoice.paid = True
-        purchase.state_index = data_models.STATE_CLOSED
-        purchase.put()
     return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
@@ -62,11 +62,11 @@ action_list = [ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED]
 def calculate_totals(transfer):
     total_sterling = 0
     total_shillings = 0
-    for grant in transfer.grant_list:
-        if grant.amount.currency == 'sterling':
-            total_sterling += grant.amount.value
+    for p in transfer.grant_list + transfer.payment_list:
+        if p.amount.currency == 'sterling':
+            total_sterling += p.amount.value
         else:
-            total_shillings += grant.amount.value
+            total_shillings += p.amount.value
     return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
 
 ref_field = properties.StringProperty('ref_id')
@@ -90,10 +90,11 @@ grant_field_list = [
     properties.StringProperty(lambda e: e.project.parent().get().name, 'Destination Fund')
 ]
 
-advance_field_list = (purchases.advance_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field, 
-                      purchases.advance_amount_field)
-invoice_field_list = (purchases.invoice_type_field, purchases.po_number_field, purchases.creator_field, grants.source_field,
-                           purchases.invoiced_amount_field)
+po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')
+creator_field = properties.KeyProperty(lambda e: e.key.parent().get().creator, 'Requestor')
+source_field = properties.StringProperty(lambda e: e.key.parent().parent().get().code, 'Source Fund')
+payment_field_list = [purchases.payment_type_field, po_number_field, creator_field, source_field,
+        purchases.payment_amount_field]
 
 class ExchangeRateForm(wtforms.Form):
     exchange_rate = wtforms.IntegerField('Exchange Rate', validators=[wtforms.validators.InputRequired()])
@@ -115,20 +116,15 @@ def render_grants_due_list(grant_list):
     table = views.view_entity_list(grant_list, grant_field_list)
     return (sub_heading, table)
 
-def render_purchase_payments_list(transfer):
-    column_headers = properties.get_labels(advance_field_list)
-    
-    advance_list = db.Purchase.query(db.Purchase.advance.transfer == transfer.key).fetch()
-    advance_grid = properties.display_entity_list(advance_list, advance_field_list, no_links=True)
-    advance_url_list = map(urls.url_for_entity, advance_list)
-    
-    invoice_list = db.Purchase.query(db.Purchase.invoice.transfer == transfer.key).fetch()
-    invoice_grid = properties.display_entity_list(invoice_list, invoice_field_list, no_links=True)
-    invoice_url_list = map(urls.url_for_entity, invoice_list)
+def render_purchase_payments_list(payment_list):
+    column_headers = properties.get_labels(payment_field_list)
+    payment_grid = properties.display_entity_list(payment_list, payment_field_list, no_links=True)
+    purchase_list = [data_models.get_parent(e) for e in payment_list]
+    payment_url_list = map(urls.url_for_entity, purchase_list)
     
     sub_heading = renderers.sub_heading('Purchase Payments')
-    table = renderers.render_table(column_headers, advance_grid + invoice_grid,
-                            advance_url_list + invoice_url_list)
+    table = renderers.render_table(column_headers, payment_grid,
+                            payment_url_list)
     return (sub_heading, table)
 
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
@@ -144,9 +140,11 @@ def view_foreigntransfer(db_id):
     breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     transfer.grant_list = grant_list
+    payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
+    transfer.payment_list = payment_list
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
-    purchase_payments = render_purchase_payments_list(transfer)
+    purchase_payments = render_purchase_payments_list(payment_list)
     history = views.view_entity_history(transfer.key)
     content = renderers.render_div(grid, purchase_payments, grant_payments, history)
     buttons = views.view_actions(action_list, model)
