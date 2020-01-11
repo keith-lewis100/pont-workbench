@@ -23,9 +23,17 @@ import partners
 import foreign_transfer
 import committees
 
+def entity_title(entity):
+    kind = entity.key.kind()
+    if hasattr(entity, 'name'):
+        return "%s:%s" % (kind, entity.name)
+    if hasattr(entity, 'ref_id'):
+        return "%s:%s" %(kind, entity.ref_id)
+    return kind
+
 audit_fields = [
     properties.DateProperty('timestamp'),
-    properties.KeyProperty('entity', title_of=lambda e: e.key.kind()),
+    properties.KeyProperty('entity', title_of=entity_title),
     properties.StringProperty('message'),
     properties.KeyProperty('user')
 ]

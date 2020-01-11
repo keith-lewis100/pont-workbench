@@ -15,6 +15,3 @@ handlers:
 libraries:
 - name: ssl
   version: latest
-
- env_variables:
-     EMAIL_API_KEY: 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
