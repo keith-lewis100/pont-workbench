@@ -4,6 +4,9 @@ from flask import request, redirect, render_template
 from application import app
 import wtforms
 import logging
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail, HtmlContent
 
 import db
 import data_models
@@ -38,6 +41,7 @@ def perform_transferred(model, action_name):
             purchase.state_index = data_models.STATE_CLOSED
             purchase.put()
     model.audit(action_name, 'Transfer performed')
+    send_supplier_email(transfer)
     return True
 
 def perform_ack(model, action_name):
@@ -67,14 +71,24 @@ def calculate_totals(transfer):
             total_sterling += p.amount.value
         else:
             total_shillings += p.amount.value
-    return u"£{:,} + {:,} Ush".format(total_sterling, total_shillings)
+    return (total_sterling, total_shillings)
+
+def show_totals(transfer):
+    sterling, shillings = calculate_totals(transfer)
+    return u"£{:,} + {:,} Ush".format(sterling, shillings)
+
+def show_shillings(transfer):
+    sterling, shillings = calculate_totals(transfer)
+    total_shillings = int(sterling * transfer.exchange_rate) + shillings
+    return u"{:,} Ush".format(total_shillings)
 
 ref_field = properties.StringProperty('ref_id')
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 creator_field = properties.KeyProperty('creator')
 creation_date_field = properties.DateProperty('creation_date')
 rate_field = properties.StringProperty('exchange_rate')
-request_totals_field = properties.StringProperty(calculate_totals, 'Request Totals')
+request_totals_field = properties.StringProperty(show_totals, 'Request Totals')
+shillings_total_field = properties.StringProperty(show_shillings, 'Transfered Amount')
 
 def get_partner(grant):
     project = grant.project.get()
@@ -91,9 +105,9 @@ grant_field_list = [
 ]
 
 po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')
-creator_field = properties.KeyProperty(lambda e: e.key.parent().get().creator, 'Requestor')
+requestor_field = properties.KeyProperty(lambda e: e.key.parent().get().creator, 'Requestor')
 source_field = properties.StringProperty(lambda e: e.key.parent().parent().get().code, 'Source Fund')
-payment_field_list = [purchases.payment_type_field, po_number_field, creator_field, source_field,
+payment_field_list = [purchases.payment_type_field, po_number_field, requestor_field, source_field,
         purchases.payment_amount_field]
 
 class ExchangeRateForm(wtforms.Form):
@@ -111,9 +125,9 @@ def view_foreigntransfer_list(db_id):
     return render_template('layout.html', title='Foreign Transfer List', breadcrumbs=breadcrumbs,
                            user=user_controls, content=entity_table)
 
-def render_grants_due_list(grant_list):
+def render_grants_due_list(grant_list, selectable=True, no_links=True):
     sub_heading = renderers.sub_heading('Grant Payments')
-    table = views.view_entity_list(grant_list, grant_field_list)
+    table = views.view_entity_list(grant_list, grant_field_list, selectable, no_links)
     return (sub_heading, table)
 
 def render_purchase_payments_list(payment_list):
@@ -130,6 +144,10 @@ def render_purchase_payments_list(payment_list):
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = data_models.lookup_entity(db_id)
+    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    transfer.grant_list = grant_list
+    payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
+    transfer.payment_list = payment_list
     supplier = data_models.get_parent(transfer)
     form = ExchangeRateForm(request.form)
     model = data_models.Model(transfer, None)
@@ -138,10 +156,6 @@ def view_foreigntransfer(db_id):
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
     breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    transfer.grant_list = grant_list
-    payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
-    transfer.payment_list = payment_list
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
     purchase_payments = render_purchase_payments_list(payment_list)
@@ -152,3 +166,24 @@ def view_foreigntransfer(db_id):
     return render_template('layout.html', title='Foreign Transfer', breadcrumbs=breadcrumbs, user=user_controls,
                            buttons=buttons, content=content)
 
+email_properties = (ref_field, shillings_total_field)
+
+def send_supplier_email(transfer):
+    column = views.view_entity_single_column(transfer, email_properties)
+    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
+    grant_payments = render_grants_due_list(grant_list, selectable=False, no_links=True)
+    content = renderers.render_div(column, grant_payments)
+    html = render_template('email.html', title='Foreign Transfer', content=content)
+    message = Mail(
+        from_email='workbench@pont-mbale.org.uk',
+        to_emails='keith_lewis100@yahoo.co.uk', #,mwenyiapollo@yahoo.com,ruthbelindam@gmail.com',
+        subject='Foreign Transfer',
+        html_content=HtmlContent(html)
+    )
+    workbench = db.WorkBench.query().get()
+    sg = SendGridAPIClient(workbench.email_api_key)
+    response = sg.send(message)
+    if response.status_code > 299:
+        logging.error('unable to send email for transfer: %s status: %d' % (transfer.ref_id, response.status_code))
+    else
+        logging.info('sent email for transfer: %s' % transfer.ref_id)

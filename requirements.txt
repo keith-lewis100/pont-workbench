@@ -1,2 +1,4 @@
 Flask==1.0.2
 WTForms==2.2.1
+sendgrid==6.1.0
+

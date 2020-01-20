@@ -38,9 +38,14 @@ def view_entity(entity, fields, num_wide=0):
     labels = properties.get_labels(fields)
     return renderers.render_grid(values, labels, num_wide)
 
-def view_entity_list(entity_list, fields, selectable=True):
+def view_entity_single_column(entity, fields):
+    values = properties.display_entity(entity, fields)
+    labels = properties.get_labels(fields)
+    return renderers.render_single_column(values, labels)    
+
+def view_entity_list(entity_list, fields, selectable=True, no_links=True):
     column_headers = properties.get_labels(fields)
-    grid = properties.display_entity_list(entity_list, fields, selectable)
+    grid = properties.display_entity_list(entity_list, fields, no_links)
     url_list = map(urls.url_for_entity, entity_list) if selectable else None
     return renderers.render_table(column_headers, grid, url_list)
 
@@ -66,7 +71,7 @@ def view_entity_history(key):
     audit_list = db.AuditRecord.query(db.AuditRecord.entity == key).order(-db.AuditRecord.timestamp
                       ).iter(limit = 20)
     sub_heading = renderers.sub_heading('Activity Log')
-    table = view_entity_list(audit_list, audit_fields, selectable=False)
+    table = view_entity_list(audit_list, audit_fields, selectable=False, no_links=False)
     return (sub_heading, table)
 
 class Action(object):

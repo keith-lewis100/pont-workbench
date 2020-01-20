@@ -33,6 +33,7 @@ class MoneyProperty(ndb.StringProperty):
 # Top level
 class WorkBench(ndb.Model):
     last_ref_id = ndb.IntegerProperty(default=0)
+    email_api_key = ndb.StringProperty()
     
 # Top level
 class User(ndb.Model):

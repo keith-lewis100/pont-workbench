@@ -61,6 +61,8 @@ class KeyProperty(Property):
         if not key:
             return ""
         target = key.get()
+        if not target:
+            return ""
         title = self.title_of(target)
         if no_links:
             return title

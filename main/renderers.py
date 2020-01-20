@@ -27,6 +27,13 @@ def render_grid(values, labels, num_wide=0):
         rows.append(html.div(legend, value,  class_="u-full-width"))
     return html.div(rows)
 
+def render_single_column(values, labels):
+    rows = []
+    for i in range(0, len(values)):
+        legend = html.b(labels[i] + ": ")
+        rows.append(html.div(legend, values[i]))
+    return html.div(rows)
+
 def legend(label):
     return html.legend(label)
 
@@ -36,7 +43,7 @@ def render_table(column_headers, grid, url_list):
         rows = map(render_row, grid, url_list)
     else:
         rows = map(render_row, grid)
-    return html.table(html.thead(header), html.tbody(*rows), class_="u-full-width")
+    return html.table(html.thead(header), html.tbody(*rows), width="100%")
 
 def render_header(column_headers):
     children = map(html.th, column_headers)
