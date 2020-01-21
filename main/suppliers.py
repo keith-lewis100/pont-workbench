@@ -21,7 +21,8 @@ class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     receives_grants = wtforms.BooleanField()
     paid_in_sterling = wtforms.BooleanField()
-
+    contact_emails = custom_fields.CsvListField()
+    
 def perform_start_transfer(model, action_name):
     supplier = model.entity
     grant_list = db.find_ready_payments(supplier)

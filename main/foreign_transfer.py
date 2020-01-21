@@ -169,6 +169,7 @@ def view_foreigntransfer(db_id):
 email_properties = (ref_field, shillings_total_field)
 
 def send_supplier_email(transfer):
+    supplier = data_models.get_parent(transfer)
     column = views.view_entity_single_column(transfer, email_properties)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
     grant_payments = render_grants_due_list(grant_list, selectable=False, no_links=True)
@@ -176,7 +177,7 @@ def send_supplier_email(transfer):
     html = render_template('email.html', title='Foreign Transfer', content=content)
     message = Mail(
         from_email='workbench@pont-mbale.org.uk',
-        to_emails='keith_lewis100@yahoo.co.uk', #,mwenyiapollo@yahoo.com,ruthbelindam@gmail.com',
+        to_emails=str(','.join(supplier.contact_emails)),
         subject='Foreign Transfer',
         html_content=HtmlContent(html)
     )
@@ -185,5 +186,5 @@ def send_supplier_email(transfer):
     response = sg.send(message)
     if response.status_code > 299:
         logging.error('unable to send email for transfer: %s status: %d' % (transfer.ref_id, response.status_code))
-    else
+    else:
         logging.info('sent email for transfer: %s' % transfer.ref_id)

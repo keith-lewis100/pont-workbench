@@ -50,6 +50,7 @@ class Supplier(ndb.Model):
     name = ndb.StringProperty()
     receives_grants = ndb.BooleanProperty(default=False)
     paid_in_sterling = ndb.BooleanProperty(default=True)
+    contact_emails = ndb.StringProperty(repeated = True)
 
 # ancestor = Supplier
 class SupplierFund(ndb.Model):

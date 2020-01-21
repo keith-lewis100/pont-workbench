@@ -71,6 +71,21 @@ class SelectField(SelectFieldBase):
         else:
             raise ValueError(self.gettext('Not a valid choice'))
 
+class CsvListField(Field):
+    widget = widgets.TextInput()
+
+    def _value(self):
+        if self.data:
+            return u', '.join(self.data)
+        else:
+            return u''
+
+    def process_formdata(self, valuelist):
+        if valuelist:
+            self.data = [x.strip() for x in valuelist[0].split(',')]
+        else:
+            self.data = []
+
 class MoneyForm(Form):
     currency = SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=radio_field_widget, default='sterling')
