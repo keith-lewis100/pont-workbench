@@ -75,4 +75,6 @@ class DateProperty(Property):
 
     def str_for(self, entity, no_links):
         date = self.value_for(entity)
+        if date is None:
+            return ""
         return date.strftime(self.format)

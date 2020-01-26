@@ -47,9 +47,6 @@ class SupplierFundView(views.EntityView):
     def get_fields(self, form):
         return map(properties.create_readonly_field, form._fields.keys(), form._fields.values())
 
-    def get_link_pairs(self):
-        return [('Project', 'Show Projects')]
-
 def add_rules(app):
     app.add_url_rule('/supplierfund_list/<db_id>', view_func=SupplierFundListView.as_view('view_supplierfund_list'))
     app.add_url_rule('/supplierfund/<db_id>/', view_func=SupplierFundView.as_view('view_supplierfund'))        

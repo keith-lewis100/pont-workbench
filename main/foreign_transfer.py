@@ -78,6 +78,8 @@ def show_totals(transfer):
     return u"£{:,} + {:,} Ush".format(sterling, shillings)
 
 def show_shillings(transfer):
+    if not transfer.exchange_rate:
+        return ""
     sterling, shillings = calculate_totals(transfer)
     total_shillings = int(sterling * transfer.exchange_rate) + shillings
     return u"{:,} Ush".format(total_shillings)
@@ -88,7 +90,7 @@ creator_field = properties.KeyProperty('creator')
 creation_date_field = properties.DateProperty('creation_date')
 rate_field = properties.StringProperty('exchange_rate')
 request_totals_field = properties.StringProperty(show_totals, 'Request Totals')
-shillings_total_field = properties.StringProperty(show_shillings, 'Transfered Amount')
+shillings_total_field = properties.StringProperty(show_shillings, 'Total Amount')
 
 def get_partner(grant):
     project = grant.project.get()
@@ -101,7 +103,7 @@ grant_field_list = [
     grants.transferred_amount_field,
     properties.StringProperty(get_partner, 'Implementing Partner'),
     grants.source_field,
-    properties.StringProperty(lambda e: e.project.parent().get().name, 'Destination Fund')
+    properties.StringProperty(lambda e: e.project.get().fund.get().name, 'Destination Fund')
 ]
 
 po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')
@@ -154,7 +156,8 @@ def view_foreigntransfer(db_id):
     model.add_form(ACTION_TRANSFERRED.name, form)
     if request.method == 'POST'and views.handle_post(model, action_list):
         return redirect(request.base_url)
-    transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field, creator_field)
+    transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field,
+                       shillings_total_field, creator_field)
     breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)

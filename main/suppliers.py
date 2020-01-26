@@ -64,7 +64,9 @@ def view_supplier_list():
 def get_link_pairs(supplier):
     links = []
     if supplier.receives_grants:
-        links = [('SupplierFund', 'Show Supplier Funds'), ('Partner', 'Show Partners')]
+        links = [('SupplierFund', 'Show Supplier Funds'),
+                 ('Partner', 'Show Partners'),
+                 ('Project', 'Show Projects')]
     if supplier.paid_in_sterling:
         return links
     return links + [('ForeignTransfer', 'Show Foreign Transfers')]

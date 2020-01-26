@@ -85,7 +85,7 @@ class InternalTransfer(ndb.Model):
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
 
-# ancestor = SupplierFund
+# ancestor = Supplier
 class Project(ndb.Model):
     name = ndb.StringProperty()
     description = ndb.StringProperty()
@@ -94,6 +94,9 @@ class Project(ndb.Model):
     multi_committee = ndb.BooleanProperty()
     creator = ndb.KeyProperty(kind=User)
     partner = ndb.KeyProperty(kind=Partner)
+    fund = ndb.KeyProperty(kind=SupplierFund)
+    size = ndb.IntegerProperty(default=0)
+    grant_agreement_start = ndb.DateProperty()
 
 # ancestor = Fund
 class Grant(ndb.Model):

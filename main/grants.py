@@ -39,8 +39,7 @@ def perform_create(model, action_name):
     entity = model.entity
     form.populate_obj(entity)
     entity.creator = model.user.key
-    supplier_fund = entity.project.parent()
-    entity.supplier = supplier_fund.parent()
+    entity.supplier = entity.project.parent()
     entity.transfer = None
     entity.put()
     model.audit(action_name, "Create performed")
