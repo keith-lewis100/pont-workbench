@@ -29,6 +29,10 @@ def entity_title(entity):
         return "%s:%s" % (kind, entity.name)
     if hasattr(entity, 'ref_id'):
         return "%s:%s" %(kind, entity.ref_id)
+    if kind == 'Grant':
+        return "Grant:%s" % entity.project.get().name
+    if kind == 'Purchase':
+        return "Purchase:%s" % entity.supplier.get().name
     return kind
 
 audit_fields = [
