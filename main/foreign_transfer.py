@@ -24,63 +24,79 @@ STATE_TRANSFERRED = 2
 
 state_labels = ['Closed', 'Requested', 'Transferred']
 
-def perform_transferred(model, action_name):
-    form = model.get_form(action_name)
-    if not form.validate():
-        return False
-    transfer = model.entity
-    form.populate_obj(transfer)
-    transfer.state_index = STATE_TRANSFERRED
-    transfer.put()
-    payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
-    for payment in payment_list:
-        payment.paid = True
-        payment.put()
-        if payment.payment_type == 'invoice':
-            purchase = data_models.get_parent(payment)
-            purchase.state_index = data_models.STATE_CLOSED
-            purchase.put()
-    model.audit(action_name, 'Transfer performed')
-    send_supplier_email(transfer)
-    return True
+class TransferModel(data_models.Model):
+    def __init__(self, entity, grant_list, payment_list):
+        super(TransferModel, self).__init__(entity, None)
+        self.grant_list = grant_list
+        self.payment_list = payment_list
 
-def perform_ack(model, action_name):
-    model.perform_close(action_name)
-    transfer = model.entity
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    for grant in grant_list:
-        project = grant.project.get()
-        if project.partner is None:
-            grant.state_index = data_models.STATE_CLOSED
-            grant.put()
-            model.audit(action_name, 'Transfer received', grant)
-    return True
+    def perform_transferred(self, action_name):
+        form = self.get_form(action_name)
+        if not form.validate():
+            return False
+        transfer = self.entity
+        form.populate_obj(transfer)
+        transfer.state_index = STATE_TRANSFERRED
+        transfer.put()
+        for payment in self.payment_list:
+            payment.paid = True
+            payment.put()
+            if payment.payment_type == 'invoice':
+                purchase = data_models.get_parent(payment)
+                purchase.state_index = data_models.STATE_CLOSED
+                purchase.put()
+        self.audit(action_name, 'Transfer performed')
+        self.send_supplier_email()
+        return True
+
+    def send_supplier_email(self):
+        transfer = self.entity
+        supplier = data_models.get_parent(transfer)
+        column = views.view_entity_single_column(transfer, email_properties)
+        purchase_payments = render_purchase_payments_list(self.payment_list)
+        grant_payments = render_grants_due_list(self.grant_list, selectable=False, no_links=True)
+        content = renderers.render_div(column, purchase_payments, grant_payments)
+        html = render_template('email.html', title='Foreign Transfer', content=content)
+        message = Mail(
+            from_email='workbench@pont-mbale.org.uk',
+            to_emails=str(','.join(supplier.contact_emails)),
+            subject='Foreign Transfer',
+            html_content=HtmlContent(html)
+        )
+        workbench = db.WorkBench.query().get()
+        sg = SendGridAPIClient(workbench.email_api_key)
+        response = sg.send(message)
+        if response.status_code > 299:
+            logging.error('unable to send email for transfer: %s status: %d' % (transfer.ref_id, response.status_code))
+        else:
+            logging.info('sent email for transfer: %s' % transfer.ref_id)
+
+    def perform_ack(self, action_name):
+        self.perform_close(action_name)
+        transfer = self.entity
+        for grant in self.grant_list:
+            project = grant.project.get()
+            if project.partner is None:
+                grant.state_index = data_models.STATE_CLOSED
+                grant.put()
+                self.audit(action_name, 'Transfer received', grant)
+        return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
-                            perform_transferred, [STATE_REQUESTED])
+                            TransferModel.perform_transferred, [STATE_REQUESTED])
 ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN,
-                                        perform_ack, [STATE_TRANSFERRED])
+                                        TransferModel.perform_ack, [STATE_TRANSFERRED])
 
 action_list = [ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED]
 
-def calculate_totals(transfer):
-    total_sterling = 0
-    total_shillings = 0
-    for p in transfer.grant_list + transfer.payment_list:
-        if p.amount.currency == 'sterling':
-            total_sterling += p.amount.value
-        else:
-            total_shillings += p.amount.value
-    return (total_sterling, total_shillings)
-
 def show_totals(transfer):
-    sterling, shillings = calculate_totals(transfer)
+    sterling, shillings = transfer.totals
     return u"£{:,} + {:,} Ush".format(sterling, shillings)
 
 def show_shillings(transfer):
     if not transfer.exchange_rate:
         return ""
-    sterling, shillings = calculate_totals(transfer)
+    sterling, shillings = transfer.totals
     total_shillings = int(sterling * transfer.exchange_rate) + shillings
     return u"{:,} Ush".format(total_shillings)
 
@@ -143,21 +159,30 @@ def render_purchase_payments_list(payment_list):
                             payment_url_list)
     return (sub_heading, table)
 
+def calculate_totals(payments):
+    total_sterling = 0
+    total_shillings = 0
+    for p in payments:
+        if p.amount.currency == 'sterling':
+            total_sterling += p.amount.value
+        else:
+            total_shillings += p.amount.value
+    return (total_sterling, total_shillings)
+
 @app.route('/foreigntransfer/<db_id>', methods=['GET', 'POST'])        
 def view_foreigntransfer(db_id):
     transfer = data_models.lookup_entity(db_id)
     grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    transfer.grant_list = grant_list
     payment_list = db.PurchasePayment.query(db.PurchasePayment.transfer == transfer.key).fetch()
-    transfer.payment_list = payment_list
-    supplier = data_models.get_parent(transfer)
+    transfer.totals = calculate_totals(grant_list + payment_list)
     form = ExchangeRateForm(request.form)
-    model = data_models.Model(transfer, None)
+    model = TransferModel(transfer, grant_list, payment_list)
     model.add_form(ACTION_TRANSFERRED.name, form)
     if request.method == 'POST'and views.handle_post(model, action_list):
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field,
                        shillings_total_field, creator_field)
+    supplier = data_models.get_parent(transfer)
     breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
@@ -171,23 +196,3 @@ def view_foreigntransfer(db_id):
 
 email_properties = (ref_field, shillings_total_field)
 
-def send_supplier_email(transfer):
-    supplier = data_models.get_parent(transfer)
-    column = views.view_entity_single_column(transfer, email_properties)
-    grant_list = db.Grant.query(db.Grant.transfer == transfer.key).fetch()
-    grant_payments = render_grants_due_list(grant_list, selectable=False, no_links=True)
-    content = renderers.render_div(column, grant_payments)
-    html = render_template('email.html', title='Foreign Transfer', content=content)
-    message = Mail(
-        from_email='workbench@pont-mbale.org.uk',
-        to_emails=str(','.join(supplier.contact_emails)),
-        subject='Foreign Transfer',
-        html_content=HtmlContent(html)
-    )
-    workbench = db.WorkBench.query().get()
-    sg = SendGridAPIClient(workbench.email_api_key)
-    response = sg.send(message)
-    if response.status_code > 299:
-        logging.error('unable to send email for transfer: %s status: %d' % (transfer.ref_id, response.status_code))
-    else:
-        logging.info('sent email for transfer: %s' % transfer.ref_id)
