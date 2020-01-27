@@ -60,6 +60,8 @@ ACTION_APPROVE = views.StateAction('approve', 'Approve', RoleType.PROJECT_APPROV
                                    perform_approve, [STATE_APPROVAL_PENDING])
 ACTION_UPDATE = views.update_action(RoleType.PROJECT_CREATOR, [STATE_APPROVAL_PENDING, STATE_APPROVED])
 ACTION_CREATE = views.create_action(RoleType.PROJECT_CREATOR)
+ACTION_CLOSE = views.StateAction('close', 'Close', RoleType.PROJECT_CREATOR,
+                       data_models.Model.perform_close, [STATE_APPROVAL_PENDING, STATE_APPROVED])
 
 class ProjectForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -113,7 +115,7 @@ class ProjectListView(views.ListView):
 
 class ProjectView(views.EntityView):
     def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_APPROVE)
+        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_APPROVE, ACTION_CLOSE)
         
     def title(self, entity):
         return 'Project ' + entity.name
