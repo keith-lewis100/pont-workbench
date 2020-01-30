@@ -109,16 +109,21 @@ class Grant(ndb.Model):
     transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
     supplier = ndb.KeyProperty(kind=Supplier)
 
-def find_pending_payments(supplier, cutoff_date):
+def find_pending_grants(supplier, cutoff_date):
     return Grant.query(ndb.AND(Grant.target_date <= cutoff_date, 
                                Grant.supplier == supplier.key,
                                Grant.transfer == None,
                                Grant.state_index.IN([1, 2]))).order(Grant.target_date).fetch()
 
-def find_ready_payments(supplier):
+def find_ready_grants(supplier):
     return Grant.query(ndb.AND(Grant.supplier == supplier.key,
                                Grant.transfer == None,
                                Grant.state_index == 2)).fetch()
+
+def find_pending_payments(supplier):
+    return Grant.query(ndb.AND(PurchasePayment.supplier == supplier.key,
+                               PurchasePayment.transfer == None,
+                               PurchasePayment.paid == False)).fetch()
 
 # ancestor = Fund
 class Pledge(ndb.Model):

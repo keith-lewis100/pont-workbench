@@ -25,7 +25,7 @@ class SupplierForm(wtforms.Form):
     
 def perform_start_transfer(model, action_name):
     supplier = model.entity
-    grant_list = db.find_ready_payments(supplier)
+    grant_list = db.find_ready_grants(supplier)
     payment_list = db.PurchasePayment.query(db.PurchasePayment.supplier == supplier.key).filter(
                          db.PurchasePayment.paid == False).fetch()
     if len(grant_list) == 0 and len(payment_list) == 0:
@@ -81,7 +81,7 @@ def create_transfer(supplier, user):
 
 def render_grants_due_list(supplier):
     cutoff_date = datetime.date.today() + datetime.timedelta(21)
-    grant_list = db.find_pending_payments(supplier, cutoff_date)
+    grant_list = db.find_pending_grants(supplier, cutoff_date)
     field_list = (grants.state_field, grants.target_date_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
     sub_heading = renderers.sub_heading('Grant Payments Due')
     table = views.view_entity_list(grant_list, field_list)
@@ -95,8 +95,7 @@ payment_field_list = [purchases.payment_type_field, po_number_field, creator_fie
 
 def render_purchase_payments_list(supplier):
     column_headers = properties.get_labels(payment_field_list)
-    payment_list = db.PurchasePayment.query(db.PurchasePayment.supplier == supplier.key).filter(
-                         db.PurchasePayment.paid == False).fetch()
+    payment_list = db.find_pending_payments(supplier)
     payment_grid = properties.display_entity_list(payment_list, payment_field_list, no_links=True)
     purchase_list = [data_models.get_parent(e) for e in payment_list]
     payment_url_list = map(urls.url_for_entity, purchase_list)
