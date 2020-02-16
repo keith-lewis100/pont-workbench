@@ -34,6 +34,9 @@ payment_type_field = properties.StringProperty(lambda e: e.payment_type.capitali
 payment_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e), 
                                     'Transferred Amount')
 
+def purchase_title(purchase):
+    return 'Purchase:%s' % purchase.po_number
+
 class PurchaseModel(data_models.Model):
     def __init__(self, entity, committee, payments):
         super(PurchaseModel, self).__init__(entity, committee)
@@ -45,36 +48,37 @@ class PurchaseModel(data_models.Model):
         ref = data_models.get_next_ref()
         entity.po_number = 'MB%04d' % ref
         entity.put()
-        self.audit(action_name, "Check performed")
+        self.email_and_audit(action_name, "Check performed", purchase_title)
         return True
 
     def perform_ordered(self, action_name):
         self.entity.state_index = STATE_ORDERED
         self.entity.put()
-        self.audit(action_name, "Ordered performed")
+        self.email_and_audit(action_name, "Ordered performed", purchase_title)
         return True
 
     def perform_create_payment(self, action_name):
         form = self.get_form(action_name)
         if not form.validate():
             return False
-        entity = db.PurchasePayment(parent=self.entity.key)
-        entity.supplier = self.entity.supplier
-        entity.payment_type = action_name
-        form.populate_obj(entity)
-        entity.put()
-        self.audit(action_name, "%s amount=%s" % (action_name.capitalize(), entity.amount))
+        payment = db.PurchasePayment(parent=self.entity.key)
+        payment.supplier = self.entity.supplier
+        payment.payment_type = action_name
+        form.populate_obj(payment)
+        payment.put()
+        self.email_and_audit(action_name, "%s amount=%s" % (action_name.capitalize(), payment.amount),
+                             purchase_title)
         return True
 
     def perform_paid(self, action_name):
         payment_type = action_name[5:] # remove 'paid_' prefix
-        entity = self.payments[payment_type]
-        entity.paid = True
-        entity.put()
+        payment = self.payments[payment_type]
+        payment.paid = True
+        payment.put()
         if payment_type == 'invoice':
             self.entity.state_index = data_models.STATE_CLOSED
             self.entity.put()
-        self.audit(action_name, "Paid %s" % payment_type)
+        self.email_and_audit(action_name, "Paid %s" % payment_type, purchase_title)
         return True
 
     def get_state(self):
@@ -102,7 +106,7 @@ ACTION_INVOICE_PAID = views.StateAction('paid_invoice', 'Paid', RoleType.PAYMENT
 ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
 
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
-ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING, STATE_READY])
 
 ACTION_ADVANCE_PAID = views.StateAction('paid_advance', 'Paid', RoleType.PAYMENT_ADMIN,
                                    PurchaseModel.perform_paid, [STATE_ADVANCE_PENDING])

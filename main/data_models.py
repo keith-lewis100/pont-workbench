@@ -5,7 +5,10 @@ from google.appengine.api import users
 from google.appengine.ext import ndb
 
 import db
-import role_types
+import mailer
+from html_builder import html
+import renderers
+import urls
 
 logger = logging.getLogger('model')
 
@@ -196,7 +199,19 @@ class Model(object):
         audit.user = self.user.key
         audit.action = action_name
         audit.message = message
-        return audit.put()
+        audit.put()
+
+    def email_and_audit(self, action_name, message, title_of=lambda e: e.name):
+        self.audit(action_name, message)
+        if not hasattr(self.entity, 'creator'):
+            return
+        if self.user.key == self.entity.creator:
+            return
+        title = title_of(self.entity)
+        entity_ref = html.a(title, href=urls.url_for_entity(self.entity, external=True))
+        content = renderers.render_single_column((entity_ref, message, self.user.name),
+                                                 ('Entity', 'Message', 'User'))
+        mailer.send_email('Workbench Entity State Change', content, [self.user.email])
 
     def __repr__(self):
         return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

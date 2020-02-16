@@ -3,13 +3,10 @@
 from flask import request, redirect, render_template
 from application import app
 import wtforms
-import logging
-import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail, HtmlContent
 
 import db
 import data_models
+import mailer
 import renderers
 import properties
 import views
@@ -56,20 +53,7 @@ class TransferModel(data_models.Model):
         purchase_payments = render_purchase_payments_list(self.payment_list)
         grant_payments = render_grants_due_list(self.grant_list, selectable=False, no_links=True)
         content = renderers.render_div(column, purchase_payments, grant_payments)
-        html = render_template('email.html', title='Foreign Transfer', content=content)
-        message = Mail(
-            from_email='workbench@pont-mbale.org.uk',
-            to_emails=str(','.join(supplier.contact_emails)),
-            subject='Foreign Transfer',
-            html_content=HtmlContent(html)
-        )
-        workbench = db.WorkBench.query().get()
-        sg = SendGridAPIClient(workbench.email_api_key)
-        response = sg.send(message)
-        if response.status_code > 299:
-            logging.error('unable to send email for transfer: %s status: %d' % (transfer.ref_id, response.status_code))
-        else:
-            logging.info('sent email for transfer: %s' % transfer.ref_id)
+        mailer.send_email('PONT Transfer %s' % transfer.ref_id, content, supplier.contact_emails)
 
     def perform_ack(self, action_name):
         self.perform_close(action_name)

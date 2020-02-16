@@ -110,7 +110,7 @@ def redirect_url(model):
         return urls.url_for_entity(model.next_entity)
     return request.base_url
 
-def view_supplier(db_id):
+def process_supplier(db_id):
     supplier = data_models.lookup_entity(db_id)
     if request.method == 'POST':
         form = SupplierForm(request.form)
@@ -143,8 +143,8 @@ def view_supplier(db_id):
             'content': content}
 
 @app.route('/supplier/<db_id>', methods=['GET', 'POST'])
-def route_supplier(db_id):
-    template_args = view_supplier(db_id)
+def view_supplier(db_id):
+    template_args = process_supplier(db_id)
     if type(template_args) == dict:
         return render_template('layout.html', **template_args)
     return redirect(template_args)

@@ -19,6 +19,7 @@ import internal_transfers
 import purchases
 import users
 import roles
+import role_types
 import partners
 import foreign_transfer
 import committees
@@ -31,8 +32,10 @@ def entity_title(entity):
         return "%s:%s" %(kind, entity.ref_id)
     if kind == 'Grant':
         return "Grant:%s" % entity.project.get().name
-    if kind == 'Purchase':
-        return "Purchase:%s" % entity.supplier.get().name
+    if kind == 'Purchase' and entity.po_number is not None:
+        return "Purchase:%s" % entity.po_number
+    if kind == 'Role':
+        return 'Role:%s' % dict(role_types.get_choices()).get(entity.type_index, "")
     return kind
 
 audit_fields = [

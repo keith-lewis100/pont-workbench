@@ -50,7 +50,8 @@ def perform_checked(model, action_name):
     entity.state_index = STATE_READY
     entity.transfer = None
     entity.put()
-    model.audit(action_name, 'Checked performed')
+    model.email_and_audit(action_name, 'Checked performed',
+                          lambda e: 'Grant:' + e.project.get().name)
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
                                    perform_checked, [STATE_WAITING])

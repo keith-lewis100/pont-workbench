@@ -41,7 +41,7 @@ def view_role_list(db_id):
                                       property_list, role_list, user)
 
 @app.route('/role/<db_id>', methods=['GET', 'POST', 'DELETE'])
-def view_roles(db_id):
+def view_role(db_id):
     role = data_models.lookup_entity(db_id)
     model = data_models.Model(role, None)
     form = RoleForm(request.form, role)

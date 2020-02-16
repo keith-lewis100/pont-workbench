@@ -1,11 +1,14 @@
 #_*_ coding: UTF-8 _*_
 
-def url_for_entity(entity):
+from flask import url_for
+
+def url_for_entity(entity, external=False):
     key = entity.key
-    return '/%s/%s' % (key.kind().lower(), key.urlsafe())
+    endpoint = 'view_%s' % key.kind().lower()
+    return url_for(endpoint, db_id=key.urlsafe(), _external=external)
 
 def url_for_list(kind, parent):
-    url = '/%s_list' % kind.lower()
+    endpoint = 'view_%s_list' % kind.lower()
     if parent is None:
-        return url
-    return url + '/' + parent.key.urlsafe()
+        return url_for(endpoint)
+    return url_for(endpoint, db_id=parent.key.urlsafe())
