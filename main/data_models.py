@@ -6,9 +6,9 @@ from google.appengine.ext import ndb
 
 import db
 import mailer
-from html_builder import html
 import renderers
 import urls
+from role_types import RoleType
 
 logger = logging.getLogger('model')
 
@@ -31,7 +31,7 @@ if db.User.query().count() == 0:
     key = user.put()
     
     role = db.Role(parent=key)
-    role.type_index = 0
+    role.type_index = RoleType.USER_ADMIN
     role.committee = ''
     role.put()
 
@@ -89,13 +89,6 @@ def get_owning_committee(entity):
         entity = get_parent(entity)
     return None
 
-def lookup_user_with_role(type):
-    roles = db.Role.query(type_index=type)
-    for role in roles:
-        user = role.key.parent
-        return user
-    return None
-
 def lookup_user_by_email(email):
     user = db.User.query(db.User.email == email).get()
     if user is None:
@@ -109,14 +102,6 @@ def lookup_current_user():
 
 def logout_url():
     return users.create_logout_url('/')
-
-def role_matches(role, role_type, committee):
-    if role.type_index != role_type:
-        return False
-    if role.committee is None or role.committee == "":
-        return True
-    return role.committee == committee
-
         
 def calculate_transferred_amount(payment):
     if payment is None or payment.transfer is None:
@@ -145,15 +130,20 @@ class Model(object):
         self.next_entity = None
         self.entity_deleted = False
 
-    def get_state(self):
-        return self.entity.state_index
+    def get_state(self):       
+        return getattr(self.entity, 'state_index', 0)
 
     def user_has_role(self, role_type):
-        roles = db.Role.query(ancestor=self.user.key).fetch()
-        for r in roles:
-            if role_matches(r, role_type, self.committee):
-                return True
-        return False
+        query = db.Role.query(ancestor=self.user.key).filter(db.Role.type_index==role_type)
+        if role_type == RoleType.COMMITTEE_ADMIN:
+            query = query.filter(db.Role.committee==self.committee)
+        return query.iter().has_next()
+
+    def lookup_users_with_role(self, role_type):
+        query = db.Role.query(db.Role.type_index==role_type)
+        if role_type == RoleType.COMMITTEE_ADMIN:
+            query = query.filter(db.Role.committee==self.committee)
+        return query.map(lambda r: r.key.parent().get())
 
     def add_form(self, action_name, form):
         self.forms[action_name] = form
@@ -207,11 +197,12 @@ class Model(object):
             return
         if self.user.key == self.entity.creator:
             return
+        creator = self.entity.creator.get()
         title = title_of(self.entity)
-        entity_ref = html.a(title, href=urls.url_for_entity(self.entity, external=True))
+        entity_ref = renderers.render_link(title, href=urls.url_for_entity(self.entity, external=True))
         content = renderers.render_single_column((entity_ref, message, self.user.name),
                                                  ('Entity', 'Message', 'User'))
-        mailer.send_email('Workbench Entity State Change', content, [self.user.email])
+        mailer.send_email('Workbench Entity State Change', content, [creator.email])
 
     def __repr__(self):
         return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

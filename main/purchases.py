@@ -103,10 +103,10 @@ ACTION_ADVANCE = views.StateAction('advance', 'Advance Payment', RoleType.COMMIT
                               PurchaseModel.perform_create_payment, [STATE_ORDERED])
 ACTION_INVOICE_PAID = views.StateAction('paid_invoice', 'Paid', RoleType.PAYMENT_ADMIN,
                                 PurchaseModel.perform_paid, [STATE_PAYMENT_DUE])
-ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
+ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING, STATE_READY])
 
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
-ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING, STATE_READY])
+ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_CHECKING])
 
 ACTION_ADVANCE_PAID = views.StateAction('paid_advance', 'Paid', RoleType.PAYMENT_ADMIN,
                                    PurchaseModel.perform_paid, [STATE_ADVANCE_PENDING])
