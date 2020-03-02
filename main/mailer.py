@@ -11,7 +11,7 @@ def send_email(subject, content, to_addresses):
     html_content = render_template('email.html', content=content)
     message = Mail(
         from_email='workbench@pont-mbale.org.uk',
-        to_emails=str(','.join(to_addresses)),
+        to_emails=map(lambda e: str(e), to_addresses),
         subject=subject,
         html_content=HtmlContent(html_content)
     )

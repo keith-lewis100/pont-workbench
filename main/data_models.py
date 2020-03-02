@@ -199,7 +199,7 @@ class Model(object):
             return
         creator = self.entity.creator.get()
         title = title_of(self.entity)
-        entity_ref = renderers.render_link(title, href=urls.url_for_entity(self.entity, external=True))
+        entity_ref = renderers.render_link(title, urls.url_for_entity(self.entity, external=True))
         content = renderers.render_single_column((entity_ref, message, self.user.name),
                                                  ('Entity', 'Message', 'User'))
         mailer.send_email('Workbench Entity State Change', content, [creator.email])
