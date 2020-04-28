@@ -16,6 +16,10 @@ button:disabled {
   cursor: not-allowed
 }
 
+.no-margin {
+    margin: 0
+}
+
 .modal {
     display: none; /* Hidden by default */
     position: fixed; /* Stay in place */

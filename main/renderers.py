@@ -34,9 +34,6 @@ def render_single_column(values, labels):
         rows.append(html.div(legend, values[i]))
     return html.div(rows)
 
-def legend(label):
-    return html.legend(label)
-
 def render_table(column_headers, grid, url_list):
     header = render_header(column_headers)
     if url_list:
@@ -65,6 +62,9 @@ def render_submit_button(label, **kwargs):
 def render_div(*content, **kwargs):
     return html.div(*content, **kwargs)
 
+def render_nav(*content, **kwargs):
+    return html.nav(*content, **kwargs)
+
 def render_logout(user, url):
     return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))
          
@@ -86,5 +86,6 @@ def render_modal_dialog(form_fields, id, action, open=False):
 def sub_heading(heading):
     return (html.br(), html.h3(heading))
 
-def render_error(message):
-    return html.div(message, class_='error')
+def render_errors(errors):
+    error_list = [html.div(error, class_='error') for error in errors]
+    return html.div(*error_list)

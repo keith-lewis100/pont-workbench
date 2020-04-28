@@ -8,21 +8,9 @@ import data_models
 import views
 import properties
 import renderers
-
-import funds
-import projects
-import grants
-import pledges
-import suppliers
-import supplier_funds
-import internal_transfers
-import purchases
-import users
-import roles
 import role_types
-import partners
-import foreign_transfer
-import committees
+
+from page import *
 
 def entity_title(entity):
     kind = entity.key.kind()
@@ -59,7 +47,6 @@ def home():
     return render_template('layout.html', title='DashBoard', user=views.view_user_controls(model), links=links,
                            content=content)
 
-projects.add_rules(app)
 pledges.add_rules(app)
 supplier_funds.add_rules(app)
 users.add_rules(app)

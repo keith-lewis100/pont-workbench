@@ -131,11 +131,11 @@ def view_purchase_list(db_id):
     new_purchase = db.Purchase(parent=fund.key)
     model = PurchaseModel(new_purchase, fund.committee, {})
     add_purchase_form(request.form, model, ACTION_CREATE)
-    property_list = (supplier_field, properties.StringProperty('quote_amount'),
-                     po_number_field, state_field)
-    purchase_list = db.Purchase.query(ancestor=fund.key).order(db.Purchase.po_number).fetch()
+    property_list = (state_field, po_number_field, supplier_field, properties.StringProperty('quote_amount'))
+    purchase_query = db.Purchase.query(ancestor=fund.key).order(-db.Purchase.state_index,
+                                                                db.Purchase.po_number)
     return views.view_std_entity_list(model, 'Purchase List', ACTION_CREATE, property_list,
-                                      purchase_list, parent=fund)
+                                      purchase_query, fund, filtered_db=db.Purchase)
 
 def load_purchase_model(purchase, payment_list, request_data):
     fund = data_models.get_parent(purchase)
@@ -157,8 +157,7 @@ def view_purchase(db_id):
     if request.method == 'POST'and views.handle_post(model, action_list + [ACTION_ADVANCE_PAID, ACTION_INVOICE_PAID]):
         return redirect(request.base_url)
     purchase = model.entity
-    fund = data_models.get_parent(purchase)
-    breadcrumbs = views.view_breadcrumbs(fund, 'Purchase')
+    breadcrumbs = views.view_breadcrumbs_list(purchase)
     property_list = [po_number_field, state_field, quote_amount_field, creator_field, supplier_field, description_field]
     content_list = [views.view_entity(purchase, property_list, 1)]
     for payment in payment_list:

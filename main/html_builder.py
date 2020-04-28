@@ -40,14 +40,10 @@ class Element:
         self._attributes = attributes
         
     def __html__(self):
-        result = '<' + self._name + serialize_attrs(self._attributes)
-        if self._children:
-            result += '>'
-            for child in self._children:
-                result += render_item(child)
-            result += '</' + self._name + '>'
-        else:
-           result += '/>'
+        result = '<' + self._name + serialize_attrs(self._attributes) + '>'
+        for child in self._children:
+            result += render_item(child)
+        result += '</' + self._name + '>'
         return result
 
     def __repr__(self):

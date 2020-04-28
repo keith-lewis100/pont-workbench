@@ -14,8 +14,8 @@ import custom_fields
 from role_types import RoleType
 import urls
 
-import grants
-import purchases
+from . import grants
+from . import purchases
 
 class SupplierForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
@@ -57,9 +57,9 @@ def view_supplier_list():
     model = data_models.Model(new_supplier)
     model.add_form('create', form)
     property_list = (properties.StringProperty('name'), )
-    supplier_list = db.Supplier.query().order(db.Supplier.name).fetch()
+    supplier_query = db.Supplier.query().order(db.Supplier.name)
     return views.view_std_entity_list(model, 'Supplier List', ACTION_CREATE, property_list,
-                                      supplier_list)
+                                      supplier_query)
 
 def get_link_pairs(supplier):
     links = []
@@ -123,7 +123,7 @@ def process_supplier(db_id):
         valid_actions.append(ACTION_TRANSFER_START)
     if request.method == 'POST' and views.handle_post(model, valid_actions):
         return redirect_url(model)
-    breadcrumbs = views.view_breadcrumbs(None, 'Supplier')
+    breadcrumbs = views.view_breadcrumbs_list(supplier)
     links = views.view_links(supplier, *get_link_pairs(supplier))
     fields = (properties.StringProperty('name'), )
     grid = views.view_entity(supplier, fields)

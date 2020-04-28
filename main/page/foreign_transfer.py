@@ -13,8 +13,8 @@ import views
 from role_types import RoleType
 import urls
 
-import grants
-import purchases
+from . import grants
+from . import purchases
 
 STATE_REQUESTED = 1
 STATE_TRANSFERRED = 2
@@ -118,14 +118,20 @@ class ExchangeRateForm(wtforms.Form):
 @app.route('/foreigntransfer_list/<db_id>')
 def view_foreigntransfer_list(db_id):
     supplier = data_models.lookup_entity(db_id)
-    model = data_models.Model(None, None)
+    dummy_transfer = db.ForeignTransfer(parent=supplier.key)
+    model = data_models.Model(dummy_transfer, None)
     breadcrumbs = views.view_breadcrumbs(supplier)
-    transfer_list = db.ForeignTransfer.query(ancestor=supplier.key).order(db.ForeignTransfer.ref_id).fetch()
-    transfer_fields = [creation_date_field, ref_field, state_field, rate_field]
-    entity_table = views.view_entity_list(transfer_list, transfer_fields)
+    transfer_query = db.ForeignTransfer.query(ancestor=supplier.key).order(-db.ForeignTransfer.state_index,
+                                                                           db.ForeignTransfer.ref_id)
+    transfer_fields = [state_field, ref_field, creation_date_field, rate_field]
+    model.show_closed = request.args.has_key('show_closed')
+    db_filter = db.ForeignTransfer.state_index == 0 if model.show_closed else db.ForeignTransfer.state_index > 0
+    transfer_query = transfer_query.filter(db_filter)
+    entity_table = views.view_entity_list(transfer_query.fetch(), transfer_fields)
+    buttons = views.view_actions([views.ACTION_FILTER], model)
     user_controls = views.view_user_controls(model)
     return render_template('layout.html', title='Foreign Transfer List', breadcrumbs=breadcrumbs,
-                           user=user_controls, content=entity_table)
+                           user=user_controls, buttons=buttons, content=entity_table)
 
 def render_grants_due_list(grant_list, selectable=True, no_links=True):
     sub_heading = renderers.sub_heading('Grant Payments')
@@ -166,8 +172,7 @@ def view_foreigntransfer(db_id):
         return redirect(request.base_url)
     transfer_fields = (creation_date_field, ref_field, state_field, rate_field, request_totals_field,
                        shillings_total_field, creator_field)
-    supplier = data_models.get_parent(transfer)
-    breadcrumbs = views.view_breadcrumbs(supplier, 'ForeignTransfer')
+    breadcrumbs = views.view_breadcrumbs_list(transfer)
     grid = views.view_entity(transfer, transfer_fields)
     grant_payments = render_grants_due_list(grant_list)
     purchase_payments = render_purchase_payments_list(payment_list)

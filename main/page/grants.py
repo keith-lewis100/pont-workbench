@@ -80,8 +80,8 @@ class GrantForm(wtforms.Form):
                                 validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 
-def add_grant_form(request_input, model, action):
-    form = GrantForm(request_input, obj=model.entity)
+def add_grant_form(model, action):
+    form = GrantForm(request.form, obj=model.entity)
     project_list = db.Project.query(db.Project.committee == model.committee,
                                     db.Project.state_index == 2).fetch()
     custom_fields.set_field_choices(form._fields['project'], project_list)
@@ -93,18 +93,19 @@ def view_grant_list(db_id):
     new_grant = db.Grant(parent=fund.key)
     new_grant.target_date = date.today() + timedelta(30)
     model = GrantModel(new_grant, fund.committee)
-    add_grant_form(request.form, model, ACTION_CREATE)
-    property_list = (target_date_field, project_field, amount_field, state_field)
-    grant_list = db.Grant.query(ancestor=fund.key).order(db.Grant.target_date).fetch()
+    add_grant_form(model, ACTION_CREATE)
+    property_list = (state_field, target_date_field, project_field, amount_field)
+    grant_query = db.Grant.query(ancestor=fund.key).order(-db.Grant.state_index,
+                          db.Grant.target_date)
     return views.view_std_entity_list(model, 'Grant List', ACTION_CREATE, property_list,
-                                      grant_list, parent=fund)
+                                       grant_query, fund, filtered_db=db.Grant)
 
 @app.route('/grant/<db_id>', methods=['GET', 'POST'])
 def view_grant(db_id):
     grant = data_models.lookup_entity(db_id)
     fund = data_models.get_parent(grant)
     model = GrantModel(grant, fund.committee)
-    add_grant_form(request.form, model, ACTION_UPDATE)
+    add_grant_form(model, ACTION_UPDATE)
     title = 'Grant on ' + str(grant.target_date)
     property_list = (state_field, creator_field, transferred_amount_field, amount_field, 
                      project_field, target_date_field, foreign_transfer_field, description_field)

@@ -25,8 +25,8 @@ def perform_transferred(model, action_name):
     model.audit(action_name, "Transfer performed")
     return True
 
-ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN, 
-                            [TRANSFER_PENDING], perform_transferred)
+ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.FUND_ADMIN,
+                            perform_transferred, [TRANSFER_PENDING])
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [TRANSFER_PENDING])
@@ -53,11 +53,11 @@ def view_internaltransfer_list(db_id):
     new_transfer = db.InternalTransfer(parent=fund.key)
     model = data_models.Model(new_transfer, fund.committee)
     add_transfer_form(request.form, model, ACTION_CREATE)   
-    property_list = (properties.KeyProperty('dest_fund'),
-              properties.StringProperty('amount'), state_field)
-    transfer_list = db.InternalTransfer.query(ancestor = fund.key).fetch()
-    return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE,
-                                      property_list, transfer_list, fund)
+    property_list = (state_field, properties.KeyProperty('dest_fund'),
+              properties.StringProperty('amount'))
+    transfer_query = db.InternalTransfer.query(ancestor = fund.key).order(-db.InternalTransfer.state_index)
+    return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE, property_list, 
+                                      transfer_query, fund, filtered_db=db.InternalTransfer)
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):

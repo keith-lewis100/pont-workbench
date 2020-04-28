@@ -24,7 +24,7 @@ def view_committee_list():
 def view_committee(db_id):
     model = data_models.Model(None)
     committee = data_models.lookup_committee(db_id)
-    breadcrumbs = views.view_breadcrumbs(None, 'Committee')
+    breadcrumbs = views.view_breadcrumbs_list(committee)
     grid = views.view_entity(committee, committee_field_list)
     links = views.view_links(committee, ('Fund', 'Show Funds'))        
     title = 'Committee ' + committee.name

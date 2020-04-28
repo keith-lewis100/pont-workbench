@@ -4,7 +4,6 @@ from flask import render_template, redirect, request
 from flask.views import View
 
 import db
-from html_builder import html
 import renderers
 import data_models
 import custom_fields
@@ -18,19 +17,25 @@ def view_user_controls(model):
 def create_breadcrumbs(entity):
     if entity is None:
         return [renderers.render_link('Dashboard', '/')]
-    parent = data_models.get_parent(entity)
-    listBreadcrumbs = create_breadcrumbs_list(parent, entity.key.kind())
+    listBreadcrumbs = create_breadcrumbs_list(entity)
     return listBreadcrumbs + [" / ", renderers.render_link(entity.name, urls.url_for_entity(entity))]
 
-def create_breadcrumbs_list(parent, kind):
+def create_breadcrumbs_list(entity):
+    parent = data_models.get_parent(entity)
     breadcrumbs = create_breadcrumbs(parent)
-    return breadcrumbs + [" / ", renderers.render_link(kind + " List", urls.url_for_list(kind, parent))]
+    kind = entity.key.kind()
+    query_parameters = {}
+    if hasattr(entity, 'state_index') and entity.state_index == 0:
+        query_parameters = { 'show_closed': 'y' }
+    url = urls.url_for_list(kind, parent, **query_parameters)
+    return breadcrumbs + [" / ", renderers.render_link(kind + " List", url)]
 
-def view_breadcrumbs(entity, list_kind=None):
-    if list_kind:
-        breadcrumbs = create_breadcrumbs_list(entity, list_kind)
-    else:
-        breadcrumbs = create_breadcrumbs(entity)
+def view_breadcrumbs(entity):
+    breadcrumbs = create_breadcrumbs(entity)
+    return renderers.render_div(*breadcrumbs)
+
+def view_breadcrumbs_list(entity):
+    breadcrumbs = create_breadcrumbs_list(entity)
     return renderers.render_div(*breadcrumbs)
 
 def view_entity(entity, fields, num_wide=0):
@@ -55,11 +60,10 @@ def view_link(kind, label, parent=None):
 
 def view_links(parent, *link_pairs):
     links = [view_link(kind, label, parent) for kind, label in link_pairs]
-    return html.nav(*links)
+    return renderers.render_nav(*links)
 
 def view_errors(model):
-    error_list = [renderers.render_error(error) for error in model.errors]
-    return html.div(*error_list)
+    return renderers.render_errors(model.errors)
 
 audit_fields = [
     properties.DateProperty('timestamp'),
@@ -110,6 +114,16 @@ class StateAction(Action):
         state = model.get_state()
         return state in self.allowed_states
 
+class FilterAction:
+    def render(self, model):
+        label = 'Show Open' if model.show_closed else 'Show Closed'
+        query_params = {} if model.show_closed else { 'show_closed': 'y' }
+        parent = data_models.get_parent(model.entity)
+        url = urls.url_for_list(model.entity.key.kind(), parent, **query_params)
+        return renderers.render_link(label, url, class_='button')
+    
+ACTION_FILTER = FilterAction()
+
 def update_action(required_role, allowed_states=None):
     if allowed_states is None:
         return Action('update', 'Edit', required_role, data_models.Model.perform_update)
@@ -133,11 +147,17 @@ def handle_post(model, action_list):
     action = requested_action(action_list)
     return action.process_input(model)
 
-def view_std_entity_list(model, title, create_action, property_list, entity_list, parent=None):
+def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None,
+                          filtered_db=None):
     if request.method == 'POST' and create_action.process_input(model):
         return redirect(request.base_url)
-    entity_table = view_entity_list(entity_list, property_list)
-    buttons = view_actions([create_action], model)
+    if filtered_db:
+        model.show_closed = request.args.has_key('show_closed')
+        db_filter = filtered_db.state_index == 0 if model.show_closed else filtered_db.state_index > 0
+        entity_query = entity_query.filter(db_filter)
+    entity_table = view_entity_list(entity_query.fetch(), property_list)
+    action_list = [create_action, ACTION_FILTER] if filtered_db else [create_action]
+    buttons = view_actions(action_list, model)
     errors = view_errors(model)
     breadcrumbs = view_breadcrumbs(parent)
     user_controls = view_user_controls(model)
@@ -160,14 +180,14 @@ class ListView(View):
         committee = data_models.get_owning_committee(parent)
         model = data_models.Model(entity, committee)
         model.add_form('create', form)
-        entity_list = self.load_entities(parent)
+        entity_query = self.get_entity_query(parent)
         property_list = self.get_fields(form)
         return view_std_entity_list(model, self.name + ' List', self.create_action, property_list, 
-                                    entity_list, parent)
+                                    entity_query, parent)
 
 def view_actions(action_list, model):
     buttons = [action.render(model) for action in action_list]
-    return html.nav(*buttons)
+    return renderers.render_nav(*buttons)
 
 def redirect_url(model):
     if model.entity_deleted:
@@ -183,8 +203,7 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     links = view_links(entity, *link_pairs)
     buttons = view_actions(action_list, model)
     errors = view_errors(model)
-    parent = data_models.get_parent(entity)
-    breadcrumbs = view_breadcrumbs(parent, entity.key.kind())
+    breadcrumbs = view_breadcrumbs_list(entity)
     grid = view_entity(entity, property_list, num_wide)
     history = view_entity_history(entity.key)
     content = renderers.render_div(grid, history)

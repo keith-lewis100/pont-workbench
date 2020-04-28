@@ -129,6 +129,7 @@ class Model(object):
         self.errors=[]
         self.next_entity = None
         self.entity_deleted = False
+        self.show_closed = False
 
     def get_state(self):       
         return getattr(self.entity, 'state_index', 0)

@@ -21,8 +21,8 @@ class UserListView(views.ListView):
     def __init__(self):
         views.ListView.__init__(self, 'User', ACTION_CREATE)
 
-    def load_entities(self, parent):
-        return db.User.query().order(db.User.name).fetch()
+    def get_entity_query(self, parent):
+        return db.User.query().order(db.User.name)
         
     def create_entity(self, parent):
         return db.User()

@@ -36,9 +36,9 @@ def view_role_list(db_id):
     model.add_form(ACTION_CREATE.name, form)
     property_list = map(properties.create_readonly_field, form._fields.keys(),
                         form._fields.values())
-    role_list = db.Role.query(ancestor=user.key).fetch()
+    role_query = db.Role.query(ancestor=user.key)
     return views.view_std_entity_list(model, 'Role List', ACTION_CREATE,
-                                      property_list, role_list, user)
+                                      property_list, role_query, user)
 
 @app.route('/role/<db_id>', methods=['GET', 'POST', 'DELETE'])
 def view_role(db_id):

@@ -52,8 +52,8 @@ class PledgeListView(views.ListView):
     def __init__(self):
         views.ListView.__init__(self, 'Pledge', ACTION_CREATE)
 
-    def load_entities(self, parent):
-        return db.Pledge.query(ancestor=parent.key).order(db.Pledge.ref_id).fetch()
+    def get_entity_query(self, parent):
+        return db.Pledge.query(ancestor=parent.key).order(db.Pledge.ref_id)
 
     def create_entity(self, parent):
         return db.Pledge(parent=parent.key)

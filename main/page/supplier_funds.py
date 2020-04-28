@@ -19,8 +19,8 @@ class SupplierFundListView(views.ListView):
     def __init__(self):
         views.ListView.__init__(self, 'SupplierFund', ACTION_CREATE)
 
-    def load_entities(self, parent):
-        return db.SupplierFund.query(ancestor=parent.key).order(db.SupplierFund.name).fetch()
+    def get_entity_query(self, parent):
+        return db.SupplierFund.query(ancestor=parent.key).order(db.SupplierFund.name)
 
     def create_entity(self, parent):
         return db.SupplierFund(parent=parent.key)
