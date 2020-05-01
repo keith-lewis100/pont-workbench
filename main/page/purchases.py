@@ -64,6 +64,7 @@ class PurchaseModel(data_models.Model):
         payment = db.PurchasePayment(parent=self.entity.key)
         payment.supplier = self.entity.supplier
         payment.payment_type = action_name
+        payment.transfer = None
         form.populate_obj(payment)
         payment.put()
         self.email_and_audit(action_name, "%s amount=%s" % (action_name.capitalize(), payment.amount),

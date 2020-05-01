@@ -4,6 +4,7 @@ from flask import request, redirect, render_template
 from application import app
 import datetime
 import wtforms
+import logging
 
 import db
 import data_models
@@ -32,17 +33,18 @@ def perform_start_transfer(model, action_name):
         model.add_error("No grants or purchase payments are pending - nothing to transfer")
         return False
     transfer = create_transfer(supplier, model.user)
-    model.audit(action_name, 'Transfer started', transfer)
+    parent_audit = model.audit(action_name, 'Transfer started', transfer)
     model.next_entity = transfer
     for grant in grant_list:
         grant.transfer = transfer.key
         grant.put()
-        model.audit(action_name, 'Transfer started', grant)
+        model.audit(action_name, 'Transfer started', grant, parent_audit.key)
     for payment in payment_list:
         payment.transfer = transfer.key
         payment.put()
         purchase = data_models.get_parent(payment)
-        model.audit(action_name, 'Advance Transfer started', purchase)
+        model.audit(action_name, '%s Transfer started' % payment.payment_type.capitalize(),
+                    purchase, parent_audit.key)
     return True
 
 ACTION_TRANSFER_START = views.Action('startTransfer', 'Request Foreign Transfer', RoleType.PAYMENT_ADMIN,

@@ -120,6 +120,19 @@ def calculate_transferred_amount(payment):
 
 STATE_CLOSED = 0
 
+def email_entity_creator(entity, user, message, title_of=lambda e: e.name):
+    if not hasattr(entity, 'creator'):
+        return
+    if user.key == entity.creator:
+        logging.info('not sending email same user %s', user.name)
+        return
+    creator = entity.creator.get()
+    title = title_of(entity)
+    entity_ref = renderers.render_link(title, urls.url_for_entity(entity, external=True))
+    content = renderers.render_single_column((entity_ref, message, user.name),
+                                             ('Entity', 'Message', 'User'))
+    mailer.send_email('Workbench Entity State Change', content, [creator.email])
+
 class Model(object):
     def __init__(self, entity, committee=None):
         self.entity = entity
@@ -176,34 +189,26 @@ class Model(object):
     def perform_close(self, action_name):
         self.entity.state_index = STATE_CLOSED
         self.entity.put()
-        self.audit(action_name, "%s performed" % action_name.title())
-        return True
+        return self.audit(action_name, "%s performed" % action_name.title())
 
     def add_error(self, error_text):
             self.errors.append(error_text)
 
-    def audit(self, action_name, message, entity=None):
+    def audit(self, action_name, message, entity=None, parent_key=None):
         if not entity:
             entity = self.entity
         audit = db.AuditRecord()
         audit.entity = entity.key
+        audit.parent = parent_key
         audit.user = self.user.key
         audit.action = action_name
         audit.message = message
         audit.put()
+        return audit
 
     def email_and_audit(self, action_name, message, title_of=lambda e: e.name):
         self.audit(action_name, message)
-        if not hasattr(self.entity, 'creator'):
-            return
-        if self.user.key == self.entity.creator:
-            return
-        creator = self.entity.creator.get()
-        title = title_of(self.entity)
-        entity_ref = renderers.render_link(title, urls.url_for_entity(self.entity, external=True))
-        content = renderers.render_single_column((entity_ref, message, self.user.name),
-                                                 ('Entity', 'Message', 'User'))
-        mailer.send_email('Workbench Entity State Change', content, [creator.email])
+        email_entity_creator(self.entity, self.user, message, title_of)
 
     def __repr__(self):
         return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

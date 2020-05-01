@@ -121,7 +121,7 @@ def find_ready_grants(supplier):
                                Grant.state_index == 2)).fetch()
 
 def find_pending_payments(supplier):
-    return Grant.query(ndb.AND(PurchasePayment.supplier == supplier.key,
+    return PurchasePayment.query(ndb.AND(PurchasePayment.supplier == supplier.key,
                                PurchasePayment.transfer == None,
                                PurchasePayment.paid == False)).fetch()
 
@@ -156,3 +156,4 @@ class AuditRecord(ndb.Model):
     action = ndb.StringProperty()
     message = ndb.StringProperty()
     timestamp = ndb.DateTimeProperty(auto_now_add=True)
+    parent = ndb.KeyProperty(default=None)

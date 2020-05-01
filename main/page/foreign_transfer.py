@@ -35,14 +35,20 @@ class TransferModel(data_models.Model):
         form.populate_obj(transfer)
         transfer.state_index = STATE_TRANSFERRED
         transfer.put()
+        parent_audit = self.audit(action_name, 'Transfer performed')
         for payment in self.payment_list:
             payment.paid = True
             payment.put()
+            purchase = data_models.get_parent(payment)
             if payment.payment_type == 'invoice':
-                purchase = data_models.get_parent(payment)
                 purchase.state_index = data_models.STATE_CLOSED
                 purchase.put()
-        self.audit(action_name, 'Transfer performed')
+            self.audit(action_name, 'Payment transferred', purchase, parent_audit.key)
+            data_models.email_entity_creator(purchase, self.user, 'Payment transferred',
+                        lambda e: 'Purchase:' + e.po_number)
+        for grant in self.grant_list:
+            data_models.email_entity_creator(grant, self.user, 'Transfer performed',
+                            lambda e: 'Grant:' + e.project.get().name)
         self.send_supplier_email()
         return True
 
@@ -56,14 +62,16 @@ class TransferModel(data_models.Model):
         mailer.send_email('PONT Transfer %s' % transfer.ref_id, content, supplier.contact_emails)
 
     def perform_ack(self, action_name):
-        self.perform_close(action_name)
+        parent_audit = self.perform_close(action_name)
         transfer = self.entity
         for grant in self.grant_list:
             project = grant.project.get()
             if project.partner is None:
                 grant.state_index = data_models.STATE_CLOSED
                 grant.put()
-                self.audit(action_name, 'Transfer received', grant)
+                self.audit(action_name, 'Transfer acknowledged', grant, parent_audit.key)
+                data_models.email_entity_creator(grant, self.user, 'Transfer acknowledged',
+                            lambda e: 'Grant:' + e.project.get().name)
         return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
@@ -87,7 +95,7 @@ def show_shillings(transfer):
 ref_field = properties.StringProperty('ref_id')
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 creator_field = properties.KeyProperty('creator')
-creation_date_field = properties.DateProperty('creation_date')
+creation_date_field = properties.DateProperty('creation_date', format='%Y-%m-%d')
 rate_field = properties.StringProperty('exchange_rate')
 request_totals_field = properties.StringProperty(show_totals, 'Request Totals')
 shillings_total_field = properties.StringProperty(show_shillings, 'Total Amount')
