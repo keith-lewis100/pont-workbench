@@ -120,17 +120,17 @@ def calculate_transferred_amount(payment):
 
 STATE_CLOSED = 0
 
-def email_entity_creator(entity, user, message, title_of=lambda e: e.name):
+def email_entity_creator(entity, user, message):
     if not hasattr(entity, 'creator'):
         return
     if user.key == entity.creator:
         logging.info('not sending email same user %s', user.name)
         return
     creator = entity.creator.get()
-    title = title_of(entity)
-    entity_ref = renderers.render_link(title, urls.url_for_entity(entity, external=True))
-    content = renderers.render_single_column((entity_ref, message, user.name),
-                                             ('Entity', 'Message', 'User'))
+    entity_type = entity.key.kind()
+    entity_ref = renderers.render_link(entity.name, urls.url_for_entity(entity, external=True))
+    content = renderers.render_single_column((entity_type, entity_ref, message, user.name),
+                                             ('EntityType', 'Entity', 'Message', 'User'))
     mailer.send_email('Workbench Entity State Change', content, [creator.email])
 
 class Model(object):
@@ -189,7 +189,7 @@ class Model(object):
     def perform_close(self, action_name):
         self.entity.state_index = STATE_CLOSED
         self.entity.put()
-        return self.audit(action_name, "%s performed" % action_name.title())
+        return self.email_and_audit(action_name, "%s performed" % action_name.title())
 
     def add_error(self, error_text):
             self.errors.append(error_text)
@@ -206,9 +206,9 @@ class Model(object):
         audit.put()
         return audit
 
-    def email_and_audit(self, action_name, message, title_of=lambda e: e.name):
+    def email_and_audit(self, action_name, message):
         self.audit(action_name, message)
-        email_entity_creator(self.entity, self.user, message, title_of)
+        email_entity_creator(self.entity, self.user, message)
 
     def __repr__(self):
         return 'Model(%s, %s)' % (repr(self.entity), self.committee) 

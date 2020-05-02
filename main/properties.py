@@ -52,10 +52,6 @@ class SelectProperty(Property):
         return self.option_map.get(prop, "")
 
 class KeyProperty(Property):
-    def __init__(self, attr, label=None, title_of=lambda e : e.name):
-        super(KeyProperty, self).__init__(attr, label)
-        self.title_of = title_of
-        
     def str_for(self, entity, no_links):
         key = self.value_for(entity)
         if not key:
@@ -63,10 +59,9 @@ class KeyProperty(Property):
         target = key.get()
         if not target:
             return ""
-        title = self.title_of(target)
         if no_links:
-            return title
-        return html.a(title, href=url_for_entity(target))
+            return target.name
+        return html.a(target.name, href=url_for_entity(target))
 
 class DateProperty(Property):
     def __init__(self, attr, label=None, format='%Y-%m-%d %H:%M:%S'):

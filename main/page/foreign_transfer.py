@@ -44,11 +44,9 @@ class TransferModel(data_models.Model):
                 purchase.state_index = data_models.STATE_CLOSED
                 purchase.put()
             self.audit(action_name, 'Payment transferred', purchase, parent_audit.key)
-            data_models.email_entity_creator(purchase, self.user, 'Payment transferred',
-                        lambda e: 'Purchase:' + e.po_number)
+            data_models.email_entity_creator(purchase, self.user, 'Payment transferred')
         for grant in self.grant_list:
-            data_models.email_entity_creator(grant, self.user, 'Transfer performed',
-                            lambda e: 'Grant:' + e.project.get().name)
+            data_models.email_entity_creator(grant, self.user, 'Transfer performed')
         self.send_supplier_email()
         return True
 
@@ -70,8 +68,7 @@ class TransferModel(data_models.Model):
                 grant.state_index = data_models.STATE_CLOSED
                 grant.put()
                 self.audit(action_name, 'Transfer acknowledged', grant, parent_audit.key)
-                data_models.email_entity_creator(grant, self.user, 'Transfer acknowledged',
-                            lambda e: 'Grant:' + e.project.get().name)
+                data_models.email_entity_creator(grant, self.user, 'Transfer acknowledged')
         return True
 
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 

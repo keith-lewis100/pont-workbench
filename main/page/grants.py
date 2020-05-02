@@ -50,8 +50,7 @@ def perform_checked(model, action_name):
     entity.state_index = STATE_READY
     entity.transfer = None
     entity.put()
-    model.email_and_audit(action_name, 'Checked performed',
-                          lambda e: 'Grant:' + e.project.get().name)
+    model.email_and_audit(action_name, 'Checked performed')
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
                                    perform_checked, [STATE_WAITING])
@@ -71,7 +70,7 @@ transferred_amount_field = properties.StringProperty(data_models.calculate_trans
 source_field = properties.StringProperty(lambda e: e.key.parent().get().code, 'Source Fund')
 target_date_field = properties.DateProperty('target_date', format='%Y-%m')
 description_field = properties.StringProperty('description')
-foreign_transfer_field = properties.KeyProperty('transfer', title_of=lambda e: e.ref_id)
+foreign_transfer_field = properties.KeyProperty('transfer')
 
 class GrantForm(wtforms.Form):
     amount = wtforms.FormField(custom_fields.MoneyForm, label='Requested Amount', widget=custom_fields.form_field_widget)

@@ -34,9 +34,6 @@ payment_type_field = properties.StringProperty(lambda e: e.payment_type.capitali
 payment_transferred_field = properties.StringProperty(lambda e: data_models.calculate_transferred_amount(e), 
                                     'Transferred Amount')
 
-def purchase_title(purchase):
-    return 'Purchase:%s' % purchase.po_number
-
 class PurchaseModel(data_models.Model):
     def __init__(self, entity, committee, payments):
         super(PurchaseModel, self).__init__(entity, committee)
@@ -48,13 +45,13 @@ class PurchaseModel(data_models.Model):
         ref = data_models.get_next_ref()
         entity.po_number = 'MB%04d' % ref
         entity.put()
-        self.email_and_audit(action_name, "Check performed", purchase_title)
+        self.email_and_audit(action_name, "Check performed")
         return True
 
     def perform_ordered(self, action_name):
         self.entity.state_index = STATE_ORDERED
         self.entity.put()
-        self.email_and_audit(action_name, "Ordered performed", purchase_title)
+        self.email_and_audit(action_name, "Ordered performed")
         return True
 
     def perform_create_payment(self, action_name):
@@ -67,8 +64,7 @@ class PurchaseModel(data_models.Model):
         payment.transfer = None
         form.populate_obj(payment)
         payment.put()
-        self.email_and_audit(action_name, "%s amount=%s" % (action_name.capitalize(), payment.amount),
-                             purchase_title)
+        self.email_and_audit(action_name, "%s amount=%s" % (action_name.capitalize(), payment.amount))
         return True
 
     def perform_paid(self, action_name):
@@ -79,7 +75,7 @@ class PurchaseModel(data_models.Model):
         if payment_type == 'invoice':
             self.entity.state_index = data_models.STATE_CLOSED
             self.entity.put()
-        self.email_and_audit(action_name, "Paid %s" % payment_type, purchase_title)
+        self.email_and_audit(action_name, "Paid %s" % payment_type)
         return True
 
     def get_state(self):

@@ -2,6 +2,7 @@
 
 from google.appengine.ext import ndb
 import json
+import role_types
 
 class Money:
     def __init__(self, currency='sterling', value=None):
@@ -45,6 +46,10 @@ class Role(ndb.Model):
     type_index = ndb.IntegerProperty()
     committee = ndb.StringProperty()
 
+    @property
+    def name(self):
+        return dict(role_types.get_choices()).get(self.type_index, "")
+
 # Top level
 class Supplier(ndb.Model):
     name = ndb.StringProperty()
@@ -69,6 +74,10 @@ class ForeignTransfer(ndb.Model):
     creator = ndb.KeyProperty(kind=User)
     exchange_rate = ndb.IntegerProperty()
     creation_date = ndb.DateProperty(auto_now_add = True)
+
+    @property
+    def name(self):
+        return self.ref_id
 
 # Top level
 class Fund(ndb.Model):
@@ -109,6 +118,10 @@ class Grant(ndb.Model):
     transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
     supplier = ndb.KeyProperty(kind=Supplier)
 
+    @property
+    def name(self):
+        return "Grant-" + self.project.get().name
+
 def find_pending_grants(supplier, cutoff_date):
     return Grant.query(ndb.AND(Grant.target_date <= cutoff_date, 
                                Grant.supplier == supplier.key,
@@ -133,6 +146,10 @@ class Pledge(ndb.Model):
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
 
+    @property
+    def name(self):
+        return self.ref_id
+
 # ancestor = Payment
 class PurchasePayment(ndb.Model):
     payment_type = ndb.StringProperty()
@@ -149,6 +166,12 @@ class Purchase(ndb.Model):
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
+
+    @property
+    def name(self):
+        if self.po_number:
+            return self.po_number
+        return "Purchase"
 
 class AuditRecord(ndb.Model):
     entity = ndb.KeyProperty()

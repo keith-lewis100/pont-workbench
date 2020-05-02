@@ -12,23 +12,10 @@ import role_types
 
 from page import *
 
-def entity_title(entity):
-    kind = entity.key.kind()
-    if hasattr(entity, 'name'):
-        return "%s:%s" % (kind, entity.name)
-    if hasattr(entity, 'ref_id'):
-        return "%s:%s" %(kind, entity.ref_id)
-    if kind == 'Grant':
-        return "Grant:%s" % entity.project.get().name
-    if kind == 'Purchase' and entity.po_number is not None:
-        return "Purchase:%s" % entity.po_number
-    if kind == 'Role':
-        return 'Role:%s' % dict(role_types.get_choices()).get(entity.type_index, "")
-    return kind
-
 audit_fields = [
     properties.DateProperty('timestamp'),
-    properties.KeyProperty('entity', title_of=entity_title),
+    properties.StringProperty(lambda e: e.entity.kind(), 'EntityType'),
+    properties.KeyProperty('entity'),
     properties.StringProperty('message'),
     properties.KeyProperty('user')
 ]
