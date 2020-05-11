@@ -4,6 +4,7 @@ from flask import request
 import wtforms
 
 from application import app
+import custom_fields
 import db
 import data_models
 import properties
@@ -18,7 +19,8 @@ ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.COMMITTEE_ADMIN)
 
 class FundForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
+                                           custom_fields.unique_name_validator(db.Fund)])
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 

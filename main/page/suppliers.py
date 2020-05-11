@@ -19,7 +19,8 @@ from . import grants
 from . import purchases
 
 class SupplierForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
+                                    custom_fields.unique_name_validator(db.Supplier)])
     receives_grants = wtforms.BooleanField()
     paid_in_sterling = wtforms.BooleanField()
     contact_emails = custom_fields.CsvListField()

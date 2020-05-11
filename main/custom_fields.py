@@ -1,6 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
-from wtforms import widgets, Form, FormField, IntegerField, SelectFieldBase, Field, validators
+from wtforms import widgets, Form, FormField, IntegerField, SelectFieldBase
+from wtforms import Field, validators, ValidationError
 from html_builder import html
 import renderers
 
@@ -91,3 +92,11 @@ class MoneyForm(Form):
                     widget=radio_field_widget, default='sterling')
     value = IntegerField(validators=[validators.NumberRange(min=10)])
 
+def unique_name_validator(table):
+    
+    def uniqueness_test(form, field):
+        existing = table.query(table.name == field.data).count(1)
+        if existing > 0:
+            raise ValidationError('entity named %s already exists' % field.data)
+
+    return uniqueness_test

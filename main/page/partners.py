@@ -2,6 +2,7 @@
 
 import wtforms
 
+import custom_fields
 import db
 import properties
 import views
@@ -11,7 +12,8 @@ ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 
 class PartnerForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
+                                           custom_fields.unique_name_validator(db.Partner)])
 
 class PartnerListView(views.ListView):
     def __init__(self):
