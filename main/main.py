@@ -27,8 +27,7 @@ def home():
                 ('Committee', 'Show Committees'),
                 ('Supplier', 'Show Suppliers'),
                 ('User', 'Show Users'))
-    audit_list = db.AuditRecord.query().order(-db.AuditRecord.timestamp).iter(limit = 10)
-    audit_list = [ a for a in audit_list if a.parent is None ]
+    audit_list = db.AuditRecord.query(db.AuditRecord.parent == None).order(-db.AuditRecord.timestamp).fetch(10)
     sub_heading = renderers.sub_heading('Recent Activity')
     table = views.view_entity_list(audit_list, audit_fields, selectable=False, no_links=False)
     content = renderers.render_div(sub_heading, table)

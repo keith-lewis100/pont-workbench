@@ -70,7 +70,7 @@ class Partner(ndb.Model):
 # ancestor = Supplier
 class ForeignTransfer(ndb.Model):
     ref_id = ndb.StringProperty()
-    state_index = ndb.IntegerProperty(default=1)
+    state_index = ndb.IntegerProperty(default = None)
     creator = ndb.KeyProperty(kind=User)
     exchange_rate = ndb.IntegerProperty()
     creation_date = ndb.DateProperty(auto_now_add = True)
@@ -85,6 +85,7 @@ class Fund(ndb.Model):
     description = ndb.StringProperty()
     committee = ndb.StringProperty()
     code = ndb.StringProperty()
+    state_index = ndb.IntegerProperty(default=1)
 
 # ancestor = Fund
 class InternalTransfer(ndb.Model):

@@ -90,7 +90,7 @@ class CsvListField(Field):
 class MoneyForm(Form):
     currency = SelectField(choices=[('sterling', u'£'), ('ugx', u'Ush')],
                     widget=radio_field_widget, default='sterling')
-    value = IntegerField(validators=[validators.NumberRange(min=10)])
+    value = IntegerField(validators=[validators.NumberRange(min=0)])
 
 def unique_name_validator(table):
     
