@@ -37,8 +37,7 @@ ACTION_CLOSE = views.StateAction('close', 'Close', RoleType.PROJECT_CREATOR,
 action_list = [ACTION_UPDATE, ACTION_APPROVE, ACTION_CLOSE]
 
 class ProjectForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
-                                   custom_fields.unique_name_validator(db.Project)])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     committee = custom_fields.SelectField(label='Primary Committee', choices=data_models.committee_labels)
     multi_committee = wtforms.BooleanField()
     fund = custom_fields.SelectField(coerce=data_models.create_key)

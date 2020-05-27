@@ -38,8 +38,7 @@ ACTION_CLOSE = views.StateAction('close', 'Close', RoleType.COMMITTEE_ADMIN,
                        close_fund, [1])
 
 class FundForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
-                                           custom_fields.unique_name_validator(db.Fund)])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     code = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
 

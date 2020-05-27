@@ -32,7 +32,9 @@ def render_item(item):
         return result
         
     return escape(item, quote=False)
-    
+
+VOID_ELEMENTS = [ 'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+                  'meta', 'param', 'source', 'track', 'wbr']
 class Element:
     def __init__(self, name, children, attributes):
         self._name = name
@@ -43,7 +45,8 @@ class Element:
         result = '<' + self._name + serialize_attrs(self._attributes) + '>'
         for child in self._children:
             result += render_item(child)
-        result += '</' + self._name + '>'
+        if not self._name in VOID_ELEMENTS:
+            result += '</' + self._name + '>'
         return result
 
     def __repr__(self):

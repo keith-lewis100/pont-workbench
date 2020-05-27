@@ -12,8 +12,7 @@ ACTION_UPDATE = views.update_action(RoleType.USER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.USER_ADMIN)
 
 class UserForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
-                                           custom_fields.unique_name_validator(db.User)])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     email =  wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
 name_field = properties.StringProperty('name')

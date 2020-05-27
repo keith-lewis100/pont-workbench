@@ -12,8 +12,7 @@ ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 
 class SupplierFundForm(wtforms.Form):
-    name = wtforms.StringField(validators=[wtforms.validators.InputRequired(),
-                                   custom_fields.unique_name_validator(db.SupplierFund)])
+    name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
     description = wtforms.TextAreaField()
     partner_required = wtforms.BooleanField('Project Partner Required')
 
