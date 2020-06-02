@@ -70,7 +70,7 @@ class Partner(ndb.Model):
 # ancestor = Supplier
 class ForeignTransfer(ndb.Model):
     ref_id = ndb.StringProperty()
-    state_index = ndb.IntegerProperty(default = None)
+    state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
     exchange_rate = ndb.IntegerProperty()
     creation_date = ndb.DateProperty(auto_now_add = True)
