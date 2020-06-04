@@ -1,9 +1,9 @@
 #_*_ coding: UTF-8 _*_
 
+from application import app
 from flask import request
 import wtforms
 
-from application import app
 import db
 import data_models
 import renderers
@@ -51,13 +51,13 @@ def add_transfer_form(request_data, model, action):
 def view_internaltransfer_list(db_id):
     fund = data_models.lookup_entity(db_id)
     new_transfer = db.InternalTransfer(parent=fund.key)
-    model = data_models.Model(new_transfer, fund.committee)
+    model = data_models.Model(new_transfer, fund.committee, db.InternalTransfer)
     add_transfer_form(request.form, model, ACTION_CREATE)   
     property_list = (state_field, properties.KeyProperty('dest_fund'),
               properties.StringProperty('amount'))
     transfer_query = db.InternalTransfer.query(ancestor = fund.key).order(-db.InternalTransfer.state_index)
     return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE, property_list, 
-                                      transfer_query, fund, filtered_db=db.InternalTransfer)
+                                      transfer_query, fund)
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):

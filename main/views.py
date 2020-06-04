@@ -147,43 +147,20 @@ def handle_post(model, action_list):
     action = requested_action(action_list)
     return action.process_input(model)
 
-def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None,
-                          filtered_db=None):
+def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None):
     if request.method == 'POST' and create_action.process_input(model):
         return redirect(request.base_url)
-    if filtered_db:
+    action_list = [create_action]
+    if model.is_stateful():
         model.show_closed = request.args.has_key('show_closed')
-        db_filter = filtered_db.state_index == 0 if model.show_closed else filtered_db.state_index > 0
-        entity_query = entity_query.filter(db_filter)
-    entity_table = view_entity_list(entity_query.fetch(), property_list)
-    action_list = [create_action, ACTION_FILTER] if filtered_db else [create_action]
+        action_list.append(ACTION_FILTER)
+    entity_table = view_entity_list(model.apply_query(entity_query), property_list)
     buttons = view_actions(action_list, model)
     errors = view_errors(model)
     breadcrumbs = view_breadcrumbs(parent)
     user_controls = view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
                            buttons=buttons, errors=errors, content=entity_table)
-
-class ListView(View):
-    methods = ['GET', 'POST']
-    
-    def __init__(self, name, create_action):
-        self.name = name
-        self.create_action = create_action
-        
-    def dispatch_request(self, db_id=None):
-        parent = None
-        if db_id:
-            parent = data_models.lookup_entity(db_id)
-        entity = self.create_entity(parent)
-        form = self.create_form(request.form, entity)
-        committee = data_models.get_owning_committee(parent)
-        model = data_models.Model(entity, committee)
-        model.add_form('create', form)
-        entity_query = self.get_entity_query(parent)
-        property_list = self.get_fields(form)
-        return view_std_entity_list(model, self.name + ' List', self.create_action, property_list, 
-                                    entity_query, parent)
 
 def view_actions(action_list, model):
     buttons = [action.render(model) for action in action_list]
@@ -210,25 +187,3 @@ def view_std_entity(model, title, property_list, action_list=[], num_wide=0, lin
     user_controls = view_user_controls(model)
     return render_template('layout.html', title=title, breadcrumbs=breadcrumbs, user=user_controls,
                            links=links, buttons=buttons, errors=errors, content=content)
-
-class EntityView(View):
-    methods = ['GET', 'POST']
-
-    def __init__(self, update_action, num_wide=0, *actions):
-        self.update_action = update_action
-        self.num_wide = num_wide
-        self.actions = actions
-
-    def get_link_pairs(self):
-        return []
-        
-    def dispatch_request(self, db_id):
-        entity = data_models.lookup_entity(db_id)
-        form = self.create_form(request.form, entity)
-        committee = data_models.get_owning_committee(entity)
-        model = data_models.Model(entity, committee)
-        model.add_form('update', form)
-        action_list = [self.update_action] + list(self.actions)
-        title = self.title(entity)
-        property_list = self.get_fields(form)
-        return view_std_entity(model, title, property_list, action_list, self.num_wide, self.get_link_pairs())

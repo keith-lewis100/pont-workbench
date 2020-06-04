@@ -1,8 +1,11 @@
 #_*_ coding: UTF-8 _*_
 
+from flask import request
+from application import app
 import wtforms
 
 import custom_fields
+import data_models
 import db
 import views
 import properties
@@ -18,38 +21,25 @@ class UserForm(wtforms.Form):
 name_field = properties.StringProperty('name')
 email_field = properties.StringProperty('email')
 
-class UserListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'User', ACTION_CREATE)
+@app.route('/user_list', methods=['GET', 'POST'])
+def view_user_list():
+    new_user = db.User()
+    model = data_models.Model(new_user, None, db.User)
+    form = UserForm(request.form, obj=new_user)
+    model.add_form(ACTION_CREATE.name, form)
+    user_query = db.User.query().order(db.User.name)
+    property_list = (name_field, email_field)
+    return views.view_std_entity_list(model, 'User List', ACTION_CREATE, property_list,
+                                      user_query)
 
-    def get_entity_query(self, parent):
-        return db.User.query().order(db.User.name)
-        
-    def create_entity(self, parent):
-        return db.User()
-        
-    def create_form(self, request_input, entity):
-        return UserForm(request_input, obj=entity)
+link_pairs = [('Role', 'Show Roles')]
 
-    def get_fields(self, form):
-        return (name_field, email_field)
-
-class UserView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE)
-
-    def title(self, entity):
-        return 'User ' + entity.name
-        
-    def create_form(self, request_input, entity):
-        return UserForm(request_input, obj=entity)
-        
-    def get_fields(self, form):
-        return (name_field, email_field)
-        
-    def get_link_pairs(self):
-        return [('Role', 'Show Roles')]
-
-def add_rules(app):
-    app.add_url_rule('/user_list', view_func=UserListView.as_view('view_user_list'))
-    app.add_url_rule('/user/<db_id>/', view_func=UserView.as_view('view_user'))
+@app.route('/user/<db_id>', methods=['GET', 'POST'])
+def view_user(db_id):
+    user = data_models.lookup_entity(db_id)
+    model = data_models.Model(user, None, db.User)
+    form = UserForm(request.form, obj=user)
+    model.add_form(ACTION_UPDATE.name, form)
+    property_list = (name_field, email_field)
+    return views.view_std_entity(model, 'User ' + user.name, property_list, (ACTION_UPDATE, ),
+                                 0, link_pairs)    

@@ -36,7 +36,7 @@ payment_transferred_field = properties.StringProperty(lambda e: data_models.calc
 
 class PurchaseModel(data_models.Model):
     def __init__(self, entity, committee, payments):
-        super(PurchaseModel, self).__init__(entity, committee)
+        super(PurchaseModel, self).__init__(entity, committee, db.Purchase)
         self.payments = payments
  
     def perform_checked(self, action_name):
@@ -132,7 +132,7 @@ def view_purchase_list(db_id):
     purchase_query = db.Purchase.query(ancestor=fund.key).order(-db.Purchase.state_index,
                                                                 db.Purchase.po_number)
     return views.view_std_entity_list(model, 'Purchase List', ACTION_CREATE, property_list,
-                                      purchase_query, fund, filtered_db=db.Purchase)
+                                      purchase_query, fund)
 
 def load_purchase_model(purchase, payment_list, request_data):
     fund = data_models.get_parent(purchase)

@@ -1,12 +1,17 @@
 #_*_ coding: UTF-8 _*_
 
+from flask import request
+from application import app
 import wtforms
 
 import custom_fields
+import data_models
 import db
 import properties
 import views
 from role_types import RoleType
+
+name_field = properties.StringProperty('name')
 
 ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
@@ -14,35 +19,22 @@ ACTION_CREATE = views.create_action(RoleType.SUPPLIER_ADMIN)
 class PartnerForm(wtforms.Form):
     name = wtforms.StringField(validators=[wtforms.validators.InputRequired()])
 
-class PartnerListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Partner', ACTION_CREATE)
+@app.route('/partner_list/<db_id>', methods=['GET', 'POST'])
+def view_partner_list(db_id):
+    supplier = data_models.lookup_entity(db_id)
+    new_partner = db.Partner(parent=supplier.key)
+    model = data_models.Model(new_partner, None, db.Partner)
+    form = PartnerForm(request.form, obj=new_partner)
+    model.add_form(ACTION_CREATE.name, form)
+    partner_query = db.Partner.query(ancestor=supplier.key).order(db.Partner.name)
+    return views.view_std_entity_list(model, 'Partner List', ACTION_CREATE, (name_field, ),
+                                      partner_query, supplier)
 
-    def get_entity_query(self, parent):
-        return db.Partner.query(ancestor=parent.key).order(db.Partner.name)
-
-    def create_entity(self, parent):
-        return db.Partner(parent=parent.key)
- 
-    def create_form(self, request_input, entity):
-        return PartnerForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        return (properties.StringProperty('name'), )
-
-class PartnerView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE)
-        
-    def title(self, entity):
-        return 'Partner ' + entity.name
- 
-    def create_form(self, request_input, entity):
-        return PartnerForm(request_input, obj=entity)
-        
-    def get_fields(self, form):
-        return (properties.StringProperty('name'), )
-
-def add_rules(app):
-    app.add_url_rule('/partner_list/<db_id>', view_func=PartnerListView.as_view('view_partner_list'))
-    app.add_url_rule('/partner/<db_id>/', view_func=PartnerView.as_view('view_partner'))
+@app.route('/partner/<db_id>', methods=['GET', 'POST'])
+def view_partner(db_id):
+    partner = data_models.lookup_entity(db_id)
+    supplier = data_models.get_parent(partner)
+    model = data_models.Model(partner, None, db.Partner)
+    form = PartnerForm(request.form, obj=partner)
+    model.add_form(ACTION_UPDATE.name, form)
+    return views.view_std_entity(model, 'Partner ' + partner.name, (name_field, ), (ACTION_UPDATE, ))    

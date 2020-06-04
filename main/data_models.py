@@ -82,13 +82,6 @@ def get_parent(entity):
          return lookup_committee(entity.committee)
     return None
 
-def get_owning_committee(entity):
-    while entity:
-        if entity.key.kind() == 'Fund':
-            return entity.committee
-        entity = get_parent(entity)
-    return None
-
 def lookup_user_by_email(email):
     user = db.User.query(db.User.email == email).get()
     if user is None:
@@ -134,9 +127,10 @@ def email_entity_creator(entity, user, message):
     mailer.send_email('Workbench Entity State Change', content, [creator.email])
 
 class Model(object):
-    def __init__(self, entity, committee=None):
+    def __init__(self, entity, committee=None, table=None):
         self.entity = entity
         self.committee = committee
+        self.table = table
         self.user = lookup_current_user()
         self.forms = {}
         self.errors=[]
@@ -165,9 +159,22 @@ class Model(object):
     def get_form(self, action_name):
         return self.forms.get(action_name)
 
+    def is_stateful(self):
+        return hasattr(self.table, 'state_index')
+
+    def apply_query(self, entity_query):
+        if not hasattr(self.table, 'state_index'):
+            return entity_query.fetch()
+        if self.show_closed:
+            return entity_query.filter(self.table.state_index == 0).fetch()
+        else:
+            return entity_query.filter(self.table.state_index > 0).fetch()
+
     def perform_create(self, action_name):
         form = self.get_form(action_name)
         if not form.validate():
+            return False
+        if not self.check_uniqueness(form):
             return False
         entity = self.entity
         form.populate_obj(entity)
@@ -177,9 +184,26 @@ class Model(object):
         self.audit(action_name, "Create performed")
         return True
 
+    def check_uniqueness(self, form):
+        if not hasattr(form, 'name'):
+            return True
+        name = form.name.data
+        if name == self.entity.name:
+            return True
+        parent_key = None
+        if self.entity.key:
+            parent_key = self.entity.key.parent()
+        existing = self.table.query(self.table.name == name, ancestor=parent_key).count(1)
+        if existing > 0:
+            form.name.errors = [ 'Entity named %s already exists' % name ]
+            return False
+        return True
+
     def perform_update(self, action_name):
         form = self.get_form(action_name)
         if not form.validate():
+            return False
+        if not self.check_uniqueness(form):
             return False
         form.populate_obj(self.entity)
         self.entity.put()

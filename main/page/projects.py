@@ -73,19 +73,19 @@ def create_project_form(project, supplier):
 def view_project_list(db_id):
     supplier = data_models.lookup_entity(db_id)
     new_project = db.Project(parent=supplier.key)
-    model = data_models.Model(new_project, None)
+    model = data_models.Model(new_project, None, db.Project)
     form = create_project_form(new_project, supplier)
     model.add_form(ACTION_CREATE.name, form)
     property_list = (state_field, properties.StringProperty('name', 'Name'))
     project_query = db.Project.query(ancestor=supplier.key).order(-db.Project.state_index, db.Project.name)
     return views.view_std_entity_list(model, 'Project List', ACTION_CREATE, property_list,
-                                       project_query, supplier, filtered_db=db.Project)
+                                       project_query, supplier)
 
 @app.route('/project/<db_id>', methods=['GET', 'POST'])
 def view_project(db_id):
     project = data_models.lookup_entity(db_id)
     supplier = data_models.get_parent(project)
-    model = data_models.Model(project, None)
+    model = data_models.Model(project, None, db.Project)
     form = create_project_form(project, supplier)
     model.add_form(ACTION_UPDATE.name, form)
     property_list = [state_field] + map(properties.create_readonly_field, 

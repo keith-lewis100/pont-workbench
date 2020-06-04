@@ -1,5 +1,7 @@
 #_*_ coding: UTF-8 _*_
 
+from application import app
+from flask import request
 import wtforms
 
 import db
@@ -40,6 +42,7 @@ ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_PENDING])
 ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_create)
 
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
+ref_id_field = properties.StringProperty('ref_id', 'Reference')
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -48,39 +51,28 @@ class PledgeForm(wtforms.Form):
     amount = wtforms.FormField(MoneyForm, widget=custom_fields.form_field_widget)
     description = wtforms.TextAreaField()
 
-class PledgeListView(views.ListView):
-    def __init__(self):
-        views.ListView.__init__(self, 'Pledge', ACTION_CREATE)
+@app.route('/pledge_list/<db_id>', methods=['GET', 'POST'])
+def view_pledge_list(db_id):
+    fund = data_models.lookup_entity(db_id)
+    new_pledge = db.Pledge(parent=fund.key)
+    model = data_models.Model(new_pledge, fund.committee, db.Pledge)
+    form = PledgeForm(request.form, obj=new_pledge)
+    model.add_form(ACTION_CREATE.name, form)
+    property_list = (state_field, ref_id_field, properties.StringProperty('amount'))
+    pledge_query = db.Pledge.query(ancestor=fund.key).order(-db.Pledge.state_index,
+                                                            db.Pledge.ref_id)
+    return views.view_std_entity_list(model, 'Pledge List', ACTION_CREATE, property_list, 
+                                      pledge_query, fund)
 
-    def get_entity_query(self, parent):
-        return db.Pledge.query(ancestor=parent.key).order(db.Pledge.ref_id)
-
-    def create_entity(self, parent):
-        return db.Pledge(parent=parent.key)
-        
-    def create_form(self, request_input, entity):
-        return PledgeForm(request_input, obj=entity)
-
-    def get_fields(self, form):
-        ref_id = properties.StringProperty('ref_id', 'Reference')
-        return (ref_id, properties.StringProperty('amount'), state_field)
-
-class PledgeView(views.EntityView):
-    def __init__(self):
-        views.EntityView.__init__(self, ACTION_UPDATE, 1, ACTION_FULFILLED, ACTION_BOOKED)
-
-    def title(self, entity):
-        return 'Pledge'
-        
-    def create_form(self, request_input, entity):
-        return PledgeForm(request_input, obj=entity)
-        
-    def get_fields(self, form):
-        ref_id = properties.StringProperty('ref_id', 'Reference')
-        creator = properties.KeyProperty('creator')
-        return [ref_id, state_field, creator] + map(properties.create_readonly_field, 
-                    form._fields.keys(), form._fields.values())
-
-def add_rules(app):
-    app.add_url_rule('/pledge_list/<db_id>', view_func=PledgeListView.as_view('view_pledge_list'))
-    app.add_url_rule('/pledge/<db_id>/', view_func=PledgeView.as_view('view_pledge'))
+@app.route('/pledge/<db_id>', methods=['GET', 'POST'])
+def view_pledge(db_id):
+    pledge = data_models.lookup_entity(db_id)
+    fund = data_models.get_parent(pledge)
+    model = data_models.Model(pledge, fund.committee)
+    form = PledgeForm(request.form, obj=pledge)
+    model.add_form(ACTION_UPDATE.name, form)
+    title = 'Pledge ' + pledge.ref_id
+    property_list = (ref_id_field, state_field, properties.KeyProperty('creator'),
+              properties.StringProperty('amount'), properties.StringProperty('description'))
+    return views.view_std_entity(model, title, property_list,
+                                 (ACTION_UPDATE, ACTION_FULFILLED, ACTION_BOOKED))

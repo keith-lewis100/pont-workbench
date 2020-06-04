@@ -91,13 +91,13 @@ def view_grant_list(db_id):
     fund = data_models.lookup_entity(db_id)
     new_grant = db.Grant(parent=fund.key)
     new_grant.target_date = date.today() + timedelta(30)
-    model = GrantModel(new_grant, fund.committee)
+    model = GrantModel(new_grant, fund.committee, db.Grant)
     add_grant_form(model, ACTION_CREATE)
     property_list = (state_field, target_date_field, project_field, amount_field)
     grant_query = db.Grant.query(ancestor=fund.key).order(-db.Grant.state_index,
                           db.Grant.target_date)
     return views.view_std_entity_list(model, 'Grant List', ACTION_CREATE, property_list,
-                                       grant_query, fund, filtered_db=db.Grant)
+                                       grant_query, fund)
 
 @app.route('/grant/<db_id>', methods=['GET', 'POST'])
 def view_grant(db_id):

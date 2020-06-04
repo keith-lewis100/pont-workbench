@@ -33,8 +33,3 @@ def home():
     content = renderers.render_div(sub_heading, table)
     return render_template('layout.html', title='DashBoard', user=views.view_user_controls(model), links=links,
                            content=content)
-
-pledges.add_rules(app)
-supplier_funds.add_rules(app)
-users.add_rules(app)
-partners.add_rules(app)

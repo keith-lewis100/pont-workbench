@@ -56,7 +56,7 @@ ACTION_UPDATE = views.update_action(RoleType.SUPPLIER_ADMIN)
 def view_supplier_list():
     new_supplier = db.Supplier()
     form = SupplierForm(request.form, obj=new_supplier)
-    model = data_models.Model(new_supplier)
+    model = data_models.Model(new_supplier, None, db.Supplier)
     model.add_form('create', form)
     property_list = (properties.StringProperty('name'), )
     supplier_query = db.Supplier.query().order(db.Supplier.name)
@@ -118,7 +118,7 @@ def process_supplier(db_id):
         form = SupplierForm(request.form)
     else:
         form = SupplierForm(obj=supplier)
-    model = data_models.Model(supplier, None)
+    model = data_models.Model(supplier, None, db.Supplier)
     model.add_form('update', form)
     valid_actions = [ACTION_UPDATE]
     if not supplier.paid_in_sterling:
