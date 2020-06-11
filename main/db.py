@@ -153,7 +153,7 @@ class Pledge(ndb.Model):
 
 # ancestor = Payment
 class PurchasePayment(ndb.Model):
-    payment_type = ndb.StringProperty()
+    payment_type = ndb.StringProperty() # advance or invoice
     supplier = ndb.KeyProperty(kind=Supplier)
     amount = MoneyProperty(default=Money())
     transfer = ndb.KeyProperty(kind=ForeignTransfer, default=None)
@@ -167,6 +167,8 @@ class Purchase(ndb.Model):
     po_number = ndb.StringProperty()
     supplier = ndb.KeyProperty(kind=Supplier)
     creator = ndb.KeyProperty(kind=User)
+    advance = ndb.KeyProperty(kind=PurchasePayment)
+    invoice = ndb.KeyProperty(kind=PurchasePayment)
 
     @property
     def name(self):
