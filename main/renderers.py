@@ -65,8 +65,9 @@ def render_div(*content, **kwargs):
 def render_nav(*content, **kwargs):
     return html.nav(*content, **kwargs)
 
-def render_logout(user, url):
-    return html.span('Welcome, {}! '.format(user), html.a('log out', href=url, class_="button"))
+def render_logout(user, url, help_url):
+    return html.span("Welcome, {}! ".format(user), html.a('log out', href=url, class_="button"),
+                     html.a("help", href=help_url, class_="button", target='_blank'))
          
 def render_modal_open(legend, id, **kwargs):
     button = html.button(legend, type="button", onclick="openDialog('%s');" % id, **kwargs)

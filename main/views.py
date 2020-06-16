@@ -12,7 +12,8 @@ import urls
 
 def view_user_controls(model):
     logout_url = data_models.logout_url()
-    return renderers.render_logout(model.user.name, logout_url)
+    help_url = 'http://members.pont-mbale.org.uk/workbench-user-guide'
+    return renderers.render_logout(model.user.name, logout_url, help_url)
 
 def create_breadcrumbs(entity):
     if entity is None:
