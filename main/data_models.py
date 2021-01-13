@@ -142,6 +142,8 @@ class Model(object):
         return getattr(self.entity, 'state_index', 0)
 
     def user_has_role(self, role_type):
+        if self.user.key is None:
+            return False
         query = db.Role.query(ancestor=self.user.key).filter(db.Role.type_index==role_type)
         if role_type == RoleType.COMMITTEE_ADMIN:
             query = query.filter(db.Role.committee==self.committee)
