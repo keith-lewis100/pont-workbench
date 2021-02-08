@@ -233,8 +233,9 @@ class Model(object):
         return audit
 
     def email_and_audit(self, action_name, message):
-        self.audit(action_name, message)
+        audit = self.audit(action_name, message)
         email_entity_creator(self.entity, self.user, message)
+        return audit
 
     def __repr__(self):
         return 'Model(%s, %s)' % (repr(self.entity), self.committee) 
