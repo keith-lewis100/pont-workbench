@@ -94,6 +94,10 @@ class InternalTransfer(ndb.Model):
     dest_fund = ndb.KeyProperty(kind=Fund)
     state_index = ndb.IntegerProperty(default=1)
     creator = ndb.KeyProperty(kind=User)
+    
+    @property
+    def name(self):
+        return "Transfer-To-" + self.dest_fund.get().name
 
 # ancestor = Supplier
 class Project(ndb.Model):
