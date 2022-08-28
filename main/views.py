@@ -49,8 +49,10 @@ def view_entity_single_column(entity, fields):
     labels = properties.get_labels(fields)
     return renderers.render_single_column(values, labels)    
 
-def view_entity_list(entity_list, fields, selectable=True, no_links=True):
+def view_entity_list(entity_list, fields, selectable=True, no_links=True, wide_field=None):
     column_headers = properties.get_labels(fields)
+    if wide_field:
+        fields = fields + (wide_field, )
     grid = properties.display_entity_list(entity_list, fields, no_links)
     url_list = map(urls.url_for_entity, entity_list) if selectable else None
     return renderers.render_table(column_headers, grid, url_list)
@@ -80,11 +82,12 @@ def view_entity_history(key):
     return (sub_heading, table)
 
 class Action(object):
-    def __init__(self, name, label, required_role, perform):
+    def __init__(self, name, label, required_role, perform, confirmation_text=None):
         self.name = name
         self.label = label
         self.required_role = required_role
         self.perform = perform
+        self.confirmation_text = confirmation_text
 
     def is_allowed(self, model):
         return model.user_has_role(self.required_role)
@@ -101,12 +104,15 @@ class Action(object):
         form = model.get_form(self.name)
         if form:
             return custom_fields.render_dialog_button(self.label, self.name, form, enabled)
+        if self.confirmation_text:
+            id = 'm-' + self.name
+            return renderers.render_confirmation_dialog(self.label, id, self.name, self.confirmation_text, enabled)
         return renderers.render_submit_button(self.label, name='_action', value=self.name,
                 disabled=not enabled)
 
 class StateAction(Action):
-    def __init__(self, name, label, required_role, perform, allowed_states):
-        super(StateAction, self).__init__(name, label, required_role, perform)
+    def __init__(self, name, label, required_role, perform, allowed_states, confirmation_text=None):
+        super(StateAction, self).__init__(name, label, required_role, perform, confirmation_text)
         self.allowed_states = allowed_states
 
     def is_allowed(self, model):
@@ -135,7 +141,8 @@ def create_action(required_role):
 
 def cancel_action(required_role, allowed_states):
     return StateAction('cancel', 'Cancel', required_role,
-                       data_models.Model.perform_close, allowed_states)
+                       data_models.Model.perform_close, allowed_states, 
+                       "Please confirm cancelation of this transaction")
 
 def requested_action(action_list):
     action_name = request.form['_action']
@@ -148,14 +155,14 @@ def handle_post(model, action_list):
     action = requested_action(action_list)
     return action.process_input(model)
 
-def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None):
+def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None, wide_field=None):
     if request.method == 'POST' and create_action.process_input(model):
         return redirect(request.base_url)
     action_list = [create_action]
     if model.is_stateful():
         model.show_closed = request.args.has_key('show_closed')
         action_list.append(ACTION_FILTER)
-    entity_table = view_entity_list(model.apply_query(entity_query), property_list)
+    entity_table = view_entity_list(model.apply_query(entity_query), property_list, wide_field=wide_field)
     buttons = view_actions(action_list, model)
     errors = view_errors(model)
     breadcrumbs = view_breadcrumbs(parent)

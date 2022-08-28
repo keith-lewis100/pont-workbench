@@ -97,7 +97,7 @@ def view_grant_list(db_id):
     grant_query = db.Grant.query(ancestor=fund.key).order(-db.Grant.state_index,
                           db.Grant.target_date)
     return views.view_std_entity_list(model, 'Grant List', ACTION_CREATE, property_list,
-                                       grant_query, fund)
+                                       grant_query, fund, description_field)
 
 @app.route('/grant/<db_id>', methods=['GET', 'POST'])
 def view_grant(db_id):

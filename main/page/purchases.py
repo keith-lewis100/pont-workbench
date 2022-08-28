@@ -142,7 +142,7 @@ def view_purchase_list(db_id):
     purchase_query = db.Purchase.query(ancestor=fund.key).order(-db.Purchase.state_index,
                                                                 db.Purchase.po_number)
     return views.view_std_entity_list(model, 'Purchase List', ACTION_CREATE, property_list,
-                                      purchase_query, fund)
+                                      purchase_query, fund, description_field)
 
 def load_purchase_model(purchase, request_data):
     fund = data_models.get_parent(purchase)

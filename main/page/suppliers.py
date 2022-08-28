@@ -86,7 +86,7 @@ def render_grants_due_list(supplier):
     grant_list = db.find_pending_grants(supplier, cutoff_date)
     field_list = (grants.state_field, grants.target_date_field, grants.creator_field, grants.source_field, grants.project_field, grants.amount_field)
     sub_heading = renderers.sub_heading('Grant Payments Due')
-    table = views.view_entity_list(grant_list, field_list)
+    table = views.view_entity_list(grant_list, field_list, wide_field=grants.description_field)
     return (sub_heading, table)
 
 po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')

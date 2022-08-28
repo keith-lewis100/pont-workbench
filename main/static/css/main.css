@@ -10,6 +10,10 @@ tr.selectable:hover {
   background-color: #1EAEDB;
 }
 
+td.extra {
+  padding-top: 0px
+}
+
 button:disabled {
   background-color: transparent;    
   border-color: #bbb;

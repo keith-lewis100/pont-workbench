@@ -18,6 +18,7 @@ TRANSFER_COMPLETE = 0
 state_labels = ['Closed', 'Pending']
 
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
+description_field = properties.StringProperty('description')
 
 def perform_transferred(model, action_name):
     model.entity.state_index = TRANSFER_COMPLETE
@@ -57,7 +58,7 @@ def view_internaltransfer_list(db_id):
               properties.StringProperty('amount'))
     transfer_query = db.InternalTransfer.query(ancestor = fund.key).order(-db.InternalTransfer.state_index)
     return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE, property_list, 
-                                      transfer_query, fund)
+                                      transfer_query, fund, description_field)
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):
@@ -67,5 +68,5 @@ def view_internaltransfer(db_id):
     add_transfer_form(request.form, model, ACTION_UPDATE)
     title = 'InternalTransfer to ' + transfer.dest_fund.get().name if transfer.dest_fund != None else ""
     property_list = (state_field, properties.KeyProperty('creator'), properties.KeyProperty('dest_fund'),
-              properties.StringProperty('amount'), properties.StringProperty('description'))
+              properties.StringProperty('amount'), description_field)
     return views.view_std_entity(model, title, property_list, action_list)

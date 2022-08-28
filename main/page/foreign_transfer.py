@@ -55,7 +55,7 @@ class TransferModel(data_models.Model):
         supplier = data_models.get_parent(transfer)
         column = views.view_entity_single_column(transfer, email_properties)
         purchase_payments = render_purchase_payments_list(self.payment_list)
-        grant_payments = render_grants_due_list(self.grant_list, selectable=False, no_links=True)
+        grant_payments = render_grants_due_list(self.grant_list, selectable=False)
         content = renderers.render_div(column, purchase_payments, grant_payments)
         mailer.send_email('PONT Transfer %s' % transfer.ref_id, content, supplier.contact_emails)
 
@@ -103,13 +103,13 @@ def get_partner(grant):
         return project.partner.get().name
     return ""
 
-grant_field_list = [
+grant_field_list = (
     grants.state_field, grants.creator_field, grants.project_field, grants.amount_field,
     grants.transferred_amount_field,
     properties.StringProperty(get_partner, 'Implementing Partner'),
     grants.source_field,
     properties.StringProperty(lambda e: e.project.get().fund.get().name, 'Destination Fund')
-]
+)
 
 po_number_field = properties.StringProperty(lambda e: e.key.parent().get().po_number, 'PO Number')
 requestor_field = properties.KeyProperty(lambda e: e.key.parent().get().creator, 'Requestor')
@@ -138,9 +138,9 @@ def view_foreigntransfer_list(db_id):
     return render_template('layout.html', title='Foreign Transfer List', breadcrumbs=breadcrumbs,
                            user=user_controls, buttons=buttons, content=entity_table)
 
-def render_grants_due_list(grant_list, selectable=True, no_links=True):
+def render_grants_due_list(grant_list, selectable=True):
     sub_heading = renderers.sub_heading('Grant Payments')
-    table = views.view_entity_list(grant_list, grant_field_list, selectable, no_links)
+    table = views.view_entity_list(grant_list, grant_field_list, wide_field=grants.description_field)
     return (sub_heading, table)
 
 def render_purchase_payments_list(payment_list):

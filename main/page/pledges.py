@@ -43,6 +43,7 @@ ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_
 
 state_field = properties.SelectProperty('state_index', 'State', enumerate(state_labels))
 ref_id_field = properties.StringProperty('ref_id', 'Reference')
+description_field = properties.StringProperty('description')
 
 class MoneyForm(wtforms.Form):
     value = wtforms.IntegerField()
@@ -62,7 +63,7 @@ def view_pledge_list(db_id):
     pledge_query = db.Pledge.query(ancestor=fund.key).order(-db.Pledge.state_index,
                                                             db.Pledge.ref_id)
     return views.view_std_entity_list(model, 'Pledge List', ACTION_CREATE, property_list, 
-                                      pledge_query, fund)
+                                      pledge_query, fund, description_field)
 
 @app.route('/pledge/<db_id>', methods=['GET', 'POST'])
 def view_pledge(db_id):
@@ -73,6 +74,6 @@ def view_pledge(db_id):
     model.add_form(ACTION_UPDATE.name, form)
     title = 'Pledge ' + pledge.ref_id
     property_list = (ref_id_field, state_field, properties.KeyProperty('creator'),
-              properties.StringProperty('amount'), properties.StringProperty('description'))
+              properties.StringProperty('amount'), description_field)
     return views.view_std_entity(model, title, property_list,
                                  (ACTION_UPDATE, ACTION_FULFILLED, ACTION_BOOKED))
