@@ -95,7 +95,7 @@ def view_grant_list(db_id):
     add_grant_form(model, ACTION_CREATE)
     property_list = (state_field, target_date_field, project_field, amount_field)
     grant_query = db.Grant.query(ancestor=fund.key).order(-db.Grant.state_index,
-                          db.Grant.target_date)
+                          -db.Grant.target_date)
     return views.view_std_entity_list(model, 'Grant List', ACTION_CREATE, property_list,
                                        grant_query, fund, description_field)
 

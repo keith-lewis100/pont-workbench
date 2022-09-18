@@ -61,7 +61,7 @@ def view_pledge_list(db_id):
     model.add_form(ACTION_CREATE.name, form)
     property_list = (state_field, ref_id_field, properties.StringProperty('amount'))
     pledge_query = db.Pledge.query(ancestor=fund.key).order(-db.Pledge.state_index,
-                                                            db.Pledge.ref_id)
+                                                            -db.Pledge.ref_id)
     return views.view_std_entity_list(model, 'Pledge List', ACTION_CREATE, property_list, 
                                       pledge_query, fund, description_field)
 

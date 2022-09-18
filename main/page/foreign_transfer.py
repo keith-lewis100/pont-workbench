@@ -127,7 +127,7 @@ def view_foreigntransfer_list(db_id):
     model = data_models.Model(dummy_transfer, None)
     breadcrumbs = views.view_breadcrumbs(supplier)
     transfer_query = db.ForeignTransfer.query(ancestor=supplier.key).order(-db.ForeignTransfer.state_index,
-                                                                           db.ForeignTransfer.ref_id)
+                                                                           -db.ForeignTransfer.ref_id)
     transfer_fields = [state_field, ref_field, creation_date_field, rate_field]
     model.show_closed = request.args.has_key('show_closed')
     db_filter = db.ForeignTransfer.state_index == 0 if model.show_closed else db.ForeignTransfer.state_index > 0

@@ -131,7 +131,7 @@ def find_pending_grants(supplier, cutoff_date):
     return Grant.query(ndb.AND(Grant.target_date <= cutoff_date, 
                                Grant.supplier == supplier.key,
                                Grant.transfer == None,
-                               Grant.state_index.IN([1, 2]))).order(Grant.target_date).fetch()
+                               Grant.state_index.IN([1, 2]))).order(-Grant.target_date).fetch()
 
 def find_ready_grants(supplier):
     return Grant.query(ndb.AND(Grant.supplier == supplier.key,
