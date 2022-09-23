@@ -28,7 +28,7 @@ def view_partner_list(db_id):
     model.add_form(ACTION_CREATE.name, form)
     partner_query = db.Partner.query(ancestor=supplier.key).order(db.Partner.name)
     return views.view_std_entity_list(model, 'Partner List', ACTION_CREATE, (name_field, ),
-                                      partner_query, supplier)
+                                      partner_query, parent=supplier)
 
 @app.route('/partner/<db_id>', methods=['GET', 'POST'])
 def view_partner(db_id):

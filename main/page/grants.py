@@ -94,10 +94,10 @@ def view_grant_list(db_id):
     model = GrantModel(new_grant, fund.committee, db.Grant)
     add_grant_form(model, ACTION_CREATE)
     property_list = (state_field, target_date_field, project_field, amount_field)
-    grant_query = db.Grant.query(ancestor=fund.key).order(-db.Grant.state_index,
-                          -db.Grant.target_date)
+    grant_query = db.Grant.query(ancestor=fund.key)
+    sort_func = lambda e: e.target_date
     return views.view_std_entity_list(model, 'Grant List', ACTION_CREATE, property_list,
-                                       grant_query, fund, description_field)
+                                       grant_query, parent=fund, wide_field=description_field, sort_func=sort_func)
 
 @app.route('/grant/<db_id>', methods=['GET', 'POST'])
 def view_grant(db_id):

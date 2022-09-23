@@ -139,10 +139,10 @@ def view_purchase_list(db_id):
     model = PurchaseModel(new_purchase, fund.committee, db.Purchase)
     add_purchase_form(request.form, model, ACTION_CREATE)
     property_list = (state_field, po_number_field, supplier_field, properties.StringProperty('quote_amount'))
-    purchase_query = db.Purchase.query(ancestor=fund.key).order(-db.Purchase.state_index,
-                                                                -db.Purchase.po_number)
+    purchase_query = db.Purchase.query(ancestor=fund.key)
+    sort_func = lambda e: e.po_number
     return views.view_std_entity_list(model, 'Purchase List', ACTION_CREATE, property_list,
-                                      purchase_query, fund, description_field)
+                                      purchase_query, parent=fund, wide_field=description_field, sort_func=sort_func)
 
 def load_purchase_model(purchase, request_data):
     fund = data_models.get_parent(purchase)

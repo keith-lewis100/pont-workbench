@@ -30,7 +30,7 @@ def view_supplierfund_list(db_id):
     model.add_form(ACTION_CREATE.name, form)
     fund_query = db.SupplierFund.query(ancestor=supplier.key).order(db.SupplierFund.name)
     return views.view_std_entity_list(model, 'SupplierFund List', ACTION_CREATE, (name_field, ),
-                                      fund_query, supplier)
+                                      fund_query, parent=supplier)
 
 @app.route('/supplierfund/<db_id>', methods=['GET', 'POST'])
 def view_supplierfund(db_id):

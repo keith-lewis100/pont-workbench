@@ -58,7 +58,7 @@ def view_internaltransfer_list(db_id):
               properties.StringProperty('amount'))
     transfer_query = db.InternalTransfer.query(ancestor = fund.key).order(-db.InternalTransfer.state_index)
     return views.view_std_entity_list(model, 'Internal Transfer List', ACTION_CREATE, property_list, 
-                                      transfer_query, fund, description_field)
+                                      transfer_query, parent=fund, wide_field=description_field)
 
 @app.route('/internaltransfer/<db_id>', methods=['GET', 'POST'])
 def view_internaltransfer(db_id):

@@ -155,14 +155,18 @@ def handle_post(model, action_list):
     action = requested_action(action_list)
     return action.process_input(model)
 
-def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None, wide_field=None):
+def view_std_entity_list(model, title, create_action, property_list, entity_query, parent=None,
+                         wide_field=None, sort_func=None):
     if request.method == 'POST' and create_action.process_input(model):
         return redirect(request.base_url)
     action_list = [create_action]
     if model.is_stateful():
         model.show_closed = request.args.has_key('show_closed')
         action_list.append(ACTION_FILTER)
-    entity_table = view_entity_list(model.apply_query(entity_query), property_list, wide_field=wide_field)
+    entity_list = model.apply_query(entity_query)
+    if sort_func:
+      entity_list.sort(key=sort_func, reverse=True)
+    entity_table = view_entity_list(entity_list, property_list, wide_field=wide_field)
     buttons = view_actions(action_list, model)
     errors = view_errors(model)
     breadcrumbs = view_breadcrumbs(parent)

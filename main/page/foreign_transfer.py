@@ -126,13 +126,12 @@ def view_foreigntransfer_list(db_id):
     dummy_transfer = db.ForeignTransfer(parent=supplier.key)
     model = data_models.Model(dummy_transfer, None)
     breadcrumbs = views.view_breadcrumbs(supplier)
-    transfer_query = db.ForeignTransfer.query(ancestor=supplier.key).order(-db.ForeignTransfer.state_index,
-                                                                           -db.ForeignTransfer.ref_id)
     transfer_fields = [state_field, ref_field, creation_date_field, rate_field]
     model.show_closed = request.args.has_key('show_closed')
     db_filter = db.ForeignTransfer.state_index == 0 if model.show_closed else db.ForeignTransfer.state_index > 0
-    transfer_query = transfer_query.filter(db_filter)
-    entity_table = views.view_entity_list(transfer_query.fetch(), transfer_fields)
+    entity_list = db.ForeignTransfer.query(ancestor=supplier.key).filter(db_filter).fetch()
+    entity_list.sort(reverse=True, key=lambda e: e.ref_id)
+    entity_table = views.view_entity_list(entity_list, transfer_fields)
     buttons = views.view_actions([views.ACTION_FILTER], model)
     user_controls = views.view_user_controls(model)
     return render_template('layout.html', title='Foreign Transfer List', breadcrumbs=breadcrumbs,

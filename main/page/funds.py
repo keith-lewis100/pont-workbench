@@ -53,7 +53,7 @@ def view_fund_list(db_id):
     property_list = (name_field, code_field)
     fund_query = db.Fund.query(db.Fund.committee == db_id).order(-db.Fund.state_index, db.Fund.name)
     return views.view_std_entity_list(model, 'Fund List', ACTION_CREATE, property_list,
-                                      fund_query, committee)
+                                      fund_query, parent=committee)
 
 link_pairs = [('Purchase', 'Show Purchase Requests'),
               ('Grant', 'Show Grants'),

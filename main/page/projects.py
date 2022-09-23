@@ -79,7 +79,7 @@ def view_project_list(db_id):
     property_list = (state_field, properties.StringProperty('name', 'Name'))
     project_query = db.Project.query(ancestor=supplier.key).order(-db.Project.state_index, db.Project.name)
     return views.view_std_entity_list(model, 'Project List', ACTION_CREATE, property_list,
-                                       project_query, supplier)
+                                       project_query, parent=supplier)
 
 @app.route('/project/<db_id>', methods=['GET', 'POST'])
 def view_project(db_id):
