@@ -59,24 +59,12 @@ class TransferModel(data_models.Model):
         content = renderers.render_div(column, purchase_payments, grant_payments)
         mailer.send_email('PONT Transfer %s' % transfer.ref_id, content, supplier.contact_emails)
 
-    def perform_ack(self, action_name):
-        parent_audit = self.perform_close(action_name)
-        transfer = self.entity
-        for grant in self.grant_list:
-            project = grant.project.get()
-            if project.partner is None:
-                grant.state_index = data_models.STATE_CLOSED
-                grant.put()
-                self.audit(action_name, 'Transfer acknowledged', grant, parent_audit.key)
-                data_models.email_entity_creator(grant, self.user, 'Transfer acknowledged')
-        return True
-
 ACTION_TRANSFERRED = views.StateAction('transferred', 'Transferred', RoleType.PAYMENT_ADMIN, 
                             TransferModel.perform_transferred, [STATE_REQUESTED])
-ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.PAYMENT_ADMIN,
-                                        TransferModel.perform_ack, [STATE_TRANSFERRED])
+ACTION_ARCHIVE = views.StateAction('close', 'Archive', RoleType.PAYMENT_ADMIN,
+                                   data_models.Model.perform_close, [STATE_TRANSFERRED])
 
-action_list = [ACTION_TRANSFERRED, ACTION_ACKNOWLEDGED]
+action_list = [ACTION_TRANSFERRED, ACTION_ARCHIVE]
 
 def show_totals(transfer):
     sterling, shillings = transfer.totals

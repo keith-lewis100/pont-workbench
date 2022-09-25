@@ -54,13 +54,13 @@ def perform_checked(model, action_name):
 
 ACTION_CHECKED = views.StateAction('checked', 'Funds Checked', RoleType.FUND_ADMIN,
                                    perform_checked, [STATE_WAITING])
-ACTION_ACKNOWLEDGED = views.StateAction('ack', 'Received', RoleType.COMMITTEE_ADMIN,
+ACTION_ARCHIVE = views.StateAction('close', 'Archive', RoleType.COMMITTEE_ADMIN,
                                         data_models.Model.perform_close, [STATE_TRANSFERED])
 ACTION_CANCEL = views.cancel_action(RoleType.COMMITTEE_ADMIN, [STATE_WAITING, STATE_READY])
 ACTION_UPDATE = views.update_action(RoleType.COMMITTEE_ADMIN, [STATE_WAITING])
 ACTION_CREATE = views.Action('create', 'New', RoleType.COMMITTEE_ADMIN, perform_create)
 
-action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ACKNOWLEDGED, ACTION_CANCEL]
+action_list = [ACTION_UPDATE, ACTION_CHECKED, ACTION_ARCHIVE, ACTION_CANCEL]
 
 state_field = properties.SelectProperty(state_of, 'State', enumerate(state_labels))
 creator_field = properties.KeyProperty('creator', 'Requestor')

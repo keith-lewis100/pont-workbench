@@ -215,7 +215,8 @@ class Model(object):
     def perform_close(self, action_name):
         self.entity.state_index = STATE_CLOSED
         self.entity.put()
-        return self.email_and_audit(action_name, "%s performed" % action_name.title())
+        self.email_and_audit(action_name, "%s performed" % action_name.title())
+        return True
 
     def add_error(self, error_text):
             self.errors.append(error_text)
