@@ -90,7 +90,7 @@ def add_grant_form(model, action):
 def view_grant_list(db_id):
     fund = data_models.lookup_entity(db_id)
     new_grant = db.Grant(parent=fund.key)
-    new_grant.target_date = date.today() + timedelta(30)
+    new_grant.target_date = date.today()
     model = GrantModel(new_grant, fund.committee, db.Grant)
     add_grant_form(model, ACTION_CREATE)
     property_list = (state_field, target_date_field, project_field, amount_field)
